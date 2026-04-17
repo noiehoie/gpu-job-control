@@ -15,6 +15,7 @@ These JSON files are safe, public examples. They use placeholder URIs, placehold
 - `asr.bulk.json`: batch ASR shape for amortized startup decisions.
 - `asr.modal.json`: Modal ASR contract.
 - `llm-heavy.modal.json`: Modal GPU LLM contract.
+- `llm-heavy.runpod-pod.json`: RunPod Pod HTTP worker LLM-shaped GPU canary.
 - `llm-heavy.runpod.json`: RunPod serverless LLM contract.
 - `smoke.modal.json`: Modal smoke job.
 - `smoke.runpod-pod.json`: RunPod Pod HTTP worker smoke job with pinned image and teardown guard.

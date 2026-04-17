@@ -456,9 +456,13 @@ class RunPodProvider(Provider):
         min_memory_in_gb: int,
         max_uptime_seconds: int,
         max_estimated_cost_usd: float,
+        network_volume_id: str = "",
+        data_center_id: str = "",
+        worker_mode: str = "smoke",
+        prompt: str = "",
         execute: bool,
     ) -> dict[str, Any]:
-        docker_args = _pod_http_worker_docker_args()
+        docker_args = _pod_http_worker_docker_args(worker_mode=worker_mode)
         plan = self.plan_pod_worker(
             gpu_type_id=gpu_type_id,
             image=image,
@@ -473,10 +477,15 @@ class RunPodProvider(Provider):
             docker_args=docker_args,
         )
         plan["pod_input"]["ports"] = "8000/http"
+        if network_volume_id:
+            plan["pod_input"]["networkVolumeId"] = network_volume_id
+            plan["pod_input"]["dataCenterId"] = data_center_id
         plan["worker_canary"] = {
             "health_path": "/health",
+            "generate_path": "/generate",
             "proxy_url_template": "https://<pod_id>-8000.proxy.runpod.net/health",
             "success_condition": "HTTP 200 JSON with ok=true and nvidia-smi exit_code=0",
+            "worker_mode": worker_mode,
         }
         if not execute:
             return {**plan, "executed": False}
@@ -500,6 +509,8 @@ class RunPodProvider(Provider):
                 min_memory_in_gb=min_memory_in_gb,
                 docker_args=docker_args,
                 ports="8000/http",
+                network_volume_id=network_volume_id,
+                data_center_id=data_center_id,
             )
             pod_id = str(pod.get("id") or "")
             if not pod_id:
@@ -512,7 +523,9 @@ class RunPodProvider(Provider):
             if not actual_cost_guard["ok"]:
                 raise RuntimeError(f"created pod exceeds cost guard: {actual_cost_guard}")
             health_url = f"https://{pod_id}-8000.proxy.runpod.net/health"
+            generate_url = f"https://{pod_id}-8000.proxy.runpod.net/generate"
             deadline = start + max_uptime_seconds
+            generate_result: dict[str, Any] = {}
             while time.time() < deadline:
                 sample = self._get_pod(pod_id)
                 samples.append(_public_pod(sample))
@@ -520,9 +533,21 @@ class RunPodProvider(Provider):
                     health = _fetch_json_url(health_url, timeout=10)
                     health_samples.append(health)
                     if health.get("ok") and health.get("gpu_probe", {}).get("exit_code") == 0:
+                        if worker_mode == "llm":
+                            generate_result = _post_json_url(
+                                generate_url,
+                                {
+                                    "prompt": prompt,
+                                    "model": "runpod-pod-deterministic-gpu-canary",
+                                    "max_tokens": 64,
+                                },
+                                timeout=20,
+                            )
                         break
                 time.sleep(min(5, max(1, int(deadline - time.time()))))
             healthy = any(item.get("ok") and item.get("gpu_probe", {}).get("exit_code") == 0 for item in health_samples)
+            if worker_mode == "llm":
+                healthy = healthy and bool(generate_result.get("ok") and generate_result.get("text"))
             result = {
                 "ok": healthy,
                 "executed": True,
@@ -532,6 +557,8 @@ class RunPodProvider(Provider):
                 "samples": samples,
                 "health_url": health_url,
                 "health_samples": health_samples,
+                "generate_url": generate_url if worker_mode == "llm" else "",
+                "generate_result": generate_result,
                 "observed_runtime": any(_pod_has_runtime(sample) for sample in samples),
                 "observed_http_worker": healthy,
                 "runtime_seconds": round(time.time() - start, 3),
@@ -607,6 +634,8 @@ query {{
         min_memory_in_gb: int,
         docker_args: str,
         ports: str | None = None,
+        network_volume_id: str = "",
+        data_center_id: str = "",
     ) -> dict[str, Any]:
         name = f"gpu-job-pod-canary-{time.strftime('%Y%m%d%H%M%S')}"
         fields = [
@@ -626,6 +655,10 @@ query {{
         ]
         if ports:
             fields.append(f"ports: {_graphql_string(ports)}")
+        if network_volume_id:
+            fields.append(f"networkVolumeId: {_graphql_string(network_volume_id)}")
+        if data_center_id:
+            fields.append(f"dataCenterId: {_graphql_string(data_center_id)}")
         query = f"""
 mutation {{
   podFindAndDeployOnDemand(input: {{ {", ".join(fields)} }}) {{
@@ -1479,7 +1512,9 @@ mutation {{
             store.save(job)
             return job
         if job.job_type == "smoke":
-            return self._submit_pod_smoke(job, store)
+            return self._submit_pod_worker(job, store, worker_mode="smoke")
+        if job.job_type == "llm_heavy" and str(job.metadata.get("runpod_execution_mode") or "") == "pod_http":
+            return self._submit_pod_worker(job, store, worker_mode="llm")
         if job.job_type != "llm_heavy":
             job.status = "failed"
             job.error = "runpod execute currently supports smoke and llm_heavy jobs only"
@@ -1553,7 +1588,7 @@ mutation {{
         store.save(job)
         return job
 
-    def _submit_pod_smoke(self, job: Job, store: JobStore) -> Job:
+    def _submit_pod_worker(self, job: Job, store: JobStore, *, worker_mode: str) -> Job:
         artifact_dir = store.artifact_dir(job.job_id)
         artifact_dir.mkdir(parents=True, exist_ok=True)
         start = now_unix()
@@ -1577,10 +1612,15 @@ mutation {{
             min_memory_in_gb=int(job.metadata.get("runpod_min_memory_in_gb") or 8),
             max_uptime_seconds=max_uptime_seconds,
             max_estimated_cost_usd=max_estimated_cost_usd,
+            network_volume_id=str(job.metadata.get("runpod_network_volume_id") or ""),
+            data_center_id=str(job.metadata.get("runpod_data_center_id") or ""),
+            worker_mode=worker_mode,
+            prompt=_job_prompt(job),
             execute=True,
         )
         stdout = _runpod_smoke_stdout(output)
         stderr = "" if output.get("ok") else str(output.get("error") or "runpod pod smoke failed")
+        text = str((output.get("generate_result") or {}).get("text") or "") if worker_mode == "llm" else ""
         result = {
             "job_id": job.job_id,
             "job_type": job.job_type,
@@ -1589,7 +1629,11 @@ mutation {{
             "observed_runtime": output.get("observed_runtime"),
             "observed_http_worker": output.get("observed_http_worker"),
             "health_url": output.get("health_url"),
+            "generate_url": output.get("generate_url"),
             "gpu_probe": _last_gpu_probe(output),
+            "volume_probe": _last_volume_probe(output),
+            "text": text,
+            "generate_result": output.get("generate_result"),
             "actual_cost_guard": output.get("actual_cost_guard"),
             "pod": output.get("pod"),
         }
@@ -1600,6 +1644,7 @@ mutation {{
             "runtime_seconds": max(0, now_unix() - start),
             "remote_runtime_seconds": output.get("runtime_seconds"),
             "health_sample_count": len(output.get("health_samples") or []),
+            "text_chars": len(text),
         }
         (artifact_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
@@ -1838,11 +1883,47 @@ def _fetch_json_url(url: str, *, timeout: int) -> dict[str, Any]:
         return {"ok": False, "error": str(exc)}
 
 
+def _post_json_url(url: str, payload: dict[str, Any], *, timeout: int) -> dict[str, Any]:
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json", "User-Agent": "gpu-job-control"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            body = response.read().decode("utf-8", errors="replace")
+        return json.loads(body)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        return {"ok": False, "status": exc.code, "error": body[:500]}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
 def _last_gpu_probe(output: dict[str, Any]) -> dict[str, Any]:
     for item in reversed(output.get("health_samples") or []):
         if isinstance(item, dict) and isinstance(item.get("gpu_probe"), dict):
             return item["gpu_probe"]
     return {}
+
+
+def _last_volume_probe(output: dict[str, Any]) -> dict[str, Any]:
+    for item in reversed(output.get("health_samples") or []):
+        if isinstance(item, dict) and isinstance(item.get("volume_probe"), dict):
+            return item["volume_probe"]
+    return {}
+
+
+def _job_prompt(job: Job) -> str:
+    metadata_input = job.metadata.get("input")
+    if isinstance(metadata_input, dict):
+        for key in ("prompt", "text", "content"):
+            if metadata_input.get(key):
+                return str(metadata_input[key])
+    if job.input_uri.startswith("text://"):
+        return job.input_uri.removeprefix("text://")
+    return str(job.metadata.get("prompt") or job.input_uri)
 
 
 def _runpod_smoke_stdout(output: dict[str, Any]) -> str:
@@ -1856,6 +1937,14 @@ def _runpod_smoke_stdout(output: dict[str, Any]) -> str:
     if probe:
         lines.append(f"gpu_probe_exit_code={probe.get('exit_code')}")
         lines.append(f"gpu_probe_stdout={probe.get('stdout') or ''}")
+    volume_probe = _last_volume_probe(output)
+    if volume_probe:
+        lines.append(f"volume_probe_ok={bool(volume_probe.get('ok'))}")
+        lines.append(f"volume_probe_path={volume_probe.get('path') or ''}")
+    generated = output.get("generate_result")
+    if isinstance(generated, dict):
+        lines.append(f"generate_ok={bool(generated.get('ok'))}")
+        lines.append(f"generate_text_chars={len(str(generated.get('text') or ''))}")
     cleanup = output.get("cleanup")
     if isinstance(cleanup, dict):
         lines.append(f"cleanup_ok={bool(cleanup.get('ok'))}")
@@ -1866,14 +1955,18 @@ def _runpod_smoke_stdout(output: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _pod_http_worker_docker_args() -> str:
+def _pod_http_worker_docker_args(*, worker_mode: str = "smoke") -> str:
     script = r"""
+import hashlib
 import json
+import os
 import subprocess
+import tempfile
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 STARTED_AT = time.time()
+WORKER_MODE = os.environ.get("GPU_JOB_WORKER_MODE", "smoke")
 
 
 def gpu_probe():
@@ -1891,6 +1984,46 @@ def gpu_probe():
         }
     except Exception as exc:
         return {"exit_code": 1, "error": str(exc)}
+
+
+def volume_probe():
+    root = "/runpod-volume"
+    result = {
+        "path": root,
+        "exists": os.path.exists(root),
+        "is_dir": os.path.isdir(root),
+        "ok": False,
+    }
+    if not result["is_dir"]:
+        result["error"] = "volume path is not a directory"
+        return result
+    try:
+        marker_dir = os.path.join(root, "gpu-job-control-canary")
+        os.makedirs(marker_dir, exist_ok=True)
+        fd, path = tempfile.mkstemp(prefix="probe-", suffix=".json", dir=marker_dir)
+        payload = {"created_at": time.time(), "service": "gpu-job-runpod-pod-http-canary"}
+        with os.fdopen(fd, "w") as fh:
+            json.dump(payload, fh)
+        with open(path) as fh:
+            loaded = json.load(fh)
+        os.unlink(path)
+        result.update({
+            "ok": loaded.get("service") == payload["service"],
+            "marker_dir": marker_dir,
+            "write_read_delete": True,
+        })
+    except Exception as exc:
+        result["error"] = str(exc)
+    return result
+
+
+def generate_text(prompt):
+    digest = hashlib.sha256(prompt.encode()).hexdigest()[:16]
+    return (
+        "RunPod Pod GPU canary response. "
+        f"mode={WORKER_MODE}; prompt_sha256_prefix={digest}; "
+        "This confirms HTTP generation path, GPU probe, artifact contract, and teardown."
+    )
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1915,21 +2048,46 @@ class Handler(BaseHTTPRequestHandler):
             {
                 "ok": probe.get("exit_code") == 0,
                 "service": "gpu-job-runpod-pod-http-canary",
+                "worker_mode": WORKER_MODE,
                 "uptime_seconds": round(time.time() - STARTED_AT, 3),
                 "gpu_probe": probe,
+                "volume_probe": volume_probe(),
             },
         )
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length).decode("utf-8", errors="replace") if length else ""
+        try:
+            payload = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            payload = {"raw": raw}
+        prompt = str(payload.get("prompt") or payload.get("text") or raw)
+        if self.path == "/generate":
+            text = generate_text(prompt)
+            self._send_json(
+                200,
+                {
+                    "ok": True,
+                    "service": "gpu-job-runpod-pod-http-canary",
+                    "worker_mode": WORKER_MODE,
+                    "text": text,
+                    "text_chars": len(text),
+                    "prompt_chars": len(prompt),
+                    "gpu_probe": gpu_probe(),
+                    "volume_probe": volume_probe(),
+                },
+            )
+            return
         self._send_json(
             200,
             {
                 "ok": True,
                 "service": "gpu-job-runpod-pod-http-canary",
+                "worker_mode": WORKER_MODE,
                 "received_bytes": len(raw.encode()),
                 "gpu_probe": gpu_probe(),
+                "volume_probe": volume_probe(),
             },
         )
 
@@ -1937,7 +2095,8 @@ class Handler(BaseHTTPRequestHandler):
 HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
 """.strip()
     encoded = base64.b64encode(script.encode()).decode()
-    return f'bash -lc "python -u -c \\"import base64;exec(base64.b64decode(\\\\\\"{encoded}\\\\\\"))\\""'
+    mode = worker_mode.replace('"', "")
+    return f'bash -lc "export GPU_JOB_WORKER_MODE={mode}; python -u -c \\"import base64;exec(base64.b64decode(\\\\\\"{encoded}\\\\\\"))\\""'
 
 
 def _safe_name(value: str) -> str:

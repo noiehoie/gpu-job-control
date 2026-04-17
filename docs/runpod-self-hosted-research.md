@@ -34,8 +34,9 @@ RunPod exposes several different surfaces that must not be confused.
 | Public OpenAI-compatible endpoint | Proven | `qwen3-32b-awq` canary returns in about 1-2 seconds through the worker path. |
 | Self-hosted Serverless vLLM from raw GraphQL template | Blocked | Endpoint and template can be created, but workers remain unreachable and requests stay queued. See [RunPod Support Question](runpod-support-question.md). |
 | Hub/Console vLLM template path | Needs RunPod/template diff | Official docs point users to the Hub ready-to-deploy vLLM repo; the exact programmatic template/repo binding must be confirmed. |
-| Pod / Network Volume lifecycle | Lifecycle proven | `gpu-job runpod canary-pod-lifecycle --execute` created an RTX 3090 pod, observed `desiredStatus=RUNNING`, terminated it, and post-guard showed no billable pods. |
+| Pod / Network Volume lifecycle | Lifecycle proven | `gpu-job runpod canary-pod-lifecycle --execute` created an RTX 3090 pod, observed `desiredStatus=RUNNING`, terminated it, and post-guard showed no billable pods. A later US-NC-1 Network Volume canary on RTX 4090 proved `/runpod-volume` write/read/delete. |
 | Pod HTTP worker through proxy | Implemented canary | `gpu-job runpod canary-pod-http-worker --execute` creates a Pod, exposes `8000/http`, probes `https://<pod_id>-8000.proxy.runpod.net/health`, and terminates the Pod. |
+| Pod HTTP `llm_heavy` job contract | Proven deterministic canary | `gpu-job submit examples/jobs/llm-heavy.runpod-pod.json --provider runpod --execute` reached `/generate`, returned deterministic text, wrote artifacts, and terminated the Pod. |
 
 ## Key Official Facts
 
@@ -182,6 +183,73 @@ That command writes the normal artifact set: `result.json`, `metrics.json`, `ver
 Do not use the untagged `runpod/pytorch` image. RunPod/Docker resolves it as `runpod/pytorch:latest`, and the observed provider log reported `manifest for runpod/pytorch:latest not found`. The canary therefore pins `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, matching RunPod's documented custom-template example and avoiding a mutable or missing `latest` tag.
 
 Also do not treat `lowestPrice.uninterruptablePrice` as a hard upper bound. A successful HTTP canary planned against `0.22 USD/hour` but the allocated Pod reported `costPerHr=0.46`. The canary now performs a second guard immediately after creation using the actual assigned `costPerHr`; if the actual maximum cost exceeds policy, it terminates before doing any useful work.
+
+The same HTTP Pod worker can execute a deterministic `llm_heavy` canary through the standard job contract:
+
+```bash
+gpu-job submit examples/jobs/llm-heavy.runpod-pod.json --provider runpod --execute
+```
+
+Observed result:
+
+```text
+job_id=llm_heavy-20260418-081252-d9463abf
+status=succeeded
+exit_code=0
+runtime_seconds=27
+provider_job_id=t8lvo42moh2dwr
+gpu_probe_stdout=NVIDIA GeForce RTX 3090, 24576 MiB
+generate_ok=True
+generate_text_chars=160
+actual_cost_per_hour=0.46
+post_submit_guard.providers.runpod.billable_resources=[]
+```
+
+Artifact verification:
+
+```text
+ok=true
+artifact_count=6
+manifest_present=true
+missing=[]
+mismatched=[]
+json_valid.metrics.json=true
+json_valid.result.json=true
+json_valid.verify.json=true
+```
+
+Network Volume attachment is separately proven with the Pod HTTP canary:
+
+```bash
+gpu-job runpod canary-pod-http-worker \
+  --network-volume-id <approved-volume-id> \
+  --data-center-id US-NC-1 \
+  --gpu-type-id "NVIDIA GeForce RTX 4090" \
+  --worker-mode smoke \
+  --max-uptime-seconds 60 \
+  --max-estimated-cost-usd 0.02 \
+  --execute
+```
+
+Observed result:
+
+```text
+ok=true
+observed_http_worker=true
+observed_runtime=true
+runtime_seconds=22.683
+gpu_probe_stdout=NVIDIA GeForce RTX 4090, 24564 MiB
+volume_probe.exists=true
+volume_probe.is_dir=true
+volume_probe.ok=true
+volume_probe.write_read_delete=true
+actual_cost_per_hour=0.69
+actual_cost_guard.ok=true
+cleanup.ok=true
+post_pod_http_canary_guard.providers.runpod.billable_resources=[]
+```
+
+The first RTX 3090 + US-NC-1 Network Volume attempt returned RunPod `SUPPLY_CONSTRAINT` before Pod creation. The successful retry used RTX 4090 in the same data center. This is a placement/supply fact, not a general account or volume failure.
 
 ## Community Signals
 

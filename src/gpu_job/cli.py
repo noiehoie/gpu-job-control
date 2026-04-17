@@ -534,6 +534,10 @@ def cmd_runpod(args: argparse.Namespace) -> int:
             min_memory_in_gb=args.min_memory_in_gb,
             max_uptime_seconds=args.max_uptime_seconds,
             max_estimated_cost_usd=args.max_estimated_cost_usd,
+            network_volume_id=args.network_volume_id,
+            data_center_id=args.data_center_id,
+            worker_mode=args.worker_mode,
+            prompt=args.prompt,
             execute=args.execute,
         )
         result["pre_pod_http_canary_guard"] = pre_guard
@@ -919,6 +923,23 @@ def build_parser() -> argparse.ArgumentParser:
         "canary-pod-http-worker", help="create, health-check, and terminate a bounded RunPod Pod HTTP worker canary"
     )
     add_pod_worker_args(canary_pod_http)
+    canary_pod_http.add_argument(
+        "--network-volume-id",
+        default=os.getenv("RUNPOD_NETWORK_VOLUME_ID", ""),
+        help="optional approved RunPod network volume id",
+    )
+    canary_pod_http.add_argument(
+        "--data-center-id",
+        default=os.getenv("RUNPOD_DATA_CENTER_ID", ""),
+        help="optional RunPod data center id required for network volume placement",
+    )
+    canary_pod_http.add_argument(
+        "--worker-mode",
+        choices=["smoke", "llm"],
+        default="smoke",
+        help="HTTP worker mode to verify",
+    )
+    canary_pod_http.add_argument("--prompt", default="", help="prompt for --worker-mode llm")
     canary_pod_http.add_argument("--execute", action="store_true", help="actually create and terminate the pod")
     canary_pod_http.set_defaults(func=cmd_runpod)
 

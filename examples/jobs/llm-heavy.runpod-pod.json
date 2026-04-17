@@ -1,0 +1,32 @@
+{
+  "job_type": "llm_heavy",
+  "input_uri": "text://Say hello from a RunPod Pod GPU canary.",
+  "output_uri": "local://runpod-pod-llm-heavy",
+  "worker_image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+  "gpu_profile": "llm_batch",
+  "model": "runpod-pod-deterministic-gpu-canary",
+  "limits": {
+    "max_runtime_minutes": 1,
+    "max_cost_usd": 0.02,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "input": {
+      "prompt": "Say hello from a RunPod Pod GPU canary."
+    },
+    "max_uptime_seconds": 60,
+    "purpose": "RunPod Pod HTTP worker llm_heavy canary",
+    "runpod_cloud_type": "ALL",
+    "runpod_container_disk_in_gb": 20,
+    "runpod_execution_mode": "pod_http",
+    "runpod_gpu_count": 1,
+    "runpod_gpu_type_id": "NVIDIA GeForce RTX 3090",
+    "runpod_min_memory_in_gb": 8,
+    "runpod_min_vcpu_count": 2,
+    "runpod_pod_image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "runpod_volume_in_gb": 0
+  }
+}

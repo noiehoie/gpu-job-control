@@ -1,6 +1,6 @@
-# RunPod Support Question v4: Need Official Serverless vLLM Hub Template Diff
+# RunPod Support Question v5: Need Official Serverless vLLM Hub Template Diff
 
-Updated: 2026-04-18 08:05 JST.
+Updated: 2026-04-18 08:18 JST.
 
 We need RunPod Support to confirm the exact difference between:
 
@@ -9,7 +9,7 @@ We need RunPod Support to confirm the exact difference between:
 
 Our current evidence suggests the failure is not a missing required endpoint scalar, but a template/runtime mismatch: the GraphQL template is only a raw Docker image template, while the Console / Hub vLLM flow likely uses repository/template plumbing that sets HTTP routing, ports, entrypoint, readiness, or worker mode.
 
-Scope update: RunPod Pod lifecycle and Pod HTTP proxy execution are now proven separately. The remaining blocker is specifically the Serverless vLLM / Hub-template path.
+Scope update: RunPod Pod lifecycle, Pod HTTP proxy execution, Pod `llm_heavy` generation canary, and Pod Network Volume attachment are now proven separately. The remaining blocker is specifically the Serverless vLLM / Hub-template path.
 
 ## Direct Questions
 
@@ -81,6 +81,52 @@ Post-guard after termination:
 ```
 
 One Pod-side issue was identified and fixed: untagged `runpod/pytorch` resolved to `runpod/pytorch:latest`, and the provider log showed `manifest for runpod/pytorch:latest not found`. Pinning `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404` fixed that. This is separate from the Serverless vLLM blocker.
+
+The same Pod HTTP worker path also works through the standard `llm_heavy` job contract:
+
+```bash
+gpu-job submit examples/jobs/llm-heavy.runpod-pod.json --provider runpod --execute
+```
+
+Observed result:
+
+```text
+job_id=llm_heavy-20260418-081252-d9463abf
+status=succeeded
+exit_code=0
+runtime_seconds=27
+provider_job_id=t8lvo42moh2dwr
+gpu_probe_stdout=NVIDIA GeForce RTX 3090, 24576 MiB
+generate_ok=True
+generate_text_chars=160
+actual_cost_per_hour=0.46
+post_submit_guard.providers.runpod.billable_resources=[]
+```
+
+Network Volume attachment also works when placed on available hardware in the volume's data center:
+
+```text
+gpuTypeId=NVIDIA GeForce RTX 4090
+dataCenterId=US-NC-1
+runtime_seconds=22.683
+gpu_probe_stdout=NVIDIA GeForce RTX 4090, 24564 MiB
+volume_probe.exists=true
+volume_probe.is_dir=true
+volume_probe.ok=true
+volume_probe.write_read_delete=true
+actual_cost_per_hour=0.69
+actual_cost_guard.ok=true
+cleanup.ok=true
+post_pod_http_canary_guard.providers.runpod.billable_resources=[]
+```
+
+An RTX 3090 + US-NC-1 Network Volume attempt failed before Pod creation with:
+
+```text
+SUPPLY_CONSTRAINT: There are no longer any instances available with the requested specifications.
+```
+
+Switching only the GPU type to RTX 4090 succeeded, so the Network Volume path itself is not the blocker.
 
 ## Failing Endpoint Evidence
 

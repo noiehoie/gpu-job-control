@@ -15,6 +15,8 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 - Added a RunPod vLLM support probe and canonical support-question document for the current Serverless vLLM worker-allocation blocker.
 - Added bounded RunPod Pod lifecycle and HTTP worker canary commands with cost estimation, clean pre/post guards, runtime observation, health checks, and forced termination.
 - Promoted RunPod Pod HTTP smoke into the standard `submit --execute` job/artifact contract.
+- Added RunPod Pod HTTP `llm_heavy` canary execution through the standard job/artifact contract.
+- Added RunPod Pod Network Volume attach verification with deterministic write/read/delete probing under `/runpod-volume`.
 
 ## 0.1.1 - 2026-04-17
 
