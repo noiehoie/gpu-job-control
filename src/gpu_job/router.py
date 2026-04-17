@@ -17,7 +17,7 @@ EXECUTABLE_JOB_TYPES = {
     "local": {"smoke", "embedding", "llm_heavy", "pdf_ocr", "vlm_ocr"},
     "modal": {"smoke", "asr", "llm_heavy"},
     "ollama": {"llm_heavy", "vlm_ocr"},
-    "runpod": {"llm_heavy"},
+    "runpod": {"smoke", "llm_heavy"},
     "vast": {"smoke"},
 }
 

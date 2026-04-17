@@ -1,6 +1,6 @@
-# RunPod Support Question v3: Need Official Serverless vLLM Hub Template Diff
+# RunPod Support Question v4: Need Official Serverless vLLM Hub Template Diff
 
-Updated: 2026-04-18 07:20 JST.
+Updated: 2026-04-18 08:05 JST.
 
 We need RunPod Support to confirm the exact difference between:
 
@@ -9,7 +9,7 @@ We need RunPod Support to confirm the exact difference between:
 
 Our current evidence suggests the failure is not a missing required endpoint scalar, but a template/runtime mismatch: the GraphQL template is only a raw Docker image template, while the Console / Hub vLLM flow likely uses repository/template plumbing that sets HTTP routing, ports, entrypoint, readiness, or worker mode.
 
-Scope update: RunPod Pod lifecycle itself is now proven separately. A bounded canary created an RTX 3090 Pod, observed `desiredStatus=RUNNING`, terminated it, and post-guard reported no billable Pods. The remaining blocker is specifically the Serverless vLLM / Hub-template path.
+Scope update: RunPod Pod lifecycle and Pod HTTP proxy execution are now proven separately. The remaining blocker is specifically the Serverless vLLM / Hub-template path.
 
 ## Direct Questions
 
@@ -19,6 +19,68 @@ Scope update: RunPod Pod lifecycle itself is now proven separately. A bounded ca
 4. Is `runpod/worker-v1-vllm:v2.14.0` supported for direct use as a plain GraphQL `saveTemplate` Serverless endpoint image, or only through a Hub wrapper/template?
 5. Why does the endpoint health show `throttled: 1` and queued jobs while no worker ever becomes reachable through `/openai/v1/models`?
 6. Is there any public API to fetch scheduler/router/worker init logs for this endpoint ID, or must Support inspect internal logs?
+
+## Known-Good Pod Evidence
+
+This is not an account-wide GPU allocation failure. A bounded RunPod Pod canary works through the same account and API key.
+
+Standard gpu-job command:
+
+```bash
+gpu-job submit examples/jobs/smoke.runpod-pod.json --provider runpod --execute
+```
+
+Result:
+
+```json
+{
+  "ok": true,
+  "status": "succeeded",
+  "provider": "runpod",
+  "provider_job_id": "0fojxrmy4s1t81",
+  "runtime_seconds": 27,
+  "exit_code": 0
+}
+```
+
+The canary created a Pod with:
+
+```json
+{
+  "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+  "gpuTypeId": "NVIDIA GeForce RTX 3090",
+  "ports": "8000/http",
+  "costPerHr": 0.46
+}
+```
+
+It then successfully reached the proxy health endpoint:
+
+```json
+{
+  "observed_runtime": true,
+  "observed_http_worker": true,
+  "gpu_probe": {
+    "exit_code": 0,
+    "stdout": "NVIDIA GeForce RTX 3090, 24576 MiB"
+  },
+  "cleanup": {
+    "ok": true
+  }
+}
+```
+
+Post-guard after termination:
+
+```json
+{
+  "ok": true,
+  "estimated_hourly_usd": 0.0,
+  "billable_resources": []
+}
+```
+
+One Pod-side issue was identified and fixed: untagged `runpod/pytorch` resolved to `runpod/pytorch:latest`, and the provider log showed `manifest for runpod/pytorch:latest not found`. Pinning `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404` fixed that. This is separate from the Serverless vLLM blocker.
 
 ## Failing Endpoint Evidence
 

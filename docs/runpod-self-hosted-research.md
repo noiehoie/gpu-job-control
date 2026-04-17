@@ -171,6 +171,14 @@ This promotes the Pod / Network Volume route to `lifecycle_proven`, not to `prod
 
 The HTTP worker canary is the first implementation of that next gate. It starts a minimal Python HTTP service in the Pod, exposes `8000/http`, and verifies that the RunPod HTTP proxy can reach `/health`. The health response includes a deterministic `nvidia-smi` probe. This still does not promote the route to production LLM execution; it proves that gpu-job-control can create a reachable Pod worker and tear it down without leaving billable resources.
 
+The same path is also available through the standard job contract:
+
+```bash
+gpu-job submit examples/jobs/smoke.runpod-pod.json --provider runpod --execute
+```
+
+That command writes the normal artifact set: `result.json`, `metrics.json`, `verify.json`, `stdout.log`, `stderr.log`, and the runner writes `manifest.json`.
+
 Do not use the untagged `runpod/pytorch` image. RunPod/Docker resolves it as `runpod/pytorch:latest`, and the observed provider log reported `manifest for runpod/pytorch:latest not found`. The canary therefore pins `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, matching RunPod's documented custom-template example and avoiding a mutable or missing `latest` tag.
 
 Also do not treat `lowestPrice.uninterruptablePrice` as a hard upper bound. A successful HTTP canary planned against `0.22 USD/hour` but the allocated Pod reported `costPerHr=0.46`. The canary now performs a second guard immediately after creation using the actual assigned `costPerHr`; if the actual maximum cost exceeds policy, it terminates before doing any useful work.

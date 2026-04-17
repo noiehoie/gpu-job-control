@@ -17,6 +17,7 @@ These JSON files are safe, public examples. They use placeholder URIs, placehold
 - `llm-heavy.modal.json`: Modal GPU LLM contract.
 - `llm-heavy.runpod.json`: RunPod serverless LLM contract.
 - `smoke.modal.json`: Modal smoke job.
+- `smoke.runpod-pod.json`: RunPod Pod HTTP worker smoke job with pinned image and teardown guard.
 - `smoke.vast.json`: Vast smoke job.
 
 ## Authoring Rules

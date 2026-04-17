@@ -1461,6 +1461,7 @@ mutation {{
             ],
             "notes": [
                 "RunPod execute uses an existing serverless endpoint when one is configured or discoverable.",
+                "RunPod smoke execute uses a bounded Pod HTTP worker canary and writes the standard artifact contract.",
                 "gpu-job-control does not create paid pods automatically.",
                 "Serverless endpoint creation requires a concrete template_id and gpu_ids.",
                 "Use workers_min=0 and workers_standby=0 unless paid warm capacity is explicitly intended.",
@@ -1477,9 +1478,11 @@ mutation {{
             job.status = "planned"
             store.save(job)
             return job
+        if job.job_type == "smoke":
+            return self._submit_pod_smoke(job, store)
         if job.job_type != "llm_heavy":
             job.status = "failed"
-            job.error = "runpod execute currently supports llm_heavy jobs only"
+            job.error = "runpod execute currently supports smoke and llm_heavy jobs only"
             job.exit_code = 2
             store.save(job)
             return job
@@ -1547,6 +1550,73 @@ mutation {{
             job.status = "failed"
             if job.exit_code is None:
                 job.exit_code = 1
+        store.save(job)
+        return job
+
+    def _submit_pod_smoke(self, job: Job, store: JobStore) -> Job:
+        artifact_dir = store.artifact_dir(job.job_id)
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        start = now_unix()
+        job.started_at = start
+        job.status = "running"
+        store.save(job)
+        max_uptime_seconds = _int_from_metadata(job, "max_uptime_seconds", default=0) or _int_from_metadata(
+            job, "max_startup_seconds", default=0
+        )
+        if not max_uptime_seconds:
+            max_uptime_seconds = int(job.limits.get("max_runtime_minutes", 1)) * 60
+        max_estimated_cost_usd = float(job.limits.get("max_cost_usd") or job.metadata.get("max_estimated_cost_usd") or 0.02)
+        output = self.canary_pod_http_worker(
+            gpu_type_id=str(job.metadata.get("runpod_gpu_type_id") or RUNPOD_DEFAULT_POD_GPU_TYPE_ID),
+            image=str(job.metadata.get("runpod_pod_image") or RUNPOD_DEFAULT_POD_IMAGE),
+            cloud_type=str(job.metadata.get("runpod_cloud_type") or "ALL"),
+            gpu_count=int(job.metadata.get("runpod_gpu_count") or 1),
+            volume_in_gb=int(job.metadata.get("runpod_volume_in_gb") or 0),
+            container_disk_in_gb=int(job.metadata.get("runpod_container_disk_in_gb") or 20),
+            min_vcpu_count=int(job.metadata.get("runpod_min_vcpu_count") or 2),
+            min_memory_in_gb=int(job.metadata.get("runpod_min_memory_in_gb") or 8),
+            max_uptime_seconds=max_uptime_seconds,
+            max_estimated_cost_usd=max_estimated_cost_usd,
+            execute=True,
+        )
+        stdout = _runpod_smoke_stdout(output)
+        stderr = "" if output.get("ok") else str(output.get("error") or "runpod pod smoke failed")
+        result = {
+            "job_id": job.job_id,
+            "job_type": job.job_type,
+            "provider": self.name,
+            "ok": bool(output.get("ok")),
+            "observed_runtime": output.get("observed_runtime"),
+            "observed_http_worker": output.get("observed_http_worker"),
+            "health_url": output.get("health_url"),
+            "gpu_probe": _last_gpu_probe(output),
+            "actual_cost_guard": output.get("actual_cost_guard"),
+            "pod": output.get("pod"),
+        }
+        metrics = {
+            "job_id": job.job_id,
+            "job_type": job.job_type,
+            "provider": self.name,
+            "runtime_seconds": max(0, now_unix() - start),
+            "remote_runtime_seconds": output.get("runtime_seconds"),
+            "health_sample_count": len(output.get("health_samples") or []),
+        }
+        (artifact_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "stdout.log").write_text(stdout)
+        (artifact_dir / "stderr.log").write_text(stderr)
+        (artifact_dir / "verify.json").write_text("{}\n")
+        verify = verify_artifacts(artifact_dir)
+        (artifact_dir / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        job.finished_at = now_unix()
+        job.runtime_seconds = max(0, job.finished_at - start)
+        job.exit_code = 0 if output.get("ok") and verify["ok"] else 1
+        job.artifact_count = verify["artifact_count"]
+        job.artifact_bytes = verify["artifact_bytes"]
+        job.status = "succeeded" if job.exit_code == 0 else "failed"
+        job.error = stderr
+        job.provider_job_id = str((output.get("pod") or {}).get("id") or "")
+        job.metadata["runpod_pod_smoke"] = output
         store.save(job)
         return job
 
@@ -1766,6 +1836,34 @@ def _fetch_json_url(url: str, *, timeout: int) -> dict[str, Any]:
         return {"ok": False, "status": exc.code, "error": body[:500]}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
+
+
+def _last_gpu_probe(output: dict[str, Any]) -> dict[str, Any]:
+    for item in reversed(output.get("health_samples") or []):
+        if isinstance(item, dict) and isinstance(item.get("gpu_probe"), dict):
+            return item["gpu_probe"]
+    return {}
+
+
+def _runpod_smoke_stdout(output: dict[str, Any]) -> str:
+    lines = [
+        f"ok={bool(output.get('ok'))}",
+        f"observed_runtime={bool(output.get('observed_runtime'))}",
+        f"observed_http_worker={bool(output.get('observed_http_worker'))}",
+        f"health_url={output.get('health_url') or ''}",
+    ]
+    probe = _last_gpu_probe(output)
+    if probe:
+        lines.append(f"gpu_probe_exit_code={probe.get('exit_code')}")
+        lines.append(f"gpu_probe_stdout={probe.get('stdout') or ''}")
+    cleanup = output.get("cleanup")
+    if isinstance(cleanup, dict):
+        lines.append(f"cleanup_ok={bool(cleanup.get('ok'))}")
+    actual_cost = output.get("actual_cost_guard")
+    if isinstance(actual_cost, dict):
+        lines.append(f"actual_cost_guard_ok={bool(actual_cost.get('ok'))}")
+        lines.append(f"actual_cost_per_hour={actual_cost.get('cost_per_hour')}")
+    return "\n".join(lines) + "\n"
 
 
 def _pod_http_worker_docker_args() -> str:

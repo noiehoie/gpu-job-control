@@ -14,6 +14,7 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 - Refined RunPod vLLM canary defaults to an empty location filter, `ADA_24`, `gpuCount=1`, `idleTimeout=90`, `QUEUE_DELAY=15`, and local GPU pool validation.
 - Added a RunPod vLLM support probe and canonical support-question document for the current Serverless vLLM worker-allocation blocker.
 - Added bounded RunPod Pod lifecycle and HTTP worker canary commands with cost estimation, clean pre/post guards, runtime observation, health checks, and forced termination.
+- Promoted RunPod Pod HTTP smoke into the standard `submit --execute` job/artifact contract.
 
 ## 0.1.1 - 2026-04-17
 

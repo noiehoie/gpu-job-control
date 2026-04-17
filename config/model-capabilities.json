@@ -58,7 +58,7 @@
     },
     "runpod:default": {
       "provider": "runpod",
-      "job_types": ["llm_heavy", "asr", "vlm_ocr", "avatar_video", "image_generation"],
+      "job_types": ["smoke", "llm_heavy", "asr", "vlm_ocr", "avatar_video", "image_generation"],
       "max_input_tokens": 200000,
       "quality_tier": "external_gpu",
       "vision": true,

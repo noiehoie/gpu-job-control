@@ -1,0 +1,28 @@
+{
+  "job_type": "smoke",
+  "input_uri": "none://runpod-pod-gpu-smoke",
+  "output_uri": "local://runpod-pod-gpu-smoke",
+  "worker_image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+  "gpu_profile": "asr_fast",
+  "model": "nvidia-smi",
+  "limits": {
+    "max_runtime_minutes": 1,
+    "max_cost_usd": 0.02,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "RunPod Pod HTTP worker GPU smoke canary",
+    "max_uptime_seconds": 60,
+    "runpod_cloud_type": "ALL",
+    "runpod_container_disk_in_gb": 20,
+    "runpod_gpu_count": 1,
+    "runpod_gpu_type_id": "NVIDIA GeForce RTX 3090",
+    "runpod_min_memory_in_gb": 8,
+    "runpod_min_vcpu_count": 2,
+    "runpod_pod_image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "runpod_volume_in_gb": 0
+  }
+}
