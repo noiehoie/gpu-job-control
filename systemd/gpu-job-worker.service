@@ -8,6 +8,7 @@ Type=simple
 User=gpu-job
 WorkingDirectory=/opt/gpu-job-control
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-/etc/gpu-job-control/api.env
 ExecStart=/usr/bin/env uv run gpu-job worker --poll-interval 5
 Restart=on-failure
 RestartSec=5

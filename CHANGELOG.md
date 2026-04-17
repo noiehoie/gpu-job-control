@@ -6,6 +6,10 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 
 ## Unreleased
 
+- Added RunPod OpenAI-compatible Public Endpoint execution mode for LLM canaries.
+- Allowed RunPod GraphQL helpers to read the existing `~/.runpod/config.toml` API key without exporting it.
+- Updated the worker systemd template so queued workers can read provider endpoint settings from the service environment file.
+
 ## 0.1.1 - 2026-04-17
 
 - Documented that GitHub, GitHub Actions, and GHCR are publication surfaces, not runtime dependencies.

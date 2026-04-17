@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import time
+import tomllib
 import urllib.error
 import urllib.request
 
@@ -40,6 +41,23 @@ def runpod_python() -> str | None:
 
 def _graphql_string(value: str) -> str:
     return json.dumps(value)
+
+
+def _runpod_api_key() -> str:
+    configured = os.getenv("RUNPOD_API_KEY", "").strip()
+    if configured:
+        return configured
+    config = Path.home() / ".runpod" / "config.toml"
+    if not config.is_file():
+        return ""
+    try:
+        data = tomllib.loads(config.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    default = data.get("default")
+    if isinstance(default, dict):
+        return str(default.get("api_key") or "").strip()
+    return ""
 
 
 class RunPodProvider(Provider):
@@ -298,9 +316,9 @@ mutation {{
         return self._run_graphql(f"mutation {{ deleteEndpoint(id: {_graphql_string(endpoint_id)}) }}")
 
     def _run_graphql(self, query: str) -> dict[str, Any]:
-        api_key = os.getenv("RUNPOD_API_KEY", "").strip()
+        api_key = _runpod_api_key()
         if not api_key:
-            raise RuntimeError("RUNPOD_API_KEY is required for RunPod GraphQL operations")
+            raise RuntimeError("RUNPOD_API_KEY or ~/.runpod/config.toml default.api_key is required for RunPod GraphQL operations")
         base_url = os.getenv("RUNPOD_API_BASE_URL", "https://api.runpod.io").rstrip("/")
         request = urllib.request.Request(
             f"{base_url}/graphql",
@@ -652,7 +670,7 @@ mutation {{
             for endpoint in endpoints:
                 if str(endpoint.get("id")) == configured:
                     return endpoint
-            return {"id": configured, "name": "RUNPOD_LLM_ENDPOINT_ID"}
+            return {"id": configured, "name": "RUNPOD_LLM_ENDPOINT_ID", "mode": os.getenv("RUNPOD_LLM_ENDPOINT_MODE", "").strip()}
         for endpoint in endpoints:
             name = str(endpoint.get("name") or "").lower()
             if "llm" in name:
@@ -660,6 +678,8 @@ mutation {{
         return endpoints[0] if endpoints else None
 
     def _run_llm_endpoint(self, endpoint: dict[str, Any], job: Job) -> Any:
+        if endpoint.get("mode") == "openai":
+            return self._run_openai_llm_endpoint(endpoint, job)
         python_bin = runpod_python()
         if not python_bin:
             raise RuntimeError("runpod python SDK not importable; install gpu-job-control[providers] or set RUNPOD_PYTHON")
@@ -717,6 +737,33 @@ mutation {{
             raise RuntimeError(f"RunPod endpoint job did not complete: {json.dumps(output, ensure_ascii=False, sort_keys=True)}")
         return output
 
+    def _run_openai_llm_endpoint(self, endpoint: dict[str, Any], job: Job) -> Any:
+        api_key = _runpod_api_key()
+        if not api_key:
+            raise RuntimeError("RunPod OpenAI-compatible endpoint requires RunPod API key")
+        endpoint_id = str(endpoint.get("id") or "").strip()
+        if not endpoint_id:
+            raise RuntimeError("RunPod OpenAI-compatible endpoint id is required")
+        payload = _openai_chat_payload(job)
+        request = urllib.request.Request(
+            f"https://api.runpod.ai/v2/{endpoint_id}/openai/v1/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "gpu-job-control",
+            },
+            method="POST",
+        )
+        timeout = max(30, min(int(job.limits.get("max_runtime_minutes", 10)) * 60, 600))
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                output = json.loads(response.read().decode())
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode(errors="replace")
+            raise RuntimeError(f"runpod openai endpoint http {exc.code}: {body}") from exc
+        return {"id": endpoint_id, "status": "COMPLETED", "output": output}
+
 
 def _public_endpoint(endpoint: dict[str, Any]) -> dict[str, Any]:
     return {
@@ -754,6 +801,20 @@ def _llm_input(job: Job) -> dict[str, Any]:
         "system_prompt": system_prompt,
         "model": job.model,
         "max_tokens": int(payload.get("max_tokens") or 1024),
+    }
+
+
+def _openai_chat_payload(job: Job) -> dict[str, Any]:
+    data = _llm_input(job)
+    messages = []
+    if data["system_prompt"]:
+        messages.append({"role": "system", "content": data["system_prompt"]})
+    messages.append({"role": "user", "content": data["prompt"]})
+    return {
+        "model": os.getenv("RUNPOD_LLM_MODEL_OVERRIDE", "").strip() or data["model"],
+        "messages": messages,
+        "max_tokens": data["max_tokens"],
+        "temperature": 0,
     }
 
 

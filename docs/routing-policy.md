@@ -65,6 +65,7 @@ Do not purge RunPod endpoint queues automatically. Queue purge cancels existing 
 - `ollama`: fixed-cost resident model. Used for short prompts below `ollama_max_input_tokens`.
 - `modal`: executable GPU LLM canary worker. It runs `src/gpu_job/modal_llm.py` on Modal L4 and writes the standard artifact contract.
 - `runpod`: executable only when an existing serverless LLM endpoint is configured or discoverable. The endpoint must accept `input.prompt`, `input.system_prompt`, `input.model`, and `input.max_tokens`, and return one of `text`, `response`, `output`, `generated_text`, `answer`, or OpenAI-style `choices`.
+- `runpod` can also target an OpenAI-compatible RunPod endpoint by setting `RUNPOD_LLM_ENDPOINT_ID`, `RUNPOD_LLM_ENDPOINT_MODE=openai`, and `RUNPOD_LLM_MODEL_OVERRIDE` in the service environment. This is the preferred canary path for RunPod Public Endpoints because it avoids creating a private endpoint before basic provider liveness is proven.
 
 Current policy prefers `modal` before `runpod` for long LLM jobs because Modal execution is verified and RunPod may have provider-side queue backlog.
 
