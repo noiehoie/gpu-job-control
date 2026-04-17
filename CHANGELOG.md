@@ -13,6 +13,7 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 - Added `gpu-job runpod plan-vllm-endpoint` and `promote-vllm-endpoint` for scale-to-zero RunPod vLLM Serverless endpoint canaries.
 - Refined RunPod vLLM canary defaults to an empty location filter, `ADA_24`, `gpuCount=1`, `idleTimeout=90`, `QUEUE_DELAY=15`, and local GPU pool validation.
 - Added a RunPod vLLM support probe and canonical support-question document for the current Serverless vLLM worker-allocation blocker.
+- Added bounded RunPod Pod lifecycle planning and canary commands with cost estimation, clean pre/post guards, runtime observation, and forced termination.
 
 ## 0.1.1 - 2026-04-17
 

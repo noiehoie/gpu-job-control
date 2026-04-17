@@ -27,6 +27,15 @@ RunPod exposes several different surfaces that must not be confused.
 | Cached Models | RunPod-managed Hugging Face model cache for endpoints | Preferred cold-start reduction path for HF models |
 | S3-compatible Volume API | Direct file access to network volumes | Stage or inspect files without launching a paid pod |
 
+## Current Route Status
+
+| Route | Status | Evidence |
+| --- | --- | --- |
+| Public OpenAI-compatible endpoint | Proven | `qwen3-32b-awq` canary returns in about 1-2 seconds through the worker path. |
+| Self-hosted Serverless vLLM from raw GraphQL template | Blocked | Endpoint and template can be created, but workers remain unreachable and requests stay queued. See [RunPod Support Question](runpod-support-question.md). |
+| Hub/Console vLLM template path | Needs RunPod/template diff | Official docs point users to the Hub ready-to-deploy vLLM repo; the exact programmatic template/repo binding must be confirmed. |
+| Pod / Network Volume lifecycle | Lifecycle proven | `gpu-job runpod canary-pod-lifecycle --execute` created an RTX 3090 pod, observed `desiredStatus=RUNNING`, terminated it, and post-guard showed no billable pods. |
+
 ## Key Official Facts
 
 ### Serverless endpoints
@@ -119,6 +128,43 @@ Risks:
 - volume deletion or resize is destructive and requires explicit approval.
 
 The S3-compatible API can access network volumes without launching a pod. Serverless workers see volume files at `/runpod-volume/...`; S3 clients address them as `s3://NETWORK_VOLUME_ID/...`.
+
+### Pods
+
+Pods are the most controllable RunPod fallback path because the lifecycle is explicit: create, observe, run, terminate. They are not automatically scale-to-zero serverless workers, so every Pod path must be treated as a bounded lifecycle operation with a hard cost cap.
+
+The first deterministic Pod canary uses the official Pod creation surface:
+
+- create with `podFindAndDeployOnDemand` semantics through the RunPod SDK;
+- use `runpod/pytorch` and `dockerArgs="bash -lc 'nvidia-smi; sleep 300'"` for a minimal GPU proof;
+- disable public IP and SSH;
+- require a clean pre-guard before creation;
+- estimate maximum cost from the selected GPU hourly price and `max_uptime_seconds`;
+- observe `desiredStatus=RUNNING` or runtime uptime before declaring lifecycle success;
+- terminate the Pod in a `finally` block;
+- require post-guard to report no active billable Pods.
+
+Operator commands:
+
+```bash
+gpu-job runpod plan-pod-worker
+gpu-job runpod canary-pod-lifecycle --max-uptime-seconds 60 --max-estimated-cost-usd 0.02 --execute
+```
+
+The first successful canary used:
+
+```text
+gpuTypeId=NVIDIA GeForce RTX 3090
+imageName=runpod/pytorch
+uninterruptablePrice=0.22 USD/hour
+max_uptime_seconds=60
+estimated_cost_usd=0.003667
+observed_runtime=true
+post_pod_canary_guard.ok=true
+post_pod_canary_guard.providers.runpod.billable_resources=[]
+```
+
+This promotes the Pod / Network Volume route to `lifecycle_proven`, not to `production_primary`. The next gate is a real HTTP worker on a Pod with explicit health, artifact, timeout, and teardown behavior.
 
 ## Community Signals
 
@@ -219,6 +265,8 @@ Use when:
 Endpoint shape is similar, but `MODEL_NAME` may point to a local path under `/runpod-volume/...`.
 
 This path must measure cold-start and first-token time carefully because model reads from volume can still be slow.
+
+Current status: unresolved for Serverless vLLM because the raw GraphQL-created endpoint does not reach a usable worker. The Pod lifecycle path is separately proven and can be used to develop a non-serverless Pod-hosted worker if the Hub/Serverless path remains blocked.
 
 ### Design C: Custom worker image + network volume
 

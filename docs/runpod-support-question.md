@@ -9,6 +9,8 @@ We need RunPod Support to confirm the exact difference between:
 
 Our current evidence suggests the failure is not a missing required endpoint scalar, but a template/runtime mismatch: the GraphQL template is only a raw Docker image template, while the Console / Hub vLLM flow likely uses repository/template plumbing that sets HTTP routing, ports, entrypoint, readiness, or worker mode.
 
+Scope update: RunPod Pod lifecycle itself is now proven separately. A bounded canary created an RTX 3090 Pod, observed `desiredStatus=RUNNING`, terminated it, and post-guard reported no billable Pods. The remaining blocker is specifically the Serverless vLLM / Hub-template path.
+
 ## Direct Questions
 
 1. What official Hub template ID or repository template should be used for Serverless vLLM when creating endpoints programmatically?

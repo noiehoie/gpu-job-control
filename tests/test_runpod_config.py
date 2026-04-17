@@ -8,6 +8,7 @@ import unittest
 
 from gpu_job.models import Job
 from gpu_job.providers.runpod import RunPodProvider
+from gpu_job.providers.runpod import _pod_has_runtime
 from gpu_job.providers.runpod import _openai_chat_payload
 from gpu_job.providers.runpod import _runpod_api_key
 
@@ -157,6 +158,64 @@ class RunPodConfigTest(unittest.TestCase):
         provider = RunPodProvider()
         result = provider._endpoint_scale_to_zero_invariant({"workersMin": 0, "workersStandby": 1, "workersMax": 1})
         self.assertTrue(result["ok"])
+
+    def test_pod_plan_blocks_cost_over_budget(self) -> None:
+        class FakeRunPodProvider(RunPodProvider):
+            def _gpu_type_info(self, gpu_type_id: str, *, gpu_count: int) -> dict:
+                return {
+                    "ok": True,
+                    "id": gpu_type_id,
+                    "lowestPrice": {"uninterruptablePrice": 1.0, "stockStatus": "High"},
+                }
+
+        provider = FakeRunPodProvider()
+        plan = provider.plan_pod_worker(
+            gpu_type_id="NVIDIA GeForce RTX 3090",
+            image="runpod/pytorch",
+            cloud_type="ALL",
+            gpu_count=1,
+            volume_in_gb=0,
+            container_disk_in_gb=20,
+            min_vcpu_count=2,
+            min_memory_in_gb=8,
+            max_uptime_seconds=3600,
+            max_estimated_cost_usd=0.02,
+            docker_args="bash -lc 'nvidia-smi; sleep 300'",
+        )
+        self.assertFalse(plan["ok"])
+        self.assertEqual(plan["cost_guard"]["estimated_cost_usd"], 1.0)
+
+    def test_pod_plan_accepts_small_bounded_cost(self) -> None:
+        class FakeRunPodProvider(RunPodProvider):
+            def _gpu_type_info(self, gpu_type_id: str, *, gpu_count: int) -> dict:
+                return {
+                    "ok": True,
+                    "id": gpu_type_id,
+                    "lowestPrice": {"uninterruptablePrice": 0.22, "stockStatus": "High"},
+                }
+
+        provider = FakeRunPodProvider()
+        plan = provider.plan_pod_worker(
+            gpu_type_id="NVIDIA GeForce RTX 3090",
+            image="runpod/pytorch",
+            cloud_type="ALL",
+            gpu_count=1,
+            volume_in_gb=0,
+            container_disk_in_gb=20,
+            min_vcpu_count=2,
+            min_memory_in_gb=8,
+            max_uptime_seconds=90,
+            max_estimated_cost_usd=0.02,
+            docker_args="bash -lc 'nvidia-smi; sleep 300'",
+        )
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["cost_guard"]["estimated_cost_usd"], 0.0055)
+
+    def test_pod_runtime_detection(self) -> None:
+        self.assertTrue(_pod_has_runtime({"runtime": {"uptimeInSeconds": 0}}))
+        self.assertTrue(_pod_has_runtime({"desiredStatus": "RUNNING"}))
+        self.assertTrue(_pod_has_runtime({"uptimeSeconds": 0}))
+        self.assertFalse(_pod_has_runtime({"runtime": None}))
 
 
 if __name__ == "__main__":

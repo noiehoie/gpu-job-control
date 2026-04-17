@@ -49,6 +49,17 @@ RunPod self-hosted Serverless endpoints have additional gates:
 7. If the endpoint uses a gated/private Hugging Face model, an approved secret reference is present.
 8. OpenAI-compatible `/models` and short generation canaries pass before production traffic.
 
+RunPod Pod routes have separate lifecycle gates:
+
+1. GPU type, stock signal, and hourly price are read before mutation.
+2. Maximum canary cost is calculated from hourly price and hard uptime limit.
+3. Clean pre-guard reports no active billable Pods or warm serverless workers.
+4. Pod is created with no public IP and no SSH unless an operator explicitly changes the canary.
+5. Runtime is observed through `desiredStatus=RUNNING` or provider uptime fields.
+6. Pod termination runs in a `finally` cleanup path.
+7. Clean post-guard reports no active billable Pods.
+8. A Pod route is only `lifecycle_proven` until a real worker health check, artifact check, timeout path, and teardown canary pass.
+
 ## Startup Policy
 
 Cold start is not globally good or bad. It is evaluated against the job:

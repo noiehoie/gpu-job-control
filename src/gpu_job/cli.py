@@ -480,6 +480,44 @@ def cmd_runpod(args: argparse.Namespace) -> int:
             template_id=args.template_id,
             flashboot=args.flashboot,
         )
+    elif args.runpod_command == "plan-pod-worker":
+        result = provider.plan_pod_worker(
+            gpu_type_id=args.gpu_type_id,
+            image=args.image,
+            cloud_type=args.cloud_type,
+            gpu_count=args.gpu_count,
+            volume_in_gb=args.volume_in_gb,
+            container_disk_in_gb=args.container_disk_in_gb,
+            min_vcpu_count=args.min_vcpu_count,
+            min_memory_in_gb=args.min_memory_in_gb,
+            max_uptime_seconds=args.max_uptime_seconds,
+            max_estimated_cost_usd=args.max_estimated_cost_usd,
+            docker_args=args.docker_args,
+        )
+    elif args.runpod_command == "canary-pod-lifecycle":
+        pre_guard = collect_cost_guard(["runpod"])
+        if args.execute and not pre_guard["ok"]:
+            print_json({"ok": False, "error": "pre-pod-canary cost guard failed", "guard": pre_guard})
+            return 2
+        result = provider.canary_pod_lifecycle(
+            gpu_type_id=args.gpu_type_id,
+            image=args.image,
+            cloud_type=args.cloud_type,
+            gpu_count=args.gpu_count,
+            volume_in_gb=args.volume_in_gb,
+            container_disk_in_gb=args.container_disk_in_gb,
+            min_vcpu_count=args.min_vcpu_count,
+            min_memory_in_gb=args.min_memory_in_gb,
+            max_uptime_seconds=args.max_uptime_seconds,
+            max_estimated_cost_usd=args.max_estimated_cost_usd,
+            docker_args=args.docker_args,
+            execute=args.execute,
+        )
+        result["pre_pod_canary_guard"] = pre_guard
+        post_guard = collect_cost_guard(["runpod"])
+        result["post_pod_canary_guard"] = post_guard
+        if not post_guard["ok"]:
+            result["ok"] = False
     elif args.runpod_command == "plan-vllm-endpoint":
         result = provider.plan_vllm_endpoint(
             model=args.model,
@@ -810,6 +848,50 @@ def build_parser() -> argparse.ArgumentParser:
     quarantine.add_argument("--template-id", default="", help="existing RunPod template id")
     quarantine.add_argument("--flashboot", action="store_true", help="request RunPod FlashBoot")
     quarantine.set_defaults(func=cmd_runpod)
+
+    pod_defaults = {
+        "gpu_type_id": "NVIDIA GeForce RTX 3090",
+        "image": "runpod/pytorch",
+        "cloud_type": "ALL",
+        "gpu_count": 1,
+        "volume_in_gb": 0,
+        "container_disk_in_gb": 20,
+        "min_vcpu_count": 2,
+        "min_memory_in_gb": 8,
+        "max_uptime_seconds": 90,
+        "max_estimated_cost_usd": 0.02,
+        "docker_args": "bash -lc 'nvidia-smi; sleep 300'",
+    }
+
+    def add_pod_worker_args(item: argparse.ArgumentParser) -> None:
+        item.add_argument("--gpu-type-id", default=pod_defaults["gpu_type_id"], help="RunPod concrete GPU type id")
+        item.add_argument("--image", default=pod_defaults["image"], help="Pod image name")
+        item.add_argument(
+            "--cloud-type", default=pod_defaults["cloud_type"], choices=["ALL", "SECURE", "COMMUNITY"], help="RunPod cloud type"
+        )
+        item.add_argument("--gpu-count", type=int, default=pod_defaults["gpu_count"], help="GPU count")
+        item.add_argument("--volume-in-gb", type=int, default=pod_defaults["volume_in_gb"], help="ephemeral pod volume size")
+        item.add_argument("--container-disk-in-gb", type=int, default=pod_defaults["container_disk_in_gb"], help="container disk size")
+        item.add_argument("--min-vcpu-count", type=int, default=pod_defaults["min_vcpu_count"], help="minimum vCPU count")
+        item.add_argument("--min-memory-in-gb", type=int, default=pod_defaults["min_memory_in_gb"], help="minimum memory in GiB")
+        item.add_argument("--max-uptime-seconds", type=int, default=pod_defaults["max_uptime_seconds"], help="hard lifecycle canary wait")
+        item.add_argument(
+            "--max-estimated-cost-usd",
+            type=float,
+            default=pod_defaults["max_estimated_cost_usd"],
+            help="maximum allowed estimated canary cost",
+        )
+        item.add_argument("--docker-args", default=pod_defaults["docker_args"], help="pod start command")
+
+    plan_pod = runpod_sub.add_parser("plan-pod-worker", help="plan a bounded RunPod Pod lifecycle canary")
+    add_pod_worker_args(plan_pod)
+    plan_pod.set_defaults(func=cmd_runpod)
+
+    canary_pod = runpod_sub.add_parser("canary-pod-lifecycle", help="create, observe, and terminate a bounded RunPod Pod canary")
+    add_pod_worker_args(canary_pod)
+    canary_pod.add_argument("--execute", action="store_true", help="actually create and terminate the pod")
+    canary_pod.set_defaults(func=cmd_runpod)
+
     vllm_defaults = {
         "model": "Qwen/Qwen2.5-0.5B-Instruct",
         "image": "runpod/worker-v1-vllm:v2.14.0",

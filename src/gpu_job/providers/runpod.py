@@ -75,6 +75,10 @@ def _validate_runpod_gpu_ids(gpu_ids: str) -> dict[str, Any]:
     }
 
 
+RUNPOD_DEFAULT_POD_GPU_TYPE_ID = "NVIDIA GeForce RTX 3090"
+RUNPOD_DEFAULT_POD_IMAGE = "runpod/pytorch"
+
+
 def _runpod_api_key() -> str:
     configured = os.getenv("RUNPOD_API_KEY", "").strip()
     if configured:
@@ -277,6 +281,242 @@ class RunPodProvider(Provider):
             "post_guard": post_guard,
             "decision": "accepted" if accepted else "deleted_due_to_warm_capacity_or_guard_failure",
         }
+
+    def plan_pod_worker(
+        self,
+        *,
+        gpu_type_id: str,
+        image: str,
+        cloud_type: str,
+        gpu_count: int,
+        volume_in_gb: int,
+        container_disk_in_gb: int,
+        min_vcpu_count: int,
+        min_memory_in_gb: int,
+        max_uptime_seconds: int,
+        max_estimated_cost_usd: float,
+        docker_args: str,
+    ) -> dict[str, Any]:
+        gpu_info = self._gpu_type_info(gpu_type_id, gpu_count=gpu_count)
+        price = _gpu_uninterruptable_price(gpu_info)
+        estimated = None if price is None else round(float(price) * max_uptime_seconds / 3600, 6)
+        ok_cost = estimated is not None and estimated <= max_estimated_cost_usd
+        return {
+            "ok": bool(gpu_info.get("ok")) and ok_cost,
+            "provider": self.name,
+            "plan_version": "runpod-pod-worker-plan-v1",
+            "official_basis": {
+                "graphql_docs": "https://docs.runpod.io/sdks/graphql/manage-pods",
+                "create_mutation": "podFindAndDeployOnDemand",
+                "stop_mutation": "podStop",
+                "sdk_cleanup": "runpod.terminate_pod",
+            },
+            "pod_input": {
+                "name": "gpu-job-pod-canary-<timestamp>",
+                "imageName": image,
+                "gpuTypeId": gpu_type_id,
+                "cloudType": cloud_type,
+                "gpuCount": gpu_count,
+                "volumeInGb": volume_in_gb,
+                "containerDiskInGb": container_disk_in_gb,
+                "minVcpuCount": min_vcpu_count,
+                "minMemoryInGb": min_memory_in_gb,
+                "dockerArgs": docker_args,
+                "volumeMountPath": "/runpod-volume",
+            },
+            "gpu_info": gpu_info,
+            "cost_guard": {
+                "uninterruptable_price_usd_per_hour": price,
+                "max_uptime_seconds": max_uptime_seconds,
+                "estimated_cost_usd": estimated,
+                "max_estimated_cost_usd": max_estimated_cost_usd,
+                "ok": ok_cost,
+            },
+            "cleanup_sequence": [
+                "create pod only after clean pre-guard",
+                "observe desiredStatus/runtime until ready or timeout",
+                "terminate pod in finally block",
+                "run post-guard and require no active pods",
+            ],
+        }
+
+    def canary_pod_lifecycle(
+        self,
+        *,
+        gpu_type_id: str,
+        image: str,
+        cloud_type: str,
+        gpu_count: int,
+        volume_in_gb: int,
+        container_disk_in_gb: int,
+        min_vcpu_count: int,
+        min_memory_in_gb: int,
+        max_uptime_seconds: int,
+        max_estimated_cost_usd: float,
+        docker_args: str,
+        execute: bool,
+    ) -> dict[str, Any]:
+        plan = self.plan_pod_worker(
+            gpu_type_id=gpu_type_id,
+            image=image,
+            cloud_type=cloud_type,
+            gpu_count=gpu_count,
+            volume_in_gb=volume_in_gb,
+            container_disk_in_gb=container_disk_in_gb,
+            min_vcpu_count=min_vcpu_count,
+            min_memory_in_gb=min_memory_in_gb,
+            max_uptime_seconds=max_uptime_seconds,
+            max_estimated_cost_usd=max_estimated_cost_usd,
+            docker_args=docker_args,
+        )
+        if not execute:
+            return {**plan, "executed": False}
+        if not plan.get("ok"):
+            return {**plan, "executed": False}
+        pod: dict[str, Any] | None = None
+        samples: list[dict[str, Any]] = []
+        terminated: dict[str, Any] | None = None
+        result: dict[str, Any] | None = None
+        start = time.time()
+        try:
+            pod = self._create_canary_pod(
+                gpu_type_id=gpu_type_id,
+                image=image,
+                cloud_type=cloud_type,
+                gpu_count=gpu_count,
+                volume_in_gb=volume_in_gb,
+                container_disk_in_gb=container_disk_in_gb,
+                min_vcpu_count=min_vcpu_count,
+                min_memory_in_gb=min_memory_in_gb,
+                docker_args=docker_args,
+            )
+            pod_id = str(pod.get("id") or "")
+            if not pod_id:
+                raise RuntimeError(f"RunPod pod create returned no id: {pod}")
+            deadline = start + max_uptime_seconds
+            while time.time() < deadline:
+                sample = self._get_pod(pod_id)
+                samples.append(_public_pod(sample))
+                if _pod_has_runtime(sample):
+                    break
+                time.sleep(min(10, max(1, int(deadline - time.time()))))
+            observed_runtime = any(_pod_has_runtime(sample) for sample in samples)
+            result = {
+                "ok": observed_runtime,
+                "executed": True,
+                "plan": plan,
+                "pod": _public_pod(pod),
+                "samples": samples,
+                "observed_runtime": observed_runtime,
+                "runtime_seconds": round(time.time() - start, 3),
+            }
+        except Exception as exc:
+            result = {
+                "ok": False,
+                "executed": True,
+                "error": str(exc),
+                "plan": plan,
+                "pod": _public_pod(pod) if pod else None,
+                "samples": samples,
+                "cleanup": terminated,
+            }
+        finally:
+            if pod and pod.get("id"):
+                try:
+                    terminated = self._terminate_pod(str(pod["id"]))
+                except Exception as exc:
+                    terminated = {"ok": False, "error": str(exc)}
+            if result is not None:
+                result["cleanup"] = terminated
+                if terminated and not terminated.get("ok", False):
+                    result["ok"] = False
+        if result is None:
+            return {**plan, "ok": False, "executed": True, "error": "pod lifecycle returned no result"}
+        return result
+
+    def _gpu_type_info(self, gpu_type_id: str, *, gpu_count: int) -> dict[str, Any]:
+        query = f"""
+query {{
+  gpuTypes(input: {{ id: {_graphql_string(gpu_type_id)} }}) {{
+    id displayName memoryInGb secureCloud communityCloud
+    lowestPrice(input: {{ gpuCount: {int(gpu_count)} }}) {{
+      stockStatus minimumBidPrice uninterruptablePrice availableGpuCounts
+    }}
+  }}
+}}
+"""
+        try:
+            rows = self._run_graphql(query)["data"]["gpuTypes"]
+        except Exception as exc:
+            return {"ok": False, "id": gpu_type_id, "error": str(exc)}
+        if not rows:
+            return {"ok": False, "id": gpu_type_id, "error": "gpu type not found"}
+        row = rows[0]
+        row["ok"] = True
+        return row
+
+    def _run_runpod_python(self, code: str, payload: dict[str, Any], *, timeout: int) -> dict[str, Any]:
+        python_bin = runpod_python()
+        if not python_bin:
+            raise RuntimeError("runpod python SDK not importable; install gpu-job-control[providers] or set RUNPOD_PYTHON")
+        proc = run([python_bin, "-c", code], input=json.dumps(payload), capture_output=True, text=True, timeout=timeout)
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "runpod python action failed")
+        try:
+            return json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"runpod python action returned non-json: {proc.stdout!r}") from exc
+
+    def _create_canary_pod(
+        self,
+        *,
+        gpu_type_id: str,
+        image: str,
+        cloud_type: str,
+        gpu_count: int,
+        volume_in_gb: int,
+        container_disk_in_gb: int,
+        min_vcpu_count: int,
+        min_memory_in_gb: int,
+        docker_args: str,
+    ) -> dict[str, Any]:
+        payload = {
+            "name": f"gpu-job-pod-canary-{time.strftime('%Y%m%d%H%M%S')}",
+            "image_name": image,
+            "gpu_type_id": gpu_type_id,
+            "cloud_type": cloud_type,
+            "gpu_count": gpu_count,
+            "volume_in_gb": volume_in_gb,
+            "container_disk_in_gb": container_disk_in_gb,
+            "min_vcpu_count": min_vcpu_count,
+            "min_memory_in_gb": min_memory_in_gb,
+            "docker_args": docker_args,
+            "volume_mount_path": "/runpod-volume",
+            "support_public_ip": False,
+            "start_ssh": False,
+        }
+        code = (
+            "import json,runpod,sys; p=json.loads(sys.stdin.read()); pod=runpod.create_pod(**p); print(json.dumps(pod, ensure_ascii=False))"
+        )
+        return self._run_runpod_python(code, payload, timeout=90)
+
+    def _get_pod(self, pod_id: str) -> dict[str, Any]:
+        code = (
+            "import json,runpod,sys; "
+            "p=json.loads(sys.stdin.read()); "
+            "pod=runpod.get_pod(p['pod_id']); "
+            "print(json.dumps(pod, ensure_ascii=False))"
+        )
+        return self._run_runpod_python(code, {"pod_id": pod_id}, timeout=30)
+
+    def _terminate_pod(self, pod_id: str) -> dict[str, Any]:
+        code = (
+            "import json,runpod,sys; "
+            "p=json.loads(sys.stdin.read()); "
+            "result=runpod.terminate_pod(p['pod_id']); "
+            "print(json.dumps({'ok': True, 'result': result}, ensure_ascii=False))"
+        )
+        return self._run_runpod_python(code, {"pod_id": pod_id}, timeout=60)
 
     def plan_vllm_endpoint(
         self,
@@ -1291,6 +1531,63 @@ def _public_template(template: dict[str, Any]) -> dict[str, Any]:
         "volumeInGb": template.get("volumeInGb"),
         "dockerArgs": template.get("dockerArgs"),
         "env_keys": [item.get("key") for item in template.get("env", []) if isinstance(item, dict)],
+    }
+
+
+def _gpu_uninterruptable_price(gpu_info: dict[str, Any]) -> float | None:
+    lowest = gpu_info.get("lowestPrice")
+    lowest = lowest if isinstance(lowest, dict) else {}
+    value = lowest.get("uninterruptablePrice")
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _pod_has_runtime(pod: dict[str, Any]) -> bool:
+    if str(pod.get("desiredStatus") or "").upper() == "RUNNING":
+        return True
+    uptime_seconds = pod.get("uptimeSeconds")
+    try:
+        if uptime_seconds is not None and int(uptime_seconds) >= 0:
+            return True
+    except (TypeError, ValueError):
+        pass
+    runtime = pod.get("runtime")
+    if not isinstance(runtime, dict):
+        return False
+    uptime = runtime.get("uptimeInSeconds")
+    try:
+        return uptime is not None and int(uptime) >= 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _public_pod(pod: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not pod:
+        return None
+    runtime = pod.get("runtime")
+    runtime = runtime if isinstance(runtime, dict) else {}
+    machine = pod.get("machine")
+    machine = machine if isinstance(machine, dict) else {}
+    return {
+        "id": pod.get("id"),
+        "name": pod.get("name"),
+        "desiredStatus": pod.get("desiredStatus"),
+        "imageName": pod.get("imageName"),
+        "gpuCount": pod.get("gpuCount"),
+        "costPerHr": pod.get("costPerHr"),
+        "machineId": pod.get("machineId"),
+        "podHostId": machine.get("podHostId"),
+        "uptimeSeconds": pod.get("uptimeSeconds"),
+        "runtime": {
+            "uptimeInSeconds": runtime.get("uptimeInSeconds"),
+            "ports": runtime.get("ports"),
+            "gpus": runtime.get("gpus"),
+            "container": runtime.get("container"),
+        }
+        if runtime
+        else None,
     }
 
 
