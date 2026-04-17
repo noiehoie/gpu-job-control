@@ -126,10 +126,21 @@ Worker images may be built by GitHub Actions, a remote Linux builder, or a provi
 
 - a provider-native serverless template;
 - a self-hosted or cloud container registry;
-- a mirror of the public canary image;
+- a mirror of a public demonstration image;
 - an immutable digest reference already accepted by the provider.
 
-Do not make production job execution depend on live access to this GitHub repository or to GitHub Actions. GHCR can be useful for public examples, but deployments that need higher reliability should mirror images and pin digests in their own configuration.
+Do not make production job execution depend on live access to this GitHub repository or to GitHub Actions. GHCR can be useful for examples, but deployments should mirror images and pin digests in their own configuration.
+
+Plan a mirror operation without touching local Docker:
+
+```bash
+uv run gpu-job image mirror \
+  --source ghcr.io/example/gpu-job-control-runpod-llm@sha256:<digest> \
+  --target registry.example.com/gpu-job-control/runpod-llm@sha256:<digest> \
+  --builder gpu-builder
+```
+
+Add `--execute` only on a builder host that has registry credentials and Docker Buildx configured.
 
 ## Public Repository Hygiene
 

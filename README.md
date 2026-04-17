@@ -118,13 +118,13 @@ Recommended deployment posture:
 - mirror worker images to the registry or provider-native template system you operate;
 - pin production worker images by digest and verify artifacts after execution.
 
-The public GHCR canary image is only a distribution convenience. Production deployments should be able to continue routing, guarding, and executing jobs during a GitHub or GHCR outage.
+Any GHCR-hosted image produced by this repository is only an optional reproducibility artifact. Production deployments should mirror worker images into an operator-controlled registry or provider-native template system before use.
 
 ## Docker and Worker Images
 
 Do not assume the developer workstation has Docker. Use a remote Linux builder or CI for image builds.
 
-The repository includes a GitHub Actions workflow that builds a RunPod canary image:
+The repository includes a GitHub Actions workflow that demonstrates a reproducible RunPod canary image build:
 
 ```text
 .github/workflows/publish-runpod-worker.yml
@@ -138,6 +138,15 @@ src/gpu_job/workers/runpod_llm.py
 ```
 
 Treat that workflow as a reproducibility example, not as required production plumbing.
+
+Mirror images into your own runtime registry before using them in production:
+
+```bash
+uv run gpu-job image mirror \
+  --source ghcr.io/example/gpu-job-control-runpod-llm@sha256:<digest> \
+  --target registry.example.com/gpu-job-control/runpod-llm@sha256:<digest> \
+  --builder gpu-builder
+```
 
 ## Security
 

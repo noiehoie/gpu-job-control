@@ -2,7 +2,7 @@
 
 ## Decision
 
-GitHub Container Registry is a convenient public distribution target for canary worker images. It is not required for production operation.
+GitHub Container Registry is an optional distribution target for demonstration worker images. It is not required for production operation.
 
 Example public image:
 
@@ -31,12 +31,12 @@ Healthy production posture:
 
 This keeps provider routing and spend guards operational even if GitHub, GHCR, or Actions are unavailable.
 
-## Why Keep a GHCR Canary
+## Why Keep an Optional GHCR Build
 
 - It gives reviewers a reproducible public image build example.
-- It lets new users test provider integration without designing a registry layout first.
+- It lets new users inspect the worker image contract before designing a registry layout.
 - It can be mirrored into Docker Hub, a cloud registry, self-hosted registry, RunPod template, or Vast endpoint template.
-- It avoids storing a long-lived registry token on a workload host for the public canary path.
+- It keeps publication separate from runtime operation.
 
 ## GitHub Workflow
 
@@ -60,7 +60,7 @@ It performs:
 - Repository name should be `gpu-job-control`.
 - The default branch should be `main`.
 - GitHub Actions must have package write permission.
-- The GHCR package must be public before anonymous provider pulls can use it.
+- Anonymous provider pulls require a public source image. Production deployments should usually avoid that dependency by mirroring into an operator-controlled registry or provider template.
 
 ## Visibility
 
@@ -70,7 +70,7 @@ GitHub currently exposes package visibility as a package-settings operation. For
 
 ## Mirroring Pattern
 
-After a canary image is built, mirror it into the registry used by your providers:
+After an image is built, mirror it into the registry used by your providers:
 
 ```text
 source: ghcr.io/<owner>/gpu-job-control-runpod-llm@sha256:<digest>
@@ -78,3 +78,14 @@ target: registry.example.com/gpu-job-control/runpod-llm@sha256:<digest>
 ```
 
 Then configure production jobs and provider templates to use the target digest. The public source can disappear temporarily without affecting already-mirrored runtime execution.
+
+The CLI can plan the mirror operation without using local Docker:
+
+```bash
+uv run gpu-job image mirror \
+  --source ghcr.io/<owner>/gpu-job-control-runpod-llm@sha256:<digest> \
+  --target registry.example.com/gpu-job-control/runpod-llm@sha256:<digest> \
+  --builder gpu-builder
+```
+
+Add `--execute` only after the remote builder has access to both registries.

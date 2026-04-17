@@ -20,7 +20,7 @@ from .drain import clear_drain, drain_status, start_drain
 from .dlq import dlq_status
 from .error_class import classify_error
 from .guard import collect_cost_guard
-from .image import image_build, image_check, image_plan
+from .image import image_build, image_check, image_mirror, image_plan
 from .invariants import evaluate_invariants
 from .metrics_export import metrics_prometheus, metrics_snapshot
 from .intake import intake_job, intake_status, plan_intake_groups
@@ -459,6 +459,8 @@ def cmd_image(args: argparse.Namespace) -> int:
             result["ok"] = False
         print_json(result)
         return 0 if result.get("ok") else 1
+    elif args.image_command == "mirror":
+        result = image_mirror(args.source, args.target, builder=args.builder, execute=args.execute)
     else:
         raise ValueError(f"unknown image command: {args.image_command}")
     print_json(result)
@@ -739,6 +741,12 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "build":
             item.add_argument("--execute", action="store_true", help="perform the remote/CI build action")
         item.set_defaults(func=cmd_image)
+    image_mirror_parser = image_sub.add_parser("mirror", help="mirror an image into an operator-controlled registry")
+    image_mirror_parser.add_argument("--source", required=True, help="source image reference, preferably digest-pinned")
+    image_mirror_parser.add_argument("--target", required=True, help="target image reference in the operator registry")
+    image_mirror_parser.add_argument("--builder", default="", help="SSH host that has Docker/buildx and registry credentials")
+    image_mirror_parser.add_argument("--execute", action="store_true", help="perform the mirror operation")
+    image_mirror_parser.set_defaults(func=cmd_image)
 
     runpod = sub.add_parser("runpod", help="RunPod-specific promotion helpers")
     runpod_sub = runpod.add_subparsers(dest="runpod_command", required=True)

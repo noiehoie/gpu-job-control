@@ -4,6 +4,7 @@ from pathlib import Path
 from subprocess import run
 from typing import Any
 import os
+import shlex
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -83,4 +84,51 @@ def image_build(worker: str = "asr", execute: bool = False) -> dict[str, Any]:
         "stdout_tail": "\n".join(proc.stdout.splitlines()[-40:]),
         "stderr_tail": "\n".join(proc.stderr.splitlines()[-40:]),
         "inspect_ok": inspect.returncode == 0,
+    }
+
+
+def image_mirror_plan(source: str, target: str, *, builder: str = "") -> dict[str, Any]:
+    if not source.strip() or not target.strip():
+        raise ValueError("source and target image references are required")
+    remote_builder = builder.strip() or os.getenv("GPU_JOB_DOCKER_BUILDER", "").strip()
+    command = ["docker", "buildx", "imagetools", "create", "-t", target, source]
+    if remote_builder:
+        remote_command = " ".join(shlex.quote(item) for item in command)
+        command = ["ssh", remote_builder, remote_command]
+    return {
+        "ok": True,
+        "source": source,
+        "target": target,
+        "builder": remote_builder or None,
+        "command": command,
+        "runtime_policy": "mirror into an operator-controlled registry; do not require GitHub/GHCR at execution time",
+        "requires": [
+            "source image is readable by the builder",
+            "target registry credentials are available only on the builder",
+            "production jobs use the target digest after verification",
+        ],
+    }
+
+
+def image_mirror(source: str, target: str, *, builder: str = "", execute: bool = False) -> dict[str, Any]:
+    plan = image_mirror_plan(source, target, builder=builder)
+    if not execute:
+        return {"ok": True, "planned": True, "plan": plan}
+    if not plan["builder"] and os.getenv("GPU_JOB_ALLOW_LOCAL_DOCKER", "") != "1":
+        return {
+            "ok": False,
+            "error": "refusing local Docker mirror without GPU_JOB_ALLOW_LOCAL_DOCKER=1 or --builder",
+            "plan": plan,
+        }
+    proc = run(plan["command"], cwd=ROOT, capture_output=True, text=True, timeout=1800)
+    return {
+        "ok": proc.returncode == 0,
+        "planned": False,
+        "source": source,
+        "target": target,
+        "builder": plan["builder"],
+        "command": plan["command"],
+        "returncode": proc.returncode,
+        "stdout_tail": "\n".join(proc.stdout.splitlines()[-40:]),
+        "stderr_tail": "\n".join(proc.stderr.splitlines()[-40:]),
     }

@@ -6,6 +6,12 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 
 ## Unreleased
 
+## 0.1.1 - 2026-04-17
+
+- Documented that GitHub, GitHub Actions, and GHCR are publication surfaces, not runtime dependencies.
+- Added operator-controlled worker image mirroring guidance.
+- Added `gpu-job image mirror` for digest-pinned registry mirroring through a remote builder.
+
 ## 0.1.0 - 2026-04-17
 
 - Initial public-ready repository structure.
