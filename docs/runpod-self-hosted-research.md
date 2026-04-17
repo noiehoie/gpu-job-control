@@ -164,6 +164,37 @@ scalerValue=4
 
 This is the preferred next experiment.
 
+gpu-job-control now exposes that experiment as a deterministic promotion helper:
+
+```bash
+gpu-job runpod plan-vllm-endpoint \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --image runpod/worker-v1-vllm:v2.14.0
+```
+
+The plan command performs no provider mutation. It prints the exact template, endpoint shape, secret reference, and safety invariants.
+
+Promotion requires an explicit execute flag:
+
+```bash
+gpu-job runpod promote-vllm-endpoint \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --image runpod/worker-v1-vllm:v2.14.0 \
+  --execute
+```
+
+The promotion helper must keep these invariants:
+
+- `workersMin=0`;
+- `workersMin=0` is the fixed warm-capacity guard; `workersStandby` may be observed in API responses but is not accepted by `EndpointInput`;
+- `workersMax=1` for the first canary;
+- clean pre-guard before creation;
+- short OpenAI-compatible canary before traffic promotion;
+- clean post-guard after canary;
+- failed canaries disable and delete the endpoint.
+
+The default canary timeout is intentionally short: 180 seconds. If RunPod leaves the request queued without assigning a worker, the helper treats that as no usable capacity for the current promotion attempt and deletes the endpoint.
+
 ### Design B: Official vLLM worker + attached network volume
 
 Use when:

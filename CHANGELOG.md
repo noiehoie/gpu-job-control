@@ -10,6 +10,7 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 - Allowed RunPod GraphQL helpers to read the existing `~/.runpod/config.toml` API key without exporting it.
 - Updated the worker systemd template so queued workers can read provider endpoint settings from the service environment file.
 - Added RunPod self-hosted endpoint research notes for templates, cached models, network volumes, and promotion gates.
+- Added `gpu-job runpod plan-vllm-endpoint` and `promote-vllm-endpoint` for scale-to-zero RunPod vLLM Serverless endpoint canaries.
 
 ## 0.1.1 - 2026-04-17
 

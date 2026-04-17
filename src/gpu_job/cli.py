@@ -480,6 +480,54 @@ def cmd_runpod(args: argparse.Namespace) -> int:
             template_id=args.template_id,
             flashboot=args.flashboot,
         )
+    elif args.runpod_command == "plan-vllm-endpoint":
+        result = provider.plan_vllm_endpoint(
+            model=args.model,
+            image=args.image,
+            gpu_ids=args.gpu_ids,
+            network_volume_id=args.network_volume_id,
+            locations=args.locations,
+            hf_secret_name=args.hf_secret_name,
+            max_model_len=args.max_model_len,
+            gpu_memory_utilization=args.gpu_memory_utilization,
+            max_concurrency=args.max_concurrency,
+            idle_timeout=args.idle_timeout,
+            workers_max=args.workers_max,
+            scaler_value=args.scaler_value,
+            quantization=args.quantization,
+            served_model_name=args.served_model_name,
+            flashboot=args.flashboot,
+        )
+    elif args.runpod_command == "promote-vllm-endpoint":
+        pre_guard = collect_cost_guard(["runpod"])
+        if args.execute and not pre_guard["ok"]:
+            print_json({"ok": False, "error": "pre-promotion cost guard failed", "guard": pre_guard})
+            return 2
+        result = provider.promote_vllm_endpoint(
+            model=args.model,
+            image=args.image,
+            gpu_ids=args.gpu_ids,
+            network_volume_id=args.network_volume_id,
+            locations=args.locations,
+            hf_secret_name=args.hf_secret_name,
+            max_model_len=args.max_model_len,
+            gpu_memory_utilization=args.gpu_memory_utilization,
+            max_concurrency=args.max_concurrency,
+            idle_timeout=args.idle_timeout,
+            workers_max=args.workers_max,
+            scaler_value=args.scaler_value,
+            quantization=args.quantization,
+            served_model_name=args.served_model_name,
+            flashboot=args.flashboot,
+            canary_prompt=args.canary_prompt,
+            canary_timeout_seconds=args.canary_timeout_seconds,
+            execute=args.execute,
+        )
+        result["pre_promotion_guard"] = pre_guard
+        post_guard = collect_cost_guard(["runpod"])
+        result["post_promotion_guard"] = post_guard
+        if not post_guard["ok"]:
+            result["ok"] = False
     else:
         raise ValueError(f"unknown runpod command: {args.runpod_command}")
     print_json(result)
@@ -762,6 +810,60 @@ def build_parser() -> argparse.ArgumentParser:
     quarantine.add_argument("--template-id", default="", help="existing RunPod template id")
     quarantine.add_argument("--flashboot", action="store_true", help="request RunPod FlashBoot")
     quarantine.set_defaults(func=cmd_runpod)
+    vllm_defaults = {
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "image": "runpod/worker-v1-vllm:v2.14.0",
+        "gpu_ids": "AMPERE_16,AMPERE_24,ADA_24",
+        "locations": "US",
+        "hf_secret_name": "gpu_job_hf_read",
+        "max_model_len": 2048,
+        "gpu_memory_utilization": 0.9,
+        "max_concurrency": 1,
+        "idle_timeout": 5,
+        "workers_max": 1,
+        "scaler_value": 4,
+    }
+
+    def add_vllm_endpoint_args(item: argparse.ArgumentParser) -> None:
+        item.add_argument("--model", default=vllm_defaults["model"], help="Hugging Face model id or vLLM model path")
+        item.add_argument("--image", default=vllm_defaults["image"], help="RunPod vLLM worker image")
+        item.add_argument("--gpu-ids", default=vllm_defaults["gpu_ids"], help="RunPod GPU id list")
+        item.add_argument("--locations", default=vllm_defaults["locations"], help="RunPod location filter")
+        item.add_argument(
+            "--network-volume-id",
+            default=os.getenv("RUNPOD_NETWORK_VOLUME_ID", ""),
+            help="optional approved RunPod network volume id",
+        )
+        item.add_argument(
+            "--hf-secret-name",
+            default=vllm_defaults["hf_secret_name"],
+            help="RunPod secret name used as HF_TOKEN; empty disables HF_TOKEN env",
+        )
+        item.add_argument("--max-model-len", type=int, default=vllm_defaults["max_model_len"], help="vLLM MAX_MODEL_LEN")
+        item.add_argument(
+            "--gpu-memory-utilization",
+            type=float,
+            default=vllm_defaults["gpu_memory_utilization"],
+            help="vLLM GPU_MEMORY_UTILIZATION",
+        )
+        item.add_argument("--max-concurrency", type=int, default=vllm_defaults["max_concurrency"], help="worker MAX_CONCURRENCY")
+        item.add_argument("--idle-timeout", type=int, default=vllm_defaults["idle_timeout"], help="endpoint idle timeout seconds")
+        item.add_argument("--workers-max", type=int, default=vllm_defaults["workers_max"], help="maximum serverless workers")
+        item.add_argument("--scaler-value", type=int, default=vllm_defaults["scaler_value"], help="QUEUE_DELAY scaler value")
+        item.add_argument("--quantization", default="", help="optional vLLM QUANTIZATION value")
+        item.add_argument("--served-model-name", default="", help="optional OpenAI served model alias")
+        item.add_argument("--flashboot", action="store_true", help="request RunPod FlashBoot")
+
+    plan_vllm = runpod_sub.add_parser("plan-vllm-endpoint", help="plan a safe RunPod vLLM serverless endpoint")
+    add_vllm_endpoint_args(plan_vllm)
+    plan_vllm.set_defaults(func=cmd_runpod)
+
+    promote_vllm = runpod_sub.add_parser("promote-vllm-endpoint", help="create and canary a RunPod vLLM endpoint")
+    add_vllm_endpoint_args(promote_vllm)
+    promote_vllm.add_argument("--canary-prompt", default="Return exactly: GPU SELF HOSTED OK", help="short canary prompt")
+    promote_vllm.add_argument("--canary-timeout-seconds", type=int, default=180, help="bounded canary wait")
+    promote_vllm.add_argument("--execute", action="store_true", help="actually create and canary the endpoint")
+    promote_vllm.set_defaults(func=cmd_runpod)
 
     serve = sub.add_parser("serve", help="start the local/private HTTP API")
     serve.add_argument("--host", default="127.0.0.1", help="API bind host")

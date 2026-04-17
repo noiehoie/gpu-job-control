@@ -127,7 +127,7 @@ class RunPodProvider(Provider):
                 "idleTimeout": endpoint.get("idleTimeout"),
             }
             for endpoint in endpoints
-            if int(endpoint.get("workersMin") or 0) > 0 or int(endpoint.get("workersStandby") or 0) > 0
+            if int(endpoint.get("workersMin") or 0) > 0
         ]
         signal["endpoint_count"] = len(endpoints)
         signal["endpoint_health"] = endpoint_health
@@ -246,6 +246,402 @@ class RunPodProvider(Provider):
             "decision": "accepted" if accepted else "deleted_due_to_warm_capacity_or_guard_failure",
         }
 
+    def plan_vllm_endpoint(
+        self,
+        *,
+        model: str,
+        image: str,
+        gpu_ids: str,
+        network_volume_id: str,
+        locations: str,
+        hf_secret_name: str,
+        max_model_len: int,
+        gpu_memory_utilization: float,
+        max_concurrency: int,
+        idle_timeout: int,
+        workers_max: int,
+        scaler_value: int,
+        quantization: str,
+        served_model_name: str,
+        flashboot: bool,
+    ) -> dict[str, Any]:
+        served_model_name = served_model_name or model
+        template = self._vllm_template_input(
+            model=model,
+            image=image,
+            hf_secret_name=hf_secret_name,
+            max_model_len=max_model_len,
+            gpu_memory_utilization=gpu_memory_utilization,
+            max_concurrency=max_concurrency,
+            quantization=quantization,
+            served_model_name=served_model_name,
+        )
+        endpoint = self._vllm_endpoint_input(
+            model=model,
+            gpu_ids=gpu_ids,
+            network_volume_id=network_volume_id,
+            locations=locations,
+            template_id="<created-template-id>",
+            idle_timeout=idle_timeout,
+            workers_max=workers_max,
+            scaler_value=scaler_value,
+            flashboot=flashboot,
+        )
+        return {
+            "ok": True,
+            "provider": self.name,
+            "plan_version": "runpod-vllm-endpoint-plan-v1",
+            "execute_required": "gpu-job runpod promote-vllm-endpoint --execute",
+            "official_basis": {
+                "worker_repo": "https://github.com/runpod-workers/worker-vllm",
+                "openai_base_url": "https://api.runpod.ai/v2/<endpoint-id>/openai/v1",
+            },
+            "safety_invariants": {
+                "workers_min": 0,
+                "workers_standby": 0,
+                "workers_max": workers_max,
+                "idle_timeout_seconds": idle_timeout,
+                "requires_clean_pre_guard": True,
+                "requires_clean_post_guard": True,
+                "delete_precondition": "set workersMax=0 and workersMin=0 before delete",
+            },
+            "template": template,
+            "endpoint": endpoint,
+            "canary_sequence": [
+                "create serverless template",
+                "create serverless endpoint with workersMin=0",
+                "verify endpoint has no warm capacity",
+                "POST /openai/v1/chat/completions with max_tokens=8",
+                "verify non-empty text response",
+                "run post-guard; any warm capacity is failure",
+            ],
+        }
+
+    def promote_vllm_endpoint(
+        self,
+        *,
+        model: str,
+        image: str,
+        gpu_ids: str,
+        network_volume_id: str,
+        locations: str,
+        hf_secret_name: str,
+        max_model_len: int,
+        gpu_memory_utilization: float,
+        max_concurrency: int,
+        idle_timeout: int,
+        workers_max: int,
+        scaler_value: int,
+        quantization: str,
+        served_model_name: str,
+        flashboot: bool,
+        canary_prompt: str,
+        canary_timeout_seconds: int,
+        execute: bool,
+    ) -> dict[str, Any]:
+        plan = self.plan_vllm_endpoint(
+            model=model,
+            image=image,
+            gpu_ids=gpu_ids,
+            network_volume_id=network_volume_id,
+            locations=locations,
+            hf_secret_name=hf_secret_name,
+            max_model_len=max_model_len,
+            gpu_memory_utilization=gpu_memory_utilization,
+            max_concurrency=max_concurrency,
+            idle_timeout=idle_timeout,
+            workers_max=workers_max,
+            scaler_value=scaler_value,
+            quantization=quantization,
+            served_model_name=served_model_name,
+            flashboot=flashboot,
+        )
+        if not execute:
+            return {**plan, "ok": True, "executed": False}
+
+        created_template = None
+        endpoint = None
+        disabled = None
+        deleted = None
+        canary: dict[str, Any] = {"ok": False}
+        served_model_name = served_model_name or model
+        try:
+            created_template = self._create_vllm_template(
+                model=model,
+                image=image,
+                hf_secret_name=hf_secret_name,
+                max_model_len=max_model_len,
+                gpu_memory_utilization=gpu_memory_utilization,
+                max_concurrency=max_concurrency,
+                quantization=quantization,
+                served_model_name=served_model_name,
+            )
+            endpoint = self._create_vllm_endpoint(
+                model=model,
+                gpu_ids=gpu_ids,
+                network_volume_id=network_volume_id,
+                locations=locations,
+                template_id=str(created_template["id"]),
+                idle_timeout=idle_timeout,
+                workers_max=workers_max,
+                scaler_value=scaler_value,
+                flashboot=flashboot,
+            )
+            endpoint_id = str(endpoint["id"])
+            invariant = self._endpoint_scale_to_zero_invariant(endpoint)
+            if not invariant["ok"]:
+                raise RuntimeError(f"unsafe RunPod endpoint scale configuration: {invariant}")
+            canary = self._openai_canary(
+                endpoint_id=endpoint_id,
+                model=served_model_name,
+                prompt=canary_prompt,
+                timeout=canary_timeout_seconds,
+            )
+            if not canary["ok"]:
+                raise RuntimeError(f"RunPod vLLM canary failed: {canary}")
+            return {
+                "ok": True,
+                "executed": True,
+                "promotion_state": "short_generation_canary_ok",
+                "plan": plan,
+                "created_template": _public_template(created_template),
+                "endpoint": _public_endpoint(endpoint),
+                "scale_to_zero_invariant": invariant,
+                "canary": canary,
+                "openai_base_url": f"https://api.runpod.ai/v2/{endpoint_id}/openai/v1",
+                "recommended_env": {
+                    "RUNPOD_LLM_ENDPOINT_ID": endpoint_id,
+                    "RUNPOD_LLM_ENDPOINT_MODE": "openai",
+                    "RUNPOD_LLM_MODEL_OVERRIDE": served_model_name,
+                },
+            }
+        except Exception as exc:
+            if endpoint and endpoint.get("id") and endpoint.get("templateId"):
+                try:
+                    disabled = self._disable_endpoint(str(endpoint["id"]), template_id=str(endpoint["templateId"]))
+                except Exception as disable_exc:
+                    disabled = {"ok": False, "error": str(disable_exc)}
+                try:
+                    deleted = self._delete_endpoint(str(endpoint["id"]))
+                except Exception as delete_exc:
+                    deleted = {"ok": False, "error": str(delete_exc)}
+            return {
+                "ok": False,
+                "executed": True,
+                "error": str(exc),
+                "plan": plan,
+                "created_template": _public_template(created_template) if created_template else None,
+                "endpoint": _public_endpoint(endpoint) if endpoint else None,
+                "canary": canary,
+                "disabled": disabled,
+                "deleted": deleted,
+            }
+
+    def _vllm_template_input(
+        self,
+        *,
+        model: str,
+        image: str,
+        hf_secret_name: str,
+        max_model_len: int,
+        gpu_memory_utilization: float,
+        max_concurrency: int,
+        quantization: str,
+        served_model_name: str,
+    ) -> dict[str, Any]:
+        env = [
+            {"key": "MODEL_NAME", "value": model},
+            {"key": "MAX_MODEL_LEN", "value": str(max_model_len)},
+            {"key": "GPU_MEMORY_UTILIZATION", "value": str(gpu_memory_utilization)},
+            {"key": "MAX_CONCURRENCY", "value": str(max_concurrency)},
+            {"key": "OPENAI_SERVED_MODEL_NAME_OVERRIDE", "value": served_model_name},
+        ]
+        if quantization:
+            env.append({"key": "QUANTIZATION", "value": quantization})
+        if hf_secret_name:
+            env.append({"key": "HF_TOKEN", "value": f"{{{{ RUNPOD_SECRET_{hf_secret_name} }}}}"})
+        return {
+            "name": f"gpu-job-vllm-{_safe_name(model)}",
+            "imageName": image,
+            "isServerless": True,
+            "containerDiskInGb": 30,
+            "volumeInGb": 0,
+            "dockerArgs": "",
+            "env": env,
+        }
+
+    def _vllm_endpoint_input(
+        self,
+        *,
+        model: str,
+        gpu_ids: str,
+        network_volume_id: str,
+        locations: str,
+        template_id: str,
+        idle_timeout: int,
+        workers_max: int,
+        scaler_value: int,
+        flashboot: bool,
+    ) -> dict[str, Any]:
+        endpoint: dict[str, Any] = {
+            "name": f"gpu-job-vllm-{_safe_name(model)}-{time.strftime('%Y%m%d%H%M%S')}",
+            "gpuIds": gpu_ids,
+            "locations": locations,
+            "templateId": template_id,
+            "workersMin": 0,
+            "workersMax": workers_max,
+            "idleTimeout": idle_timeout,
+            "scalerType": "QUEUE_DELAY",
+            "scalerValue": scaler_value,
+            "networkVolumeId": network_volume_id,
+        }
+        if flashboot:
+            endpoint["flashBootType"] = "FLASHBOOT"
+        return endpoint
+
+    def _create_vllm_template(
+        self,
+        *,
+        model: str,
+        image: str,
+        hf_secret_name: str,
+        max_model_len: int,
+        gpu_memory_utilization: float,
+        max_concurrency: int,
+        quantization: str,
+        served_model_name: str,
+    ) -> dict[str, Any]:
+        template = self._vllm_template_input(
+            model=model,
+            image=image,
+            hf_secret_name=hf_secret_name,
+            max_model_len=max_model_len,
+            gpu_memory_utilization=gpu_memory_utilization,
+            max_concurrency=max_concurrency,
+            quantization=quantization,
+            served_model_name=served_model_name,
+        )
+        template["name"] = f"{template['name']}-{time.strftime('%Y%m%d%H%M%S')}"
+        env = ", ".join(
+            f"{{ key: {_graphql_string(str(item['key']))}, value: {_graphql_string(str(item['value']))} }}" for item in template["env"]
+        )
+        query = (
+            "mutation {"
+            " saveTemplate(input: {"
+            f" name: {_graphql_string(str(template['name']))},"
+            f" imageName: {_graphql_string(str(template['imageName']))},"
+            " isServerless: true,"
+            f" containerDiskInGb: {int(template['containerDiskInGb'])},"
+            f" volumeInGb: {int(template['volumeInGb'])},"
+            f" dockerArgs: {_graphql_string(str(template['dockerArgs']))},"
+            f" env: [{env}]"
+            " }) { id name imageName isServerless containerDiskInGb volumeInGb dockerArgs env { key value } }"
+            "}"
+        )
+        return self._run_graphql(query)["data"]["saveTemplate"]
+
+    def _create_vllm_endpoint(
+        self,
+        *,
+        model: str,
+        gpu_ids: str,
+        network_volume_id: str,
+        locations: str,
+        template_id: str,
+        idle_timeout: int,
+        workers_max: int,
+        scaler_value: int,
+        flashboot: bool,
+    ) -> dict[str, Any]:
+        endpoint = self._vllm_endpoint_input(
+            model=model,
+            gpu_ids=gpu_ids,
+            network_volume_id=network_volume_id,
+            locations=locations,
+            template_id=template_id,
+            idle_timeout=idle_timeout,
+            workers_max=workers_max,
+            scaler_value=scaler_value,
+            flashboot=flashboot,
+        )
+        flashboot_line = "    flashBootType: FLASHBOOT,\n" if flashboot else ""
+        query = f"""
+mutation {{
+  saveEndpoint(input: {{
+    gpuIds: {_graphql_string(str(endpoint["gpuIds"]))},
+    idleTimeout: {int(endpoint["idleTimeout"])},
+    locations: {_graphql_string(str(endpoint["locations"]))},
+    name: {_graphql_string(str(endpoint["name"]))},
+{flashboot_line}    scalerType: {_graphql_string(str(endpoint["scalerType"]))},
+    scalerValue: {int(endpoint["scalerValue"])},
+    templateId: {_graphql_string(str(endpoint["templateId"]))},
+    workersMax: {int(endpoint["workersMax"])},
+    workersMin: {int(endpoint["workersMin"])},
+    networkVolumeId: {_graphql_string(str(endpoint["networkVolumeId"]))}
+  }}) {{
+    id name gpuIds idleTimeout locations flashBootType
+    scalerType scalerValue templateId
+    workersMax workersMin workersStandby networkVolumeId
+  }}
+}}
+"""
+        return self._run_graphql(query)["data"]["saveEndpoint"]
+
+    def _endpoint_scale_to_zero_invariant(self, endpoint: dict[str, Any]) -> dict[str, Any]:
+        workers_min = int(endpoint.get("workersMin") or 0)
+        workers_standby = int(endpoint.get("workersStandby") or 0)
+        workers_max = int(endpoint.get("workersMax") or 0)
+        return {
+            "ok": workers_min == 0 and workers_max <= 1,
+            "workersMin": workers_min,
+            "workersStandby": workers_standby,
+            "workersMax": workers_max,
+            "fixed_warm_capacity_basis": (
+                "workersMin is the input-configurable minimum active worker count; "
+                "workersStandby is observed but not accepted by EndpointInput"
+            ),
+        }
+
+    def _openai_canary(self, *, endpoint_id: str, model: str, prompt: str, timeout: int) -> dict[str, Any]:
+        output = self._run_openai_chat(endpoint_id=endpoint_id, model=model, prompt=prompt, max_tokens=8, timeout=timeout)
+        text = _extract_text(output)
+        return {
+            "ok": bool(text.strip()),
+            "endpoint_id": endpoint_id,
+            "model": model,
+            "text": text,
+            "text_chars": len(text),
+            "raw_status": output.get("status") if isinstance(output, dict) else None,
+        }
+
+    def _run_openai_chat(self, *, endpoint_id: str, model: str, prompt: str, max_tokens: int, timeout: int) -> dict[str, Any]:
+        api_key = _runpod_api_key()
+        if not api_key:
+            raise RuntimeError("RunPod OpenAI-compatible endpoint requires RunPod API key")
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": 0,
+        }
+        request = urllib.request.Request(
+            f"https://api.runpod.ai/v2/{endpoint_id}/openai/v1/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "gpu-job-control",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                output = json.loads(response.read().decode())
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode(errors="replace")
+            raise RuntimeError(f"runpod vllm openai canary http {exc.code}: {body}") from exc
+        return {"id": endpoint_id, "status": "COMPLETED", "output": output}
+
     def _create_public_ollama_endpoint(
         self,
         *,
@@ -315,14 +711,14 @@ mutation {{
     def _delete_endpoint(self, endpoint_id: str) -> dict[str, Any]:
         return self._run_graphql(f"mutation {{ deleteEndpoint(id: {_graphql_string(endpoint_id)}) }}")
 
-    def _run_graphql(self, query: str) -> dict[str, Any]:
+    def _run_graphql(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         api_key = _runpod_api_key()
         if not api_key:
             raise RuntimeError("RUNPOD_API_KEY or ~/.runpod/config.toml default.api_key is required for RunPod GraphQL operations")
         base_url = os.getenv("RUNPOD_API_BASE_URL", "https://api.runpod.io").rstrip("/")
         request = urllib.request.Request(
             f"{base_url}/graphql",
-            data=json.dumps({"query": query}).encode(),
+            data=json.dumps({"query": query, "variables": variables or {}}).encode(),
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
@@ -440,7 +836,7 @@ mutation {{
         for endpoint in endpoints:
             workers_min = int(endpoint.get("workersMin") or 0)
             workers_standby = int(endpoint.get("workersStandby") or 0)
-            if workers_min > 0 or workers_standby > 0:
+            if workers_min > 0:
                 warm_endpoints.append(
                     {
                         "type": "serverless_endpoint_warm_capacity",
@@ -775,6 +1171,19 @@ def _public_endpoint(endpoint: dict[str, Any]) -> dict[str, Any]:
         "gpuCount": endpoint.get("gpuCount"),
         "templateId": endpoint.get("templateId"),
         "networkVolumeId": endpoint.get("networkVolumeId"),
+    }
+
+
+def _public_template(template: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": template.get("id"),
+        "name": template.get("name"),
+        "imageName": template.get("imageName"),
+        "isServerless": template.get("isServerless"),
+        "containerDiskInGb": template.get("containerDiskInGb"),
+        "volumeInGb": template.get("volumeInGb"),
+        "dockerArgs": template.get("dockerArgs"),
+        "env_keys": [item.get("key") for item in template.get("env", []) if isinstance(item, dict)],
     }
 
 

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import json
 import os
 import unittest
 
 from gpu_job.models import Job
+from gpu_job.providers.runpod import RunPodProvider
 from gpu_job.providers.runpod import _openai_chat_payload
 from gpu_job.providers.runpod import _runpod_api_key
 
@@ -63,6 +65,46 @@ class RunPodConfigTest(unittest.TestCase):
                 os.environ.pop("RUNPOD_LLM_MODEL_OVERRIDE", None)
             else:
                 os.environ["RUNPOD_LLM_MODEL_OVERRIDE"] = old_override
+
+    def test_vllm_plan_is_scale_to_zero_and_uses_secret_reference(self) -> None:
+        provider = RunPodProvider()
+        plan = provider.plan_vllm_endpoint(
+            model="Qwen/Qwen2.5-0.5B-Instruct",
+            image="runpod/worker-v1-vllm:v2.14.0",
+            gpu_ids="AMPERE_16",
+            network_volume_id="",
+            locations="US",
+            hf_secret_name="gpu_job_hf_read",
+            max_model_len=2048,
+            gpu_memory_utilization=0.9,
+            max_concurrency=1,
+            idle_timeout=5,
+            workers_max=1,
+            scaler_value=4,
+            quantization="",
+            served_model_name="",
+            flashboot=True,
+        )
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["safety_invariants"]["workers_min"], 0)
+        self.assertEqual(plan["safety_invariants"]["workers_standby"], 0)
+        self.assertEqual(plan["endpoint"]["workersMin"], 0)
+        self.assertEqual(plan["endpoint"]["workersMax"], 1)
+        self.assertEqual(plan["endpoint"]["flashBootType"], "FLASHBOOT")
+        env = {item["key"]: item["value"] for item in plan["template"]["env"]}
+        self.assertEqual(env["MODEL_NAME"], "Qwen/Qwen2.5-0.5B-Instruct")
+        self.assertEqual(env["HF_TOKEN"], "{{ RUNPOD_SECRET_gpu_job_hf_read }}")
+        self.assertNotIn("hf_D", json.dumps(plan))
+
+    def test_vllm_endpoint_invariant_rejects_warm_capacity(self) -> None:
+        provider = RunPodProvider()
+        result = provider._endpoint_scale_to_zero_invariant({"workersMin": 1, "workersStandby": 0, "workersMax": 1})
+        self.assertFalse(result["ok"])
+
+    def test_vllm_endpoint_invariant_allows_observed_standby_without_workers_min(self) -> None:
+        provider = RunPodProvider()
+        result = provider._endpoint_scale_to_zero_invariant({"workersMin": 0, "workersStandby": 1, "workersMax": 1})
+        self.assertTrue(result["ok"])
 
 
 if __name__ == "__main__":
