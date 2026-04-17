@@ -1,0 +1,19 @@
+{
+  "job_type": "asr",
+  "input_uri": "s3://example-input/asr/batch/",
+  "output_uri": "s3://example-output/asr/batch/",
+  "worker_image": "ghcr.io/example/gpu-asr-worker:canary",
+  "gpu_profile": "asr_bulk_cheap",
+  "model": "large-v3",
+  "limits": {
+    "max_runtime_minutes": 360,
+    "max_cost_usd": 25,
+    "max_output_gb": 20
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Bulk ASR routing example where cold start can be amortized"
+  }
+}

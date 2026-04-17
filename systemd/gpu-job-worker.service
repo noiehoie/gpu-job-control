@@ -1,0 +1,20 @@
+[Unit]
+Description=GPU Job Control queue worker
+After=network-online.target gpu-job-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gpu-job
+WorkingDirectory=/opt/gpu-job-control
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env uv run gpu-job worker --poll-interval 5
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/gpu-job-control /opt/gpu-job-control
+
+[Install]
+WantedBy=multi-user.target

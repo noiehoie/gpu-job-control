@@ -1,0 +1,32 @@
+{
+  "job_type": "llm_heavy",
+  "input_uri": "text://Return exactly: GPU LLM OK",
+  "output_uri": "local://llm-heavy-runpod-canary",
+  "worker_image": "runpod:news-llm-endpoint",
+  "gpu_profile": "llm_heavy",
+  "model": "qwen2.5-72b-instruct-awq",
+  "limits": {
+    "max_runtime_minutes": 30,
+    "max_cost_usd": 5,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "RunPod serverless LLM canary",
+    "input": {
+      "prompt": "Return exactly: GPU LLM OK",
+      "max_tokens": 16
+    },
+    "routing": {
+      "estimated_input_tokens": 8,
+      "estimated_cpu_runtime_seconds": 600,
+      "estimated_gpu_runtime_seconds": 60,
+      "max_queue_seconds": 300,
+      "batch_size": 1,
+      "deadline_seconds": 1800,
+      "quality_requires_gpu": true
+    }
+  }
+}

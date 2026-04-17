@@ -1,0 +1,17 @@
+[Unit]
+Description=GPU Job Control cost guard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=gpu-job
+WorkingDirectory=/opt/gpu-job-control
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=GPU_JOB_CONTROL_HOME=/opt/gpu-job-control
+Environment=XDG_DATA_HOME=/var/lib
+ExecStart=/usr/bin/timeout 120 /opt/gpu-job-control/scripts/gpu-job-guard-run
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/gpu-job-control /opt/gpu-job-control

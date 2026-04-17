@@ -1,0 +1,25 @@
+{
+  "job_type": "embedding",
+  "input_uri": "text://GPU job control embedding canary",
+  "output_uri": "local://embedding-canary",
+  "worker_image": "local:deterministic-embedding",
+  "gpu_profile": "asr_fast",
+  "model": "local-deterministic-embedding",
+  "limits": {
+    "max_runtime_minutes": 1,
+    "max_cost_usd": 0,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Local deterministic embedding canary",
+    "input": {
+      "texts": [
+        "GPU job control embedding canary",
+        "全システム共通のembedding adapter検証"
+      ]
+    }
+  }
+}

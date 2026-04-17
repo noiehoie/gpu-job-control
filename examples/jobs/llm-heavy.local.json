@@ -1,0 +1,22 @@
+{
+  "job_type": "llm_heavy",
+  "input_uri": "text://Summarize the common GPU job control contract.",
+  "output_uri": "local://llm-heavy-canary",
+  "worker_image": "local:deterministic-llm",
+  "gpu_profile": "asr_fast",
+  "model": "local-deterministic-llm",
+  "limits": {
+    "max_runtime_minutes": 1,
+    "max_cost_usd": 0,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Local deterministic heavy LLM canary",
+    "input": {
+      "prompt": "Summarize the common GPU job control contract for an integration adapter."
+    }
+  }
+}

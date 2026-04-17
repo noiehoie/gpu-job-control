@@ -1,0 +1,19 @@
+{
+  "job_type": "asr",
+  "input_uri": "file:///opt/gpu-job-control/fixtures/audio/asr-ja.wav",
+  "output_uri": "local://asr-ja/",
+  "worker_image": "modal:function:gpu-job-modal-asr",
+  "gpu_profile": "asr_fast",
+  "model": "large-v3",
+  "limits": {
+    "max_runtime_minutes": 15,
+    "max_cost_usd": 2,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Modal Whisper large-v3 Japanese ASR canary"
+  }
+}

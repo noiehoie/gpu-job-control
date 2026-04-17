@@ -1,0 +1,23 @@
+{
+  "job_type": "smoke",
+  "input_uri": "none://vast-gpu-smoke",
+  "output_uri": "local://vast-gpu-smoke",
+  "worker_image": "nvidia/cuda:12.4.1-base-ubuntu22.04",
+  "gpu_profile": "asr_fast",
+  "model": "nvidia-smi",
+  "limits": {
+    "max_runtime_minutes": 3,
+    "max_startup_seconds": 60,
+    "max_cost_usd": 1,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Vast.ai GPU smoke canary",
+    "min_vram_gb": 16,
+    "min_compute_cap": 750,
+    "max_startup_seconds": 60
+  }
+}

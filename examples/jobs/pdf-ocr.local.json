@@ -1,0 +1,25 @@
+{
+  "job_type": "pdf_ocr",
+  "input_uri": "text://PDF OCR canary page one. 行政文書OCRの検証。",
+  "output_uri": "local://pdf-ocr-canary",
+  "worker_image": "local:deterministic-pdf-ocr",
+  "gpu_profile": "vlm_ocr",
+  "model": "local-deterministic-pdf-ocr",
+  "limits": {
+    "max_runtime_minutes": 1,
+    "max_cost_usd": 0,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Local deterministic PDF OCR canary",
+    "input": {
+      "pages": [
+        "PDF OCR canary page one. 行政文書OCRの検証。",
+        "PDF OCR canary page two. 表と注記の抽出検証。"
+      ]
+    }
+  }
+}
