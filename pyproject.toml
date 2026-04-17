@@ -31,13 +31,13 @@ Changelog = "https://github.com/noiehoie/gpu-job-control/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 providers = [
-  "modal==1.4.1",
+  "modal==1.4.2",
   "runpod==1.9.0",
 ]
 dev = [
-  "pytest==9.0.1",
-  "pytest-cov==7.0.0",
-  "ruff==0.14.8",
+  "pytest==9.0.3",
+  "pytest-cov==7.1.0",
+  "ruff==0.15.11",
 ]
 
 [project.scripts]
