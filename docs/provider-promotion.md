@@ -56,9 +56,10 @@ RunPod Pod routes have separate lifecycle gates:
 3. Clean pre-guard reports no active billable Pods or warm serverless workers.
 4. Pod is created with no public IP and no SSH unless an operator explicitly changes the canary.
 5. Runtime is observed through `desiredStatus=RUNNING` or provider uptime fields.
-6. Pod termination runs in a `finally` cleanup path.
-7. Clean post-guard reports no active billable Pods.
-8. A Pod route is only `lifecycle_proven` until a real worker health check, artifact check, timeout path, and teardown canary pass.
+6. If an HTTP worker is expected, an exposed proxy port returns a deterministic health response.
+7. Pod termination runs in a `finally` cleanup path.
+8. Clean post-guard reports no active billable Pods.
+9. A Pod route is only `lifecycle_proven` until a real worker health check, artifact check, timeout path, and teardown canary pass.
 
 ## Startup Policy
 

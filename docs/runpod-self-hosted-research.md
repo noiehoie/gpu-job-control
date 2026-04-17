@@ -35,6 +35,7 @@ RunPod exposes several different surfaces that must not be confused.
 | Self-hosted Serverless vLLM from raw GraphQL template | Blocked | Endpoint and template can be created, but workers remain unreachable and requests stay queued. See [RunPod Support Question](runpod-support-question.md). |
 | Hub/Console vLLM template path | Needs RunPod/template diff | Official docs point users to the Hub ready-to-deploy vLLM repo; the exact programmatic template/repo binding must be confirmed. |
 | Pod / Network Volume lifecycle | Lifecycle proven | `gpu-job runpod canary-pod-lifecycle --execute` created an RTX 3090 pod, observed `desiredStatus=RUNNING`, terminated it, and post-guard showed no billable pods. |
+| Pod HTTP worker through proxy | Implemented canary | `gpu-job runpod canary-pod-http-worker --execute` creates a Pod, exposes `8000/http`, probes `https://<pod_id>-8000.proxy.runpod.net/health`, and terminates the Pod. |
 
 ## Key Official Facts
 
@@ -136,10 +137,11 @@ Pods are the most controllable RunPod fallback path because the lifecycle is exp
 The first deterministic Pod canary uses the official Pod creation surface:
 
 - create with `podFindAndDeployOnDemand` semantics through the RunPod SDK;
-- use `runpod/pytorch` and `dockerArgs="bash -lc 'nvidia-smi; sleep 300'"` for a minimal GPU proof;
+- use a pinned RunPod PyTorch base image and `dockerArgs="bash -lc 'nvidia-smi; sleep 300'"` for a minimal GPU proof;
 - disable public IP and SSH;
 - require a clean pre-guard before creation;
 - estimate maximum cost from the selected GPU hourly price and `max_uptime_seconds`;
+- after creation, re-check the actual `costPerHr` assigned to the Pod and terminate immediately if it exceeds budget;
 - observe `desiredStatus=RUNNING` or runtime uptime before declaring lifecycle success;
 - terminate the Pod in a `finally` block;
 - require post-guard to report no active billable Pods.
@@ -149,13 +151,14 @@ Operator commands:
 ```bash
 gpu-job runpod plan-pod-worker
 gpu-job runpod canary-pod-lifecycle --max-uptime-seconds 60 --max-estimated-cost-usd 0.02 --execute
+gpu-job runpod canary-pod-http-worker --max-uptime-seconds 90 --max-estimated-cost-usd 0.02 --execute
 ```
 
 The first successful canary used:
 
 ```text
 gpuTypeId=NVIDIA GeForce RTX 3090
-imageName=runpod/pytorch
+imageName=runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404
 uninterruptablePrice=0.22 USD/hour
 max_uptime_seconds=60
 estimated_cost_usd=0.003667
@@ -165,6 +168,12 @@ post_pod_canary_guard.providers.runpod.billable_resources=[]
 ```
 
 This promotes the Pod / Network Volume route to `lifecycle_proven`, not to `production_primary`. The next gate is a real HTTP worker on a Pod with explicit health, artifact, timeout, and teardown behavior.
+
+The HTTP worker canary is the first implementation of that next gate. It starts a minimal Python HTTP service in the Pod, exposes `8000/http`, and verifies that the RunPod HTTP proxy can reach `/health`. The health response includes a deterministic `nvidia-smi` probe. This still does not promote the route to production LLM execution; it proves that gpu-job-control can create a reachable Pod worker and tear it down without leaving billable resources.
+
+Do not use the untagged `runpod/pytorch` image. RunPod/Docker resolves it as `runpod/pytorch:latest`, and the observed provider log reported `manifest for runpod/pytorch:latest not found`. The canary therefore pins `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404`, matching RunPod's documented custom-template example and avoiding a mutable or missing `latest` tag.
+
+Also do not treat `lowestPrice.uninterruptablePrice` as a hard upper bound. A successful HTTP canary planned against `0.22 USD/hour` but the allocated Pod reported `costPerHr=0.46`. The canary now performs a second guard immediately after creation using the actual assigned `costPerHr`; if the actual maximum cost exceeds policy, it terminates before doing any useful work.
 
 ## Community Signals
 

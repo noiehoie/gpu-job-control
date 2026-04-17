@@ -8,6 +8,8 @@ import unittest
 
 from gpu_job.models import Job
 from gpu_job.providers.runpod import RunPodProvider
+from gpu_job.providers.runpod import _actual_pod_cost_guard
+from gpu_job.providers.runpod import _pod_http_worker_docker_args
 from gpu_job.providers.runpod import _pod_has_runtime
 from gpu_job.providers.runpod import _openai_chat_payload
 from gpu_job.providers.runpod import _runpod_api_key
@@ -171,7 +173,7 @@ class RunPodConfigTest(unittest.TestCase):
         provider = FakeRunPodProvider()
         plan = provider.plan_pod_worker(
             gpu_type_id="NVIDIA GeForce RTX 3090",
-            image="runpod/pytorch",
+            image="runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
             cloud_type="ALL",
             gpu_count=1,
             volume_in_gb=0,
@@ -197,7 +199,7 @@ class RunPodConfigTest(unittest.TestCase):
         provider = FakeRunPodProvider()
         plan = provider.plan_pod_worker(
             gpu_type_id="NVIDIA GeForce RTX 3090",
-            image="runpod/pytorch",
+            image="runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
             cloud_type="ALL",
             gpu_count=1,
             volume_in_gb=0,
@@ -216,6 +218,16 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertTrue(_pod_has_runtime({"desiredStatus": "RUNNING"}))
         self.assertTrue(_pod_has_runtime({"uptimeSeconds": 0}))
         self.assertFalse(_pod_has_runtime({"runtime": None}))
+
+    def test_pod_http_worker_docker_args_contains_health_server(self) -> None:
+        args = _pod_http_worker_docker_args()
+        self.assertIn("bash -lc", args)
+        self.assertIn("base64", args)
+        self.assertNotIn("'", args)
+
+    def test_actual_pod_cost_guard_uses_allocated_cost(self) -> None:
+        self.assertTrue(_actual_pod_cost_guard({"costPerHr": 0.46}, max_uptime_seconds=60, max_estimated_cost_usd=0.02)["ok"])
+        self.assertFalse(_actual_pod_cost_guard({"costPerHr": 0.46}, max_uptime_seconds=180, max_estimated_cost_usd=0.02)["ok"])
 
 
 if __name__ == "__main__":

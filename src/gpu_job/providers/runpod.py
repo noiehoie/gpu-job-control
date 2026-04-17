@@ -4,6 +4,7 @@ from pathlib import Path
 from shutil import which
 from subprocess import run
 from typing import Any
+import base64
 import json
 import os
 import sys
@@ -76,7 +77,7 @@ def _validate_runpod_gpu_ids(gpu_ids: str) -> dict[str, Any]:
 
 
 RUNPOD_DEFAULT_POD_GPU_TYPE_ID = "NVIDIA GeForce RTX 3090"
-RUNPOD_DEFAULT_POD_IMAGE = "runpod/pytorch"
+RUNPOD_DEFAULT_POD_IMAGE = "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
 
 
 def _runpod_api_key() -> str:
@@ -393,6 +394,13 @@ class RunPodProvider(Provider):
             pod_id = str(pod.get("id") or "")
             if not pod_id:
                 raise RuntimeError(f"RunPod pod create returned no id: {pod}")
+            actual_cost_guard = _actual_pod_cost_guard(
+                pod,
+                max_uptime_seconds=max_uptime_seconds,
+                max_estimated_cost_usd=max_estimated_cost_usd,
+            )
+            if not actual_cost_guard["ok"]:
+                raise RuntimeError(f"created pod exceeds cost guard: {actual_cost_guard}")
             deadline = start + max_uptime_seconds
             while time.time() < deadline:
                 sample = self._get_pod(pod_id)
@@ -406,6 +414,7 @@ class RunPodProvider(Provider):
                 "executed": True,
                 "plan": plan,
                 "pod": _public_pod(pod),
+                "actual_cost_guard": actual_cost_guard,
                 "samples": samples,
                 "observed_runtime": observed_runtime,
                 "runtime_seconds": round(time.time() - start, 3),
@@ -432,6 +441,124 @@ class RunPodProvider(Provider):
                     result["ok"] = False
         if result is None:
             return {**plan, "ok": False, "executed": True, "error": "pod lifecycle returned no result"}
+        return result
+
+    def canary_pod_http_worker(
+        self,
+        *,
+        gpu_type_id: str,
+        image: str,
+        cloud_type: str,
+        gpu_count: int,
+        volume_in_gb: int,
+        container_disk_in_gb: int,
+        min_vcpu_count: int,
+        min_memory_in_gb: int,
+        max_uptime_seconds: int,
+        max_estimated_cost_usd: float,
+        execute: bool,
+    ) -> dict[str, Any]:
+        docker_args = _pod_http_worker_docker_args()
+        plan = self.plan_pod_worker(
+            gpu_type_id=gpu_type_id,
+            image=image,
+            cloud_type=cloud_type,
+            gpu_count=gpu_count,
+            volume_in_gb=volume_in_gb,
+            container_disk_in_gb=container_disk_in_gb,
+            min_vcpu_count=min_vcpu_count,
+            min_memory_in_gb=min_memory_in_gb,
+            max_uptime_seconds=max_uptime_seconds,
+            max_estimated_cost_usd=max_estimated_cost_usd,
+            docker_args=docker_args,
+        )
+        plan["pod_input"]["ports"] = "8000/http"
+        plan["worker_canary"] = {
+            "health_path": "/health",
+            "proxy_url_template": "https://<pod_id>-8000.proxy.runpod.net/health",
+            "success_condition": "HTTP 200 JSON with ok=true and nvidia-smi exit_code=0",
+        }
+        if not execute:
+            return {**plan, "executed": False}
+        if not plan.get("ok"):
+            return {**plan, "executed": False}
+        pod: dict[str, Any] | None = None
+        samples: list[dict[str, Any]] = []
+        health_samples: list[dict[str, Any]] = []
+        terminated: dict[str, Any] | None = None
+        result: dict[str, Any] | None = None
+        start = time.time()
+        try:
+            pod = self._create_canary_pod(
+                gpu_type_id=gpu_type_id,
+                image=image,
+                cloud_type=cloud_type,
+                gpu_count=gpu_count,
+                volume_in_gb=volume_in_gb,
+                container_disk_in_gb=container_disk_in_gb,
+                min_vcpu_count=min_vcpu_count,
+                min_memory_in_gb=min_memory_in_gb,
+                docker_args=docker_args,
+                ports="8000/http",
+            )
+            pod_id = str(pod.get("id") or "")
+            if not pod_id:
+                raise RuntimeError(f"RunPod pod create returned no id: {pod}")
+            actual_cost_guard = _actual_pod_cost_guard(
+                pod,
+                max_uptime_seconds=max_uptime_seconds,
+                max_estimated_cost_usd=max_estimated_cost_usd,
+            )
+            if not actual_cost_guard["ok"]:
+                raise RuntimeError(f"created pod exceeds cost guard: {actual_cost_guard}")
+            health_url = f"https://{pod_id}-8000.proxy.runpod.net/health"
+            deadline = start + max_uptime_seconds
+            while time.time() < deadline:
+                sample = self._get_pod(pod_id)
+                samples.append(_public_pod(sample))
+                if _pod_has_runtime(sample):
+                    health = _fetch_json_url(health_url, timeout=10)
+                    health_samples.append(health)
+                    if health.get("ok") and health.get("gpu_probe", {}).get("exit_code") == 0:
+                        break
+                time.sleep(min(5, max(1, int(deadline - time.time()))))
+            healthy = any(item.get("ok") and item.get("gpu_probe", {}).get("exit_code") == 0 for item in health_samples)
+            result = {
+                "ok": healthy,
+                "executed": True,
+                "plan": plan,
+                "pod": _public_pod(pod),
+                "actual_cost_guard": actual_cost_guard,
+                "samples": samples,
+                "health_url": health_url,
+                "health_samples": health_samples,
+                "observed_runtime": any(_pod_has_runtime(sample) for sample in samples),
+                "observed_http_worker": healthy,
+                "runtime_seconds": round(time.time() - start, 3),
+            }
+        except Exception as exc:
+            result = {
+                "ok": False,
+                "executed": True,
+                "error": str(exc),
+                "plan": plan,
+                "pod": _public_pod(pod) if pod else None,
+                "samples": samples,
+                "health_samples": health_samples,
+                "cleanup": terminated,
+            }
+        finally:
+            if pod and pod.get("id"):
+                try:
+                    terminated = self._terminate_pod(str(pod["id"]))
+                except Exception as exc:
+                    terminated = {"ok": False, "error": str(exc)}
+            if result is not None:
+                result["cleanup"] = terminated
+                if terminated and not terminated.get("ok", False):
+                    result["ok"] = False
+        if result is None:
+            return {**plan, "ok": False, "executed": True, "error": "pod HTTP worker canary returned no result"}
         return result
 
     def _gpu_type_info(self, gpu_type_id: str, *, gpu_count: int) -> dict[str, Any]:
@@ -479,26 +606,42 @@ query {{
         min_vcpu_count: int,
         min_memory_in_gb: int,
         docker_args: str,
+        ports: str | None = None,
     ) -> dict[str, Any]:
-        payload = {
-            "name": f"gpu-job-pod-canary-{time.strftime('%Y%m%d%H%M%S')}",
-            "image_name": image,
-            "gpu_type_id": gpu_type_id,
-            "cloud_type": cloud_type,
-            "gpu_count": gpu_count,
-            "volume_in_gb": volume_in_gb,
-            "container_disk_in_gb": container_disk_in_gb,
-            "min_vcpu_count": min_vcpu_count,
-            "min_memory_in_gb": min_memory_in_gb,
-            "docker_args": docker_args,
-            "volume_mount_path": "/runpod-volume",
-            "support_public_ip": False,
-            "start_ssh": False,
-        }
-        code = (
-            "import json,runpod,sys; p=json.loads(sys.stdin.read()); pod=runpod.create_pod(**p); print(json.dumps(pod, ensure_ascii=False))"
-        )
-        return self._run_runpod_python(code, payload, timeout=90)
+        name = f"gpu-job-pod-canary-{time.strftime('%Y%m%d%H%M%S')}"
+        fields = [
+            f"name: {_graphql_string(name)}",
+            f"imageName: {_graphql_string(image)}",
+            f"gpuTypeId: {_graphql_string(gpu_type_id)}",
+            f"cloudType: {cloud_type}",
+            f"gpuCount: {int(gpu_count)}",
+            f"volumeInGb: {int(volume_in_gb)}",
+            f"containerDiskInGb: {int(container_disk_in_gb)}",
+            f"minVcpuCount: {int(min_vcpu_count)}",
+            f"minMemoryInGb: {int(min_memory_in_gb)}",
+            f"dockerArgs: {_graphql_string(docker_args)}",
+            'volumeMountPath: "/runpod-volume"',
+            "supportPublicIp: false",
+            "startSsh: false",
+        ]
+        if ports:
+            fields.append(f"ports: {_graphql_string(ports)}")
+        query = f"""
+mutation {{
+  podFindAndDeployOnDemand(input: {{ {", ".join(fields)} }}) {{
+    id
+    name
+    desiredStatus
+    imageName
+    machineId
+    gpuCount
+    costPerHr
+    uptimeSeconds
+    machine {{ podHostId gpuDisplayName }}
+  }}
+}}
+"""
+        return self._run_graphql(query)["data"]["podFindAndDeployOnDemand"]
 
     def _get_pod(self, pod_id: str) -> dict[str, Any]:
         code = (
@@ -1563,6 +1706,27 @@ def _pod_has_runtime(pod: dict[str, Any]) -> bool:
         return False
 
 
+def _actual_pod_cost_guard(
+    pod: dict[str, Any],
+    *,
+    max_uptime_seconds: int,
+    max_estimated_cost_usd: float,
+) -> dict[str, Any]:
+    raw = pod.get("costPerHr")
+    try:
+        cost_per_hour = float(raw)
+    except (TypeError, ValueError):
+        return {"ok": False, "cost_per_hour": raw, "error": "pod costPerHr is not numeric"}
+    max_cost = round(cost_per_hour * max_uptime_seconds / 3600, 6)
+    return {
+        "ok": max_cost <= max_estimated_cost_usd,
+        "cost_per_hour": cost_per_hour,
+        "max_uptime_seconds": max_uptime_seconds,
+        "max_cost_usd": max_cost,
+        "max_estimated_cost_usd": max_estimated_cost_usd,
+    }
+
+
 def _public_pod(pod: dict[str, Any] | None) -> dict[str, Any] | None:
     if not pod:
         return None
@@ -1589,6 +1753,93 @@ def _public_pod(pod: dict[str, Any] | None) -> dict[str, Any] | None:
         if runtime
         else None,
     }
+
+
+def _fetch_json_url(url: str, *, timeout: int) -> dict[str, Any]:
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "gpu-job-control"})
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            body = response.read().decode("utf-8", errors="replace")
+        return json.loads(body)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        return {"ok": False, "status": exc.code, "error": body[:500]}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+def _pod_http_worker_docker_args() -> str:
+    script = r"""
+import json
+import subprocess
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+STARTED_AT = time.time()
+
+
+def gpu_probe():
+    try:
+        proc = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        return {
+            "exit_code": proc.returncode,
+            "stdout": proc.stdout.strip(),
+            "stderr": proc.stderr.strip(),
+        }
+    except Exception as exc:
+        return {"exit_code": 1, "error": str(exc)}
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *_args):
+        return
+
+    def _send_json(self, status, payload):
+        body = json.dumps(payload, ensure_ascii=False).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        if self.path != "/health":
+            self._send_json(404, {"ok": False, "error": "not found"})
+            return
+        probe = gpu_probe()
+        self._send_json(
+            200,
+            {
+                "ok": probe.get("exit_code") == 0,
+                "service": "gpu-job-runpod-pod-http-canary",
+                "uptime_seconds": round(time.time() - STARTED_AT, 3),
+                "gpu_probe": probe,
+            },
+        )
+
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        raw = self.rfile.read(length).decode("utf-8", errors="replace") if length else ""
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "service": "gpu-job-runpod-pod-http-canary",
+                "received_bytes": len(raw.encode()),
+                "gpu_probe": gpu_probe(),
+            },
+        )
+
+
+HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+""".strip()
+    encoded = base64.b64encode(script.encode()).decode()
+    return f'bash -lc "python -u -c \\"import base64;exec(base64.b64decode(\\\\\\"{encoded}\\\\\\"))\\""'
 
 
 def _safe_name(value: str) -> str:
