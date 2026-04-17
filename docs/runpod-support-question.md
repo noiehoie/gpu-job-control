@@ -1,24 +1,32 @@
-# RunPod Support Question v5: Need Official Serverless vLLM Hub Template Diff
+# RunPod Support Question v6: Need Official Serverless vLLM Hub Template / Image Pull Diff
 
-Updated: 2026-04-18 08:18 JST.
+Updated: 2026-04-18 09:05 JST.
 
 We need RunPod Support to confirm the exact difference between:
 
 1. A GraphQL-created Serverless endpoint using `saveTemplate(imageName + env)` and `saveEndpoint`.
 2. The Console / Hub "Serverless vLLM" deploy flow.
 
-Our current evidence suggests the failure is not a missing required endpoint scalar, but a template/runtime mismatch: the GraphQL template is only a raw Docker image template, while the Console / Hub vLLM flow likely uses repository/template plumbing that sets HTTP routing, ports, entrypoint, readiness, or worker mode.
+Our current evidence shows two separate Serverless vLLM failure modes:
+
+1. `facebook/opt-125m` with `runpod/worker-v1-vllm:v2.14.0`, `containerDiskInGb=30`, and `flashBootType=FLASHBOOT` stays at `image pull: pending`, with endpoint health reporting `throttled: 1`.
+2. Earlier `Qwen/Qwen2.5-0.5B-Instruct` attempts reached `ready: 1` or `running: 1`, but the job status stayed `IN_QUEUE`.
+
+The first mode occurs before HTTP routing, entrypoint, readiness, or OpenAI proxy behavior can be evaluated. The second mode may be a distinct routing, worker, or request-dispatch problem. We need RunPod to clarify which differences between Hub-created Serverless vLLM endpoints and raw GraphQL `saveTemplate(imageName + env)` endpoints matter.
 
 Scope update: RunPod Pod lifecycle, Pod HTTP proxy execution, Pod `llm_heavy` generation canary, and Pod Network Volume attachment are now proven separately. The remaining blocker is specifically the Serverless vLLM / Hub-template path.
 
 ## Direct Questions
 
-1. What official Hub template ID or repository template should be used for Serverless vLLM when creating endpoints programmatically?
-2. Can that Hub/Console Serverless vLLM template be referenced directly as `templateId` in `saveEndpoint`, instead of creating a new template with `saveTemplate(imageName=...)`?
-3. What exact fields are present in the Console/Hub-created Serverless vLLM template that are absent from the `saveTemplate` response below?
-4. Is `runpod/worker-v1-vllm:v2.14.0` supported for direct use as a plain GraphQL `saveTemplate` Serverless endpoint image, or only through a Hub wrapper/template?
-5. Why does the endpoint health show `throttled: 1` and queued jobs while no worker ever becomes reachable through `/openai/v1/models`?
-6. Is there any public API to fetch scheduler/router/worker init logs for this endpoint ID, or must Support inspect internal logs?
+1. The official docs show Hub deployment through `runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb --name "my-vllm"`. Is Hub ID `cm8h09d9n000008jvh2rqdsmb` the correct stable vLLM Hub source for programmatic deployment?
+2. Is there a GraphQL equivalent to `runpodctl serverless create --hub-id ...`, or is Hub deployment only supported through `runpodctl` / Console?
+3. If using GraphQL directly, should the template image be the Hub release image `registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d` instead of `runpod/worker-v1-vllm:v2.14.0`?
+4. Does the official Hub vLLM release require or default to `containerDiskInGb=150`? Can `containerDiskInGb=30` cause `image pull: pending` / `throttled: 1` for the vLLM worker?
+5. Can `flashBootType=FLASHBOOT` make an uncached large image stay in `image pull: pending` or `throttled` on `ADA_24`?
+6. Why does the endpoint health show `throttled: 1` and queued jobs while no worker ever becomes reachable through `/openai/v1/models`?
+7. What is the exact expected native `/run` or `/runsync` input schema for the official vLLM worker? The public vLLM quickstart shows `{"input": {"prompt": "Hello World"}}`; is that still correct for Hub vLLM release `v2.14.0`?
+8. Is `workersStandby: 1` the expected API response default when `workersMin=0`? Does it represent billable warm capacity or just an observed scaler state?
+9. Is there any public API to fetch scheduler/router/worker init logs for this endpoint ID, or must Support inspect internal logs?
 
 ## Known-Good Pod Evidence
 
@@ -163,6 +171,100 @@ image pull: runpod/worker-v1-vllm:v2.14.0: pending
 ```
 
 This indicates that, at least for this retained run, RunPod did attempt to create a worker and got stuck during image pull before the OpenAI server became reachable.
+
+## Official Hub / CLI Facts To Compare Against
+
+The RunPod CLI documentation says Serverless endpoints can be created from either a template or a Hub repo:
+
+```bash
+runpodctl serverless create --name "my-endpoint" --template-id "tpl_abc123"
+runpodctl hub search vllm
+runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb --name "my-vllm"
+```
+
+The same documentation states that when `--hub-id` is used, GPU IDs and container disk size are automatically pulled from the Hub release config, and that each Serverless template can only be bound to one endpoint at a time.
+
+The official vLLM quickstart says the easiest deployment path is RunPod Hub's ready-to-deploy vLLM repo. It also shows the native Serverless test request as:
+
+```json
+{"input": {"prompt": "Hello World"}}
+```
+
+External review of the Hub metadata reported these Hub-derived values:
+
+```text
+Hub repo ID: cm8h09d9n000008jvh2rqdsmb
+Title: vLLM
+Owner: runpod-workers
+Release tag: v2.14.0
+Hub worker image: registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d
+Hub containerDiskInGb: 150
+Default GPU pools: ADA_80_PRO, AMPERE_80
+```
+
+These values differ materially from our failing GraphQL-created template:
+
+```text
+imageName: runpod/worker-v1-vllm:v2.14.0
+containerDiskInGb: 30
+gpuIds: ADA_24
+flashBootType: FLASHBOOT
+```
+
+## Hub-Derived GraphQL Retest Results
+
+After receiving external review, we changed the GraphQL-created template to match the reported Hub image and disk sizing:
+
+```text
+imageName=registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d
+containerDiskInGb=150
+flashBootType omitted
+model=facebook/opt-125m
+MAX_MODEL_LEN=512
+GPU_MEMORY_UTILIZATION=0.8
+workersMin=0
+workersMax=1
+```
+
+### Retest A: `ADA_24`
+
+```text
+endpoint_id=vllm-886lfe61fzhhfg
+template_id=n4gi1ni6kw
+gpuIds=ADA_24
+workersStandby=1
+result=failed
+canary_status=TRANSPORT_ERROR
+canary_error=The read operation timed out
+health.jobs.inQueue=1
+health.workers.throttled=1
+health.workers.ready=0
+disabled.workersMin=0
+disabled.workersMax=0
+deleteEndpoint=null
+post_promotion_guard.ok=true
+post_promotion_guard.providers.runpod.billable_resources=[]
+```
+
+### Retest B: `AMPERE_80`
+
+```text
+endpoint_id=vllm-4z0vha0ofxeupm
+template_id=0o8jdbjtw1
+gpuIds=AMPERE_80
+workersStandby=1
+result=failed
+canary_status=HTTP_ERROR
+http_status=500
+error={"status":500,"title":"Internal Server Error","detail":"internal server error"}
+disabled.workersMin=0
+disabled.workersMax=0
+deleteEndpoint=null
+post_promotion_guard.ok=true
+post_promotion_guard.providers.runpod.billable_resources=[]
+```
+
+These retests show that using the Hub-derived image and 150GB disk did not make the GraphQL-created Serverless vLLM endpoint usable. `ADA_24` still gets throttled/queued, while `AMPERE_80` fails earlier with an internal server error. This strengthens the question of whether the Hub deployment path sets additional non-template fields or uses a backend deployment path that is not reproduced by public `saveTemplate` + `saveEndpoint`.
 
 ### `saveTemplate`
 

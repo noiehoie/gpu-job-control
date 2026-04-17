@@ -549,6 +549,7 @@ def cmd_runpod(args: argparse.Namespace) -> int:
         result = provider.plan_vllm_endpoint(
             model=args.model,
             image=args.image,
+            container_disk_in_gb=args.container_disk_in_gb,
             gpu_ids=args.gpu_ids,
             network_volume_id=args.network_volume_id,
             locations=args.locations,
@@ -571,6 +572,7 @@ def cmd_runpod(args: argparse.Namespace) -> int:
         result = provider.promote_vllm_endpoint(
             model=args.model,
             image=args.image,
+            container_disk_in_gb=args.container_disk_in_gb,
             gpu_ids=args.gpu_ids,
             network_volume_id=args.network_volume_id,
             locations=args.locations,
@@ -945,7 +947,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     vllm_defaults = {
         "model": "Qwen/Qwen2.5-0.5B-Instruct",
-        "image": "runpod/worker-v1-vllm:v2.14.0",
+        "image": "registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d",
+        "container_disk_in_gb": 150,
         "gpu_ids": "ADA_24",
         "locations": "",
         "hf_secret_name": "gpu_job_hf_read",
@@ -960,6 +963,12 @@ def build_parser() -> argparse.ArgumentParser:
     def add_vllm_endpoint_args(item: argparse.ArgumentParser) -> None:
         item.add_argument("--model", default=vllm_defaults["model"], help="Hugging Face model id or vLLM model path")
         item.add_argument("--image", default=vllm_defaults["image"], help="RunPod vLLM worker image")
+        item.add_argument(
+            "--container-disk-in-gb",
+            type=int,
+            default=vllm_defaults["container_disk_in_gb"],
+            help="serverless template container disk size",
+        )
         item.add_argument("--gpu-ids", default=vllm_defaults["gpu_ids"], help="RunPod GPU id list")
         item.add_argument("--locations", default=vllm_defaults["locations"], help="RunPod location filter")
         item.add_argument(

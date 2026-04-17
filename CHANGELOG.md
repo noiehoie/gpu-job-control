@@ -17,6 +17,7 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 - Promoted RunPod Pod HTTP smoke into the standard `submit --execute` job/artifact contract.
 - Added RunPod Pod HTTP `llm_heavy` canary execution through the standard job/artifact contract.
 - Added RunPod Pod Network Volume attach verification with deterministic write/read/delete probing under `/runpod-volume`.
+- Updated RunPod Serverless vLLM planning defaults to use the Hub-derived worker image and 150GB container disk sizing, and recorded failed ADA_24/AMPERE_80 retests.
 
 ## 0.1.1 - 2026-04-17
 

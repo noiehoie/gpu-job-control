@@ -276,8 +276,9 @@ Use when:
 Endpoint shape:
 
 ```text
-template image: runpod/worker-v1-vllm:<pinned-version>
+template image: registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d
 endpoint Model field: <hugging-face-model-id>
+containerDiskInGb=150
 env:
   MODEL_NAME=<hugging-face-model-id>
   MAX_MODEL_LEN=<bounded-context>
@@ -295,14 +296,24 @@ scalerValue=15
 locations=<empty for first canary>
 ```
 
-This is the preferred next experiment.
+This is the preferred next experiment, but it must use the Hub-derived image and disk sizing. The earlier failing GraphQL canary used `runpod/worker-v1-vllm:v2.14.0` and `containerDiskInGb=30`; dashboard logs showed `image pull: pending`, so that attempt did not prove an entrypoint or OpenAI routing problem.
+
+RunPod's official CLI docs expose a distinct Hub deployment surface:
+
+```bash
+runpodctl hub search vllm
+runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb --name "my-vllm"
+```
+
+The same docs state that Hub deployments automatically pull GPU IDs and container disk size from Hub release config. Treat the Hub ID and Hub release image as the baseline, not the raw Docker Hub image.
 
 gpu-job-control now exposes that experiment as a deterministic promotion helper:
 
 ```bash
 gpu-job runpod plan-vllm-endpoint \
   --model Qwen/Qwen2.5-0.5B-Instruct \
-  --image runpod/worker-v1-vllm:v2.14.0
+  --image registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d \
+  --container-disk-in-gb 150
 ```
 
 The plan command performs no provider mutation. It prints the exact template, endpoint shape, secret reference, and safety invariants.
@@ -312,7 +323,8 @@ Promotion requires an explicit execute flag:
 ```bash
 gpu-job runpod promote-vllm-endpoint \
   --model Qwen/Qwen2.5-0.5B-Instruct \
-  --image runpod/worker-v1-vllm:v2.14.0 \
+  --image registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d \
+  --container-disk-in-gb 150 \
   --execute
 ```
 
@@ -338,6 +350,19 @@ RunPod support guidance refined the first self-hosted vLLM canary:
 The helper therefore defaults to `gpuIds=ADA_24`, `gpuCount=1`, empty `locations`, `idleTimeout=90`, `scalerValue=15`, and a 300-second OpenAI canary timeout. Empty optional endpoint fields such as `locations` and `networkVolumeId` are omitted from the GraphQL input.
 
 RunPod `saveEndpoint.gpuIds` requires GPU pool IDs, not concrete GPU type names. A direct canary using `gpuIds=NVIDIA L4` failed before endpoint creation with `Invalid GPU Pool ID`; the error listed valid pool IDs as `AMPERE_16`, `AMPERE_24`, `ADA_24`, `AMPERE_48`, `ADA_48_PRO`, `AMPERE_80`, `ADA_80_PRO`, `HOPPER_141`, `ADA_32_PRO`, `BLACKWELL_96`, and `BLACKWELL_180`. Concrete GPU type names are only valid as exclusions inside a pool, for example `ADA_24,-NVIDIA L4`. The helper validates this locally before calling RunPod.
+
+Retest result after switching to the Hub-derived image and disk sizing:
+
+```text
+imageName=registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d
+containerDiskInGb=150
+flashBootType omitted
+model=facebook/opt-125m
+```
+
+`ADA_24` still failed with `TRANSPORT_ERROR`, `jobs.inQueue=1`, and `workers.throttled=1`. `AMPERE_80` failed immediately with HTTP 500 `internal server error`. Both endpoints were disabled, deleted, and post-guard confirmed no RunPod billable resources.
+
+Current conclusion: raw GraphQL `saveTemplate` + `saveEndpoint` has still not reproduced the Hub/Console Serverless vLLM deployment path. The next decisive step is a Hub-created endpoint diff through Console or `runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb`; `runpodctl` is not currently installed in this environment.
 
 ### Design B: Official vLLM worker + attached network volume
 
