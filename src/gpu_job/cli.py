@@ -813,15 +813,15 @@ def build_parser() -> argparse.ArgumentParser:
     vllm_defaults = {
         "model": "Qwen/Qwen2.5-0.5B-Instruct",
         "image": "runpod/worker-v1-vllm:v2.14.0",
-        "gpu_ids": "AMPERE_16,AMPERE_24,ADA_24",
-        "locations": "US",
+        "gpu_ids": "ADA_24",
+        "locations": "",
         "hf_secret_name": "gpu_job_hf_read",
         "max_model_len": 2048,
         "gpu_memory_utilization": 0.9,
         "max_concurrency": 1,
-        "idle_timeout": 5,
+        "idle_timeout": 90,
         "workers_max": 1,
-        "scaler_value": 4,
+        "scaler_value": 15,
     }
 
     def add_vllm_endpoint_args(item: argparse.ArgumentParser) -> None:
@@ -861,7 +861,7 @@ def build_parser() -> argparse.ArgumentParser:
     promote_vllm = runpod_sub.add_parser("promote-vllm-endpoint", help="create and canary a RunPod vLLM endpoint")
     add_vllm_endpoint_args(promote_vllm)
     promote_vllm.add_argument("--canary-prompt", default="Return exactly: GPU SELF HOSTED OK", help="short canary prompt")
-    promote_vllm.add_argument("--canary-timeout-seconds", type=int, default=180, help="bounded canary wait")
+    promote_vllm.add_argument("--canary-timeout-seconds", type=int, default=300, help="bounded canary wait")
     promote_vllm.add_argument("--execute", action="store_true", help="actually create and canary the endpoint")
     promote_vllm.set_defaults(func=cmd_runpod)
 

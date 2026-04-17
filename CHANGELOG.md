@@ -11,6 +11,8 @@ This project follows a conservative pre-1.0 policy: public contracts may change,
 - Updated the worker systemd template so queued workers can read provider endpoint settings from the service environment file.
 - Added RunPod self-hosted endpoint research notes for templates, cached models, network volumes, and promotion gates.
 - Added `gpu-job runpod plan-vllm-endpoint` and `promote-vllm-endpoint` for scale-to-zero RunPod vLLM Serverless endpoint canaries.
+- Refined RunPod vLLM canary defaults to an empty location filter, `ADA_24`, `gpuCount=1`, `idleTimeout=90`, `QUEUE_DELAY=15`, and local GPU pool validation.
+- Added a RunPod vLLM support probe and canonical support-question document for the current Serverless vLLM worker-allocation blocker.
 
 ## 0.1.1 - 2026-04-17
 

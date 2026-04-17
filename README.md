@@ -103,6 +103,7 @@ curl -sS -H "Authorization: Bearer $GPU_JOB_API_TOKEN" \
 - [Job Contract](docs/worker-contract.md)
 - [Routing Policy](docs/routing-policy.md)
 - [Provider Promotion](docs/provider-promotion.md)
+- [RunPod Self-Hosted Endpoint Research](docs/runpod-self-hosted-research.md)
 - [Worker Image Distribution](docs/ghcr-publish-runbook.md)
 - [Operations](docs/operations.md)
 

@@ -43,6 +43,38 @@ def _graphql_string(value: str) -> str:
     return json.dumps(value)
 
 
+RUNPOD_GPU_POOL_IDS = {
+    "AMPERE_16",
+    "AMPERE_24",
+    "ADA_24",
+    "AMPERE_48",
+    "ADA_48_PRO",
+    "AMPERE_80",
+    "ADA_80_PRO",
+    "HOPPER_141",
+    "ADA_32_PRO",
+    "BLACKWELL_96",
+    "BLACKWELL_180",
+}
+
+
+def _validate_runpod_gpu_ids(gpu_ids: str) -> dict[str, Any]:
+    tokens = [item.strip() for item in gpu_ids.split(",") if item.strip()]
+    pool_ids = [item for item in tokens if not item.startswith("-")]
+    excluded_gpu_types = [item[1:].strip() for item in tokens if item.startswith("-") and item[1:].strip()]
+    invalid_pool_ids = [item for item in pool_ids if item not in RUNPOD_GPU_POOL_IDS]
+    ok = bool(pool_ids) and not invalid_pool_ids and len(tokens) == len(pool_ids) + len(excluded_gpu_types)
+    return {
+        "ok": ok,
+        "input": gpu_ids,
+        "pool_ids": pool_ids,
+        "excluded_gpu_types": excluded_gpu_types,
+        "invalid_pool_ids": invalid_pool_ids,
+        "valid_pool_ids": sorted(RUNPOD_GPU_POOL_IDS),
+        "rule": "gpuIds accepts RunPod GPU pool IDs; concrete GPU type names are only valid as exclusions prefixed with '-'",
+    }
+
+
 def _runpod_api_key() -> str:
     configured = os.getenv("RUNPOD_API_KEY", "").strip()
     if configured:
@@ -265,6 +297,15 @@ class RunPodProvider(Provider):
         served_model_name: str,
         flashboot: bool,
     ) -> dict[str, Any]:
+        gpu_selection = _validate_runpod_gpu_ids(gpu_ids)
+        if not gpu_selection["ok"]:
+            return {
+                "ok": False,
+                "provider": self.name,
+                "plan_version": "runpod-vllm-endpoint-plan-v1",
+                "error": "invalid_runpod_gpu_ids",
+                "gpu_selection": gpu_selection,
+            }
         served_model_name = served_model_name or model
         template = self._vllm_template_input(
             model=model,
@@ -296,6 +337,7 @@ class RunPodProvider(Provider):
                 "worker_repo": "https://github.com/runpod-workers/worker-vllm",
                 "openai_base_url": "https://api.runpod.ai/v2/<endpoint-id>/openai/v1",
             },
+            "gpu_selection": gpu_selection,
             "safety_invariants": {
                 "workers_min": 0,
                 "workers_standby": 0,
@@ -357,7 +399,9 @@ class RunPodProvider(Provider):
             flashboot=flashboot,
         )
         if not execute:
-            return {**plan, "ok": True, "executed": False}
+            return {**plan, "executed": False}
+        if not plan.get("ok"):
+            return {**plan, "executed": False}
 
         created_template = None
         endpoint = None
@@ -486,14 +530,15 @@ class RunPodProvider(Provider):
         endpoint: dict[str, Any] = {
             "name": f"gpu-job-vllm-{_safe_name(model)}-{time.strftime('%Y%m%d%H%M%S')}",
             "gpuIds": gpu_ids,
-            "locations": locations,
+            "gpuCount": 1,
+            "locations": locations.strip(),
             "templateId": template_id,
             "workersMin": 0,
             "workersMax": workers_max,
             "idleTimeout": idle_timeout,
             "scalerType": "QUEUE_DELAY",
             "scalerValue": scaler_value,
-            "networkVolumeId": network_volume_id,
+            "networkVolumeId": network_volume_id.strip(),
         }
         if flashboot:
             endpoint["flashBootType"] = "FLASHBOOT"
@@ -564,22 +609,30 @@ class RunPodProvider(Provider):
             scaler_value=scaler_value,
             flashboot=flashboot,
         )
-        flashboot_line = "    flashBootType: FLASHBOOT,\n" if flashboot else ""
+        endpoint_fields = [
+            f"gpuCount: {int(endpoint['gpuCount'])}",
+            f"gpuIds: {_graphql_string(str(endpoint['gpuIds']))}",
+            f"idleTimeout: {int(endpoint['idleTimeout'])}",
+            f"name: {_graphql_string(str(endpoint['name']))}",
+            f"scalerType: {_graphql_string(str(endpoint['scalerType']))}",
+            f"scalerValue: {int(endpoint['scalerValue'])}",
+            f"templateId: {_graphql_string(str(endpoint['templateId']))}",
+            f"workersMax: {int(endpoint['workersMax'])}",
+            f"workersMin: {int(endpoint['workersMin'])}",
+        ]
+        if endpoint["locations"]:
+            endpoint_fields.insert(2, f"locations: {_graphql_string(str(endpoint['locations']))}")
+        if flashboot:
+            endpoint_fields.insert(3 if endpoint["locations"] else 2, "flashBootType: FLASHBOOT")
+        if endpoint["networkVolumeId"]:
+            endpoint_fields.append(f"networkVolumeId: {_graphql_string(str(endpoint['networkVolumeId']))}")
+        endpoint_input = ",\n    ".join(endpoint_fields)
         query = f"""
 mutation {{
   saveEndpoint(input: {{
-    gpuIds: {_graphql_string(str(endpoint["gpuIds"]))},
-    idleTimeout: {int(endpoint["idleTimeout"])},
-    locations: {_graphql_string(str(endpoint["locations"]))},
-    name: {_graphql_string(str(endpoint["name"]))},
-{flashboot_line}    scalerType: {_graphql_string(str(endpoint["scalerType"]))},
-    scalerValue: {int(endpoint["scalerValue"])},
-    templateId: {_graphql_string(str(endpoint["templateId"]))},
-    workersMax: {int(endpoint["workersMax"])},
-    workersMin: {int(endpoint["workersMin"])},
-    networkVolumeId: {_graphql_string(str(endpoint["networkVolumeId"]))}
+    {endpoint_input}
   }}) {{
-    id name gpuIds idleTimeout locations flashBootType
+    id name gpuIds gpuCount idleTimeout locations flashBootType
     scalerType scalerValue templateId
     workersMax workersMin workersStandby networkVolumeId
   }}
@@ -603,8 +656,39 @@ mutation {{
         }
 
     def _openai_canary(self, *, endpoint_id: str, model: str, prompt: str, timeout: int) -> dict[str, Any]:
-        output = self._run_openai_chat(endpoint_id=endpoint_id, model=model, prompt=prompt, max_tokens=8, timeout=timeout)
-        text = _extract_text(output)
+        deadline = time.time() + timeout
+        attempts: list[dict[str, Any]] = []
+        health_samples: list[dict[str, Any]] = []
+        transient_http = {502, 503, 504}
+        output: dict[str, Any] = {}
+        text = ""
+        while time.time() < deadline:
+            remaining = max(1, int(deadline - time.time()))
+            attempt_timeout = remaining
+            output = self._run_openai_chat(
+                endpoint_id=endpoint_id,
+                model=model,
+                prompt=prompt,
+                max_tokens=8,
+                timeout=attempt_timeout,
+            )
+            text = _extract_text(output)
+            attempts.append(
+                {
+                    "status": output.get("status"),
+                    "http_status": output.get("http_status"),
+                    "text_chars": len(text),
+                    "error": output.get("error", ""),
+                }
+            )
+            if text.strip():
+                break
+            if output.get("status") == "HTTP_ERROR" and output.get("http_status") not in transient_http:
+                break
+            health_samples.append(self._endpoint_health_sample(endpoint_id))
+            if output.get("status") == "TRANSPORT_ERROR":
+                break
+            time.sleep(min(10, max(1, int(deadline - time.time()))))
         return {
             "ok": bool(text.strip()),
             "endpoint_id": endpoint_id,
@@ -612,7 +696,19 @@ mutation {{
             "text": text,
             "text_chars": len(text),
             "raw_status": output.get("status") if isinstance(output, dict) else None,
+            "attempts": attempts,
+            "health_samples": health_samples,
         }
+
+    def _endpoint_health_sample(self, endpoint_id: str) -> dict[str, Any]:
+        try:
+            endpoints = [endpoint for endpoint in self._api_snapshot().get("endpoints", []) if str(endpoint.get("id") or "") == endpoint_id]
+            if not endpoints:
+                return {"id": endpoint_id, "ok": False, "error": "endpoint not found"}
+            health = self._endpoint_health(endpoints)
+            return health[0] if health else {"id": endpoint_id, "ok": False, "error": "endpoint health unavailable"}
+        except Exception as exc:
+            return {"id": endpoint_id, "ok": False, "error": str(exc)}
 
     def _run_openai_chat(self, *, endpoint_id: str, model: str, prompt: str, max_tokens: int, timeout: int) -> dict[str, Any]:
         api_key = _runpod_api_key()
@@ -639,7 +735,18 @@ mutation {{
                 output = json.loads(response.read().decode())
         except urllib.error.HTTPError as exc:
             body = exc.read().decode(errors="replace")
-            raise RuntimeError(f"runpod vllm openai canary http {exc.code}: {body}") from exc
+            return {
+                "id": endpoint_id,
+                "status": "HTTP_ERROR",
+                "http_status": exc.code,
+                "error": body,
+            }
+        except (TimeoutError, urllib.error.URLError) as exc:
+            return {
+                "id": endpoint_id,
+                "status": "TRANSPORT_ERROR",
+                "error": str(exc),
+            }
         return {"id": endpoint_id, "status": "COMPLETED", "output": output}
 
     def _create_public_ollama_endpoint(

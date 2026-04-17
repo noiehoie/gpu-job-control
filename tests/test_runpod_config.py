@@ -71,16 +71,16 @@ class RunPodConfigTest(unittest.TestCase):
         plan = provider.plan_vllm_endpoint(
             model="Qwen/Qwen2.5-0.5B-Instruct",
             image="runpod/worker-v1-vllm:v2.14.0",
-            gpu_ids="AMPERE_16",
+            gpu_ids="ADA_24",
             network_volume_id="",
-            locations="US",
+            locations="",
             hf_secret_name="gpu_job_hf_read",
             max_model_len=2048,
             gpu_memory_utilization=0.9,
             max_concurrency=1,
-            idle_timeout=5,
+            idle_timeout=90,
             workers_max=1,
-            scaler_value=4,
+            scaler_value=15,
             quantization="",
             served_model_name="",
             flashboot=True,
@@ -90,11 +90,63 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertEqual(plan["safety_invariants"]["workers_standby"], 0)
         self.assertEqual(plan["endpoint"]["workersMin"], 0)
         self.assertEqual(plan["endpoint"]["workersMax"], 1)
+        self.assertEqual(plan["endpoint"]["gpuCount"], 1)
+        self.assertEqual(plan["endpoint"]["gpuIds"], "ADA_24")
+        self.assertEqual(plan["gpu_selection"]["pool_ids"], ["ADA_24"])
+        self.assertEqual(plan["endpoint"]["locations"], "")
+        self.assertEqual(plan["endpoint"]["idleTimeout"], 90)
+        self.assertEqual(plan["endpoint"]["scalerValue"], 15)
         self.assertEqual(plan["endpoint"]["flashBootType"], "FLASHBOOT")
         env = {item["key"]: item["value"] for item in plan["template"]["env"]}
         self.assertEqual(env["MODEL_NAME"], "Qwen/Qwen2.5-0.5B-Instruct")
         self.assertEqual(env["HF_TOKEN"], "{{ RUNPOD_SECRET_gpu_job_hf_read }}")
         self.assertNotIn("hf_D", json.dumps(plan))
+
+    def test_vllm_plan_rejects_concrete_gpu_type_as_gpu_ids(self) -> None:
+        provider = RunPodProvider()
+        plan = provider.plan_vllm_endpoint(
+            model="Qwen/Qwen2.5-0.5B-Instruct",
+            image="runpod/worker-v1-vllm:v2.14.0",
+            gpu_ids="NVIDIA L4",
+            network_volume_id="",
+            locations="",
+            hf_secret_name="gpu_job_hf_read",
+            max_model_len=2048,
+            gpu_memory_utilization=0.9,
+            max_concurrency=1,
+            idle_timeout=90,
+            workers_max=1,
+            scaler_value=15,
+            quantization="",
+            served_model_name="",
+            flashboot=False,
+        )
+        self.assertFalse(plan["ok"])
+        self.assertEqual(plan["error"], "invalid_runpod_gpu_ids")
+        self.assertEqual(plan["gpu_selection"]["invalid_pool_ids"], ["NVIDIA L4"])
+
+    def test_vllm_plan_allows_pool_with_concrete_gpu_exclusion(self) -> None:
+        provider = RunPodProvider()
+        plan = provider.plan_vllm_endpoint(
+            model="Qwen/Qwen2.5-0.5B-Instruct",
+            image="runpod/worker-v1-vllm:v2.14.0",
+            gpu_ids="ADA_24,-NVIDIA L4",
+            network_volume_id="",
+            locations="",
+            hf_secret_name="gpu_job_hf_read",
+            max_model_len=2048,
+            gpu_memory_utilization=0.9,
+            max_concurrency=1,
+            idle_timeout=90,
+            workers_max=1,
+            scaler_value=15,
+            quantization="",
+            served_model_name="",
+            flashboot=False,
+        )
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["gpu_selection"]["pool_ids"], ["ADA_24"])
+        self.assertEqual(plan["gpu_selection"]["excluded_gpu_types"], ["NVIDIA L4"])
 
     def test_vllm_endpoint_invariant_rejects_warm_capacity(self) -> None:
         provider = RunPodProvider()

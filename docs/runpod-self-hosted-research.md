@@ -156,10 +156,12 @@ env:
   MAX_CONCURRENCY=<small integer for canary>
 workersMin=0
 workersMax=1
-idleTimeout=5
+gpuCount=1
+idleTimeout=90
 flashBootType=FLASHBOOT
 scalerType=QUEUE_DELAY
-scalerValue=4
+scalerValue=15
+locations=<empty for first canary>
 ```
 
 This is the preferred next experiment.
@@ -194,6 +196,17 @@ The promotion helper must keep these invariants:
 - failed canaries disable and delete the endpoint.
 
 The default canary timeout is intentionally short: 180 seconds. If RunPod leaves the request queued without assigning a worker, the helper treats that as no usable capacity for the current promotion attempt and deletes the endpoint.
+
+RunPod support guidance refined the first self-hosted vLLM canary:
+
+- leave `locations` empty so the scheduler can use any eligible datacenter;
+- start with one known GPU class instead of a broad tier list;
+- use a more forgiving `idleTimeout` of 60-120 seconds and `QUEUE_DELAY` of 10-30 seconds;
+- compare the GraphQL-created endpoint object against a Console/Hub-created endpoint if workers stay at `initializing=0`.
+
+The helper therefore defaults to `gpuIds=ADA_24`, `gpuCount=1`, empty `locations`, `idleTimeout=90`, `scalerValue=15`, and a 300-second OpenAI canary timeout. Empty optional endpoint fields such as `locations` and `networkVolumeId` are omitted from the GraphQL input.
+
+RunPod `saveEndpoint.gpuIds` requires GPU pool IDs, not concrete GPU type names. A direct canary using `gpuIds=NVIDIA L4` failed before endpoint creation with `Invalid GPU Pool ID`; the error listed valid pool IDs as `AMPERE_16`, `AMPERE_24`, `ADA_24`, `AMPERE_48`, `ADA_48_PRO`, `AMPERE_80`, `ADA_80_PRO`, `HOPPER_141`, `ADA_32_PRO`, `BLACKWELL_96`, and `BLACKWELL_180`. Concrete GPU type names are only valid as exclusions inside a pool, for example `ADA_24,-NVIDIA L4`. The helper validates this locally before calling RunPod.
 
 ### Design B: Official vLLM worker + attached network volume
 
