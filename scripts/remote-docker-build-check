@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+builder="${GPU_JOB_DOCKER_BUILDER:-gpu-builder}"
+workdir="${GPU_JOB_REMOTE_WORKDIR:-/opt/gpu-job-control}"
+rsync -az --delete --exclude .venv ./ "$builder:$workdir/"
+ssh "$builder" "
+  set -euo pipefail
+  cd '$workdir'
+  if docker buildx version >/dev/null 2>&1 && docker build --help | grep -q -- "--check"; then
+    docker build --check -f docker/asr-worker.Dockerfile .
+  else
+    awk 'BEGIN{bad=0}
+      /^FROM /{from++}
+      /^RUN /{run++}
+      /^COPY /{copy++}
+      /^ENTRYPOINT /{entry++}
+      END{
+        print "from=" from, "run=" run, "copy=" copy, "entrypoint=" entry;
+        if(!from || !entry) bad=1;
+        exit bad
+      }' docker/asr-worker.Dockerfile
+  fi
+"

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "${GPU_JOB_CONTROL_HOME:-/opt/gpu-job-control}"
+
+DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gpu-job-control"
+LOG_DIR="$DATA_DIR/guard-logs"
+ALERT_DIR="$DATA_DIR/alerts"
+mkdir -p "$LOG_DIR" "$ALERT_DIR"
+
+TS=$(date +%Y%m%d-%H%M%S)
+LOG_FILE="$LOG_DIR/guard-$TS.json"
+ALERT_FILE="$ALERT_DIR/cost-guard-alert.json"
+MAIL_TO="${GPU_JOB_GUARD_EMAIL:-}"
+WEBHOOK_URL="${GPU_JOB_GUARD_WEBHOOK_URL:-}"
+
+set +e
+"${UV_BIN:-uv}" run gpu-job guard > "$LOG_FILE"
+STATUS=$?
+set -e
+
+cat "$LOG_FILE"
+
+if [ "$STATUS" -eq 0 ]; then
+  rm -f "$ALERT_FILE"
+  exit 0
+fi
+
+cp "$LOG_FILE" "$ALERT_FILE"
+logger -t gpu-job-guard "GPU cost guard failed; alert file: $ALERT_FILE"
+if [ -n "$MAIL_TO" ] && command -v mail >/dev/null 2>&1; then
+  mail -s "gpu-job guard failed on $(hostname)" "$MAIL_TO" < "$LOG_FILE" || true
+fi
+if [ -n "$WEBHOOK_URL" ] && command -v curl >/dev/null 2>&1; then
+  curl -fsS -X POST -H 'Content-Type: application/json' --data-binary @"$LOG_FILE" "$WEBHOOK_URL" >/dev/null || true
+fi
+exit "$STATUS"

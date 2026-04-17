@@ -1,0 +1,26 @@
+{
+  "name": "gpu-job-asr",
+  "provider": "runpod",
+  "type": "serverless-endpoint-template",
+  "image": "ghcr.io/example/gpu-job-asr-worker:canary",
+  "entrypoint": "gpu-job-asr-worker",
+  "workers_min": 0,
+  "workers_max": 1,
+  "workers_standby": 0,
+  "idle_timeout": 5,
+  "scaler_type": "QUEUE_DELAY",
+  "scaler_value": 4,
+  "flashboot": true,
+  "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+  "required_runtime_env": [
+    "GPU_JOB_ID",
+    "GPU_JOB_ARTIFACT_DIR",
+    "GPU_JOB_PROFILE",
+    "GPU_JOB_INPUT_URI",
+    "GPU_JOB_PROVIDER"
+  ],
+  "notes": [
+    "workers_min and workers_standby must remain 0 unless paid warm capacity is explicitly selected.",
+    "gpu-job guard blocks execution when warm serverless workers are detected."
+  ]
+}

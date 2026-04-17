@@ -1,0 +1,103 @@
+{
+  "stale_seconds": {
+    "starting": 900,
+    "running": 14400
+  },
+  "provider_limits": {
+    "local": 1,
+    "modal": 1,
+    "ollama": 1,
+    "runpod": 1,
+    "vast": 1
+  },
+  "default_job_timeout_seconds": 14400,
+  "job_type_timeouts_seconds": {
+    "smoke": 60,
+    "embedding": 300,
+    "llm_heavy": 3600,
+    "vlm_ocr": 3600,
+    "pdf_ocr": 7200,
+    "asr": 14400,
+    "avatar_video": 21600,
+    "image_generation": 3600
+  },
+  "provider_regions": {
+    "local": "local",
+    "ollama": "local",
+    "modal": "external",
+    "runpod": "external",
+    "vast": "external"
+  },
+  "circuit_breaker": {
+    "window_seconds": 900,
+    "min_samples": 5,
+    "open_failure_rate": 0.8
+  },
+  "retry_policy": {
+    "max_attempts": 2,
+    "base_delay_seconds": 30,
+    "max_delay_seconds": 300,
+    "class_overrides": {
+      "backpressure": {
+        "max_attempts": 4,
+        "delay_seconds": 30
+      },
+      "provider_timeout": {
+        "max_attempts": 1,
+        "delay_seconds": 120
+      },
+      "provider_rate_limit": {
+        "max_attempts": 3,
+        "delay_seconds": 60
+      },
+      "provider_transient": {
+        "max_attempts": 2,
+        "delay_seconds": 60
+      }
+    }
+  },
+  "intake": {
+    "hold_seconds": 3,
+    "max_hold_seconds": 15,
+    "group_key_fields": ["source_system", "job_type", "gpu_profile", "task_family"],
+    "default_task_family": "default"
+  },
+  "resource_guard": {
+    "min_mem_available_gb": 20,
+    "max_swap_used_gb": 2,
+    "max_disk_root_used_percent": 90,
+    "max_load_5m_per_cpu": 1.2,
+    "max_ollama_memory_current_gb": 112,
+    "max_ollama_memory_peak_gb": 124
+  },
+  "persistent_storage": {
+    "runpod": {
+      "network_volume_price_usd_per_gb_month": 0.07,
+      "allowed_monthly_usd": 0,
+      "warning_monthly_usd": 5,
+      "fail_monthly_usd": 10,
+      "allowed_network_volumes": []
+    }
+  },
+  "quota": {
+    "global_budget_usd": 50,
+    "default_source_budget_usd": 10,
+    "source_budgets_usd": {
+      "my-app": 20,
+      "default": 10
+    }
+  },
+  "cost_model": {
+    "egress_usd_per_gb": 0.05,
+    "storage_usd_per_gb_month": 0.07
+  },
+  "secret_policy": {
+    "allowed_refs": {
+      "*:*:*": []
+    }
+  },
+  "retention": {
+    "artifact_retention_days": 30,
+    "audit_retention_days": 365
+  }
+}

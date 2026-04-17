@@ -1,0 +1,21 @@
+[Unit]
+Description=GPU Job Control localhost API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gpu-job
+WorkingDirectory=/opt/gpu-job-control
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/etc/gpu-job-control/api.env
+ExecStart=/usr/bin/env uv run gpu-job serve --host 127.0.0.1 --port 8765 --require-token
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/gpu-job-control /opt/gpu-job-control
+
+[Install]
+WantedBy=multi-user.target

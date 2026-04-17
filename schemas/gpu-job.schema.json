@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "gpu-job-control job",
+  "type": "object",
+  "required": ["job_type", "input_uri", "output_uri", "worker_image", "gpu_profile"],
+  "properties": {
+    "job_id": {"type": "string"},
+    "job_type": {
+      "type": "string",
+      "enum": ["asr", "pdf_ocr", "vlm_ocr", "avatar_video", "image_generation", "llm_heavy", "embedding", "smoke"]
+    },
+    "input_uri": {"type": "string"},
+    "output_uri": {"type": "string"},
+    "worker_image": {"type": "string"},
+    "gpu_profile": {"type": "string"},
+    "model": {"type": "string"},
+    "status": {
+      "type": "string",
+      "enum": ["created", "buffered", "planned", "queued", "starting", "running", "succeeded", "failed", "cancelled"]
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_runtime_minutes": {"type": "number", "minimum": 0},
+        "max_cost_usd": {"type": "number", "minimum": 0},
+        "max_output_gb": {"type": "number", "minimum": 0},
+        "deadline_seconds": {"type": "number", "minimum": 0},
+        "quality": {"type": "string", "enum": ["fast", "balanced", "high"]}
+      },
+      "additionalProperties": true
+    },
+    "verify": {
+      "type": "object",
+      "properties": {
+        "required_files": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "source_system": {"type": "string"},
+        "source_job_id": {"type": "string"},
+        "idempotency_key": {"type": "string"},
+        "purpose": {"type": "string"},
+        "task_family": {"type": "string"},
+        "priority_class": {"type": "string"},
+        "workflow_id": {"type": "string"},
+        "node_id": {"type": "string"},
+        "trace": {
+          "type": "object",
+          "properties": {
+            "trace_id": {"type": "string"},
+            "span_id": {"type": "string"},
+            "parent_span_id": {"type": "string"},
+            "traceparent": {"type": "string"}
+          },
+          "additionalProperties": true
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "require_strict": {"type": "boolean"},
+            "image_digest": {"type": "string"},
+            "image_signature": {"type": "string"},
+            "model_id": {"type": "string"},
+            "model_weights_hash": {"type": "string"},
+            "attestation_hash": {"type": "string"}
+          },
+          "additionalProperties": true
+        },
+        "compliance": {
+          "type": "object",
+          "properties": {
+            "data_classification": {"type": "string"},
+            "jurisdiction": {"type": "string"},
+            "allowed_regions": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "prohibited_providers": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "retention_days": {"type": "number", "minimum": 0},
+            "allow_unspecified_region": {"type": "boolean"}
+          },
+          "additionalProperties": true
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "gpu_count": {"type": "number", "minimum": 0},
+            "gpu_memory_gb": {"type": "number", "minimum": 0},
+            "gpu_fraction": {"type": "number", "minimum": 0},
+            "placement_strategy": {"type": "string"},
+            "node_affinity": {"type": "string"}
+          },
+          "additionalProperties": true
+        },
+        "routing": {
+          "type": "object",
+          "properties": {
+            "estimated_cpu_runtime_seconds": {"type": "number", "minimum": 0},
+            "estimated_gpu_runtime_seconds": {"type": "number", "minimum": 0},
+            "estimated_input_tokens": {"type": "number", "minimum": 0},
+            "batch_size": {"type": "number", "minimum": 1},
+            "burst_size": {"type": "number", "minimum": 1},
+            "observed_burst_size": {"type": "number", "minimum": 1},
+            "effective_burst_size": {"type": "number", "minimum": 1},
+            "deadline_seconds": {"type": "number", "minimum": 0},
+            "latency_class": {"type": "string", "enum": ["interactive", "batch", "bulk"]},
+            "quality_requires_gpu": {"type": "boolean"}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

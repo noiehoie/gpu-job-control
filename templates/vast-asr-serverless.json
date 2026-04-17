@@ -1,0 +1,24 @@
+{
+  "name": "gpu-job-asr",
+  "provider": "vast",
+  "type": "serverless-endpoint-workergroup-template",
+  "image": "ghcr.io/example/gpu-job-asr-worker:canary",
+  "entrypoint": "gpu-job-asr-worker",
+  "endpoint": {
+    "cold_workers": 0,
+    "max_workers": 1,
+    "inactivity_timeout": 60,
+    "max_queue_time": 30,
+    "target_queue_time": 10
+  },
+  "workergroup": {
+    "test_workers": 0,
+    "cold_workers": 0,
+    "search_params": "gpu_ram>=16 compute_cap>=750 num_gpus=1 rented=False reliability>0.95"
+  },
+  "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+  "notes": [
+    "cold_workers must remain 0 for no-warm-capacity canaries.",
+    "gpu-job guard treats any Vast endpoint or workergroup as blocking until deleted."
+  ]
+}

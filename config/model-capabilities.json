@@ -1,0 +1,77 @@
+{
+  "models": {
+    "local:local-deterministic-llm": {
+      "provider": "local",
+      "job_types": ["smoke", "llm_heavy"],
+      "max_input_tokens": 4096,
+      "quality_tier": "canary",
+      "vision": false,
+      "asr": false
+    },
+    "local:local-deterministic-embedding": {
+      "provider": "local",
+      "job_types": ["embedding"],
+      "max_input_tokens": 4096,
+      "quality_tier": "canary",
+      "vision": false,
+      "asr": false
+    },
+    "local:local-deterministic-pdf-ocr": {
+      "provider": "local",
+      "job_types": ["pdf_ocr"],
+      "max_input_tokens": 4096,
+      "quality_tier": "canary",
+      "vision": true,
+      "asr": false
+    },
+    "local:local-deterministic-vlm-ocr": {
+      "provider": "local",
+      "job_types": ["vlm_ocr"],
+      "max_input_tokens": 4096,
+      "quality_tier": "canary",
+      "vision": true,
+      "asr": false
+    },
+    "ollama:qwen2.5:72b": {
+      "provider": "ollama",
+      "job_types": ["llm_heavy"],
+      "max_input_tokens": 10000,
+      "quality_tier": "high",
+      "vision": false,
+      "asr": false
+    },
+    "ollama:gemma3:4b": {
+      "provider": "ollama",
+      "job_types": ["vlm_ocr"],
+      "max_input_tokens": 4096,
+      "quality_tier": "basic",
+      "vision": true,
+      "asr": false
+    },
+    "modal:default": {
+      "provider": "modal",
+      "job_types": ["smoke", "asr", "llm_heavy"],
+      "max_input_tokens": 200000,
+      "quality_tier": "external_gpu",
+      "vision": false,
+      "asr": true
+    },
+    "runpod:default": {
+      "provider": "runpod",
+      "job_types": ["llm_heavy", "asr", "vlm_ocr", "avatar_video", "image_generation"],
+      "max_input_tokens": 200000,
+      "quality_tier": "external_gpu",
+      "vision": true,
+      "asr": true
+    },
+    "vast:default": {
+      "provider": "vast",
+      "job_types": ["smoke", "asr", "vlm_ocr"],
+      "max_input_tokens": 200000,
+      "quality_tier": "external_gpu",
+      "vision": true,
+      "asr": true
+    }
+  },
+  "quality_order": ["canary", "basic", "high", "external_gpu"]
+}

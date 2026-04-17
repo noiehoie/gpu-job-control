@@ -1,0 +1,27 @@
+{
+  "job_type": "vlm_ocr",
+  "input_uri": "text://VLM OCR canary image. 画像内テキストと図表説明の検証。",
+  "output_uri": "local://vlm-ocr-canary",
+  "worker_image": "local:deterministic-vlm-ocr",
+  "gpu_profile": "vlm_ocr",
+  "model": "local-deterministic-vlm-ocr",
+  "limits": {
+    "max_runtime_minutes": 1,
+    "max_cost_usd": 0,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Local deterministic VLM OCR canary",
+    "input": {
+      "frames": [
+        {
+          "frame_id": "frame-0001",
+          "description": "VLM OCR canary image. 画像内テキストと図表説明の検証。"
+        }
+      ]
+    }
+  }
+}

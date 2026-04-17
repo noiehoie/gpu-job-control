@@ -1,0 +1,31 @@
+{
+  "job_type": "llm_heavy",
+  "input_uri": "text://Return exactly: GPU LLM OK",
+  "output_uri": "local://llm-heavy-modal-canary",
+  "worker_image": "modal:qwen2.5",
+  "gpu_profile": "llm_heavy",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "limits": {
+    "max_runtime_minutes": 30,
+    "max_cost_usd": 2,
+    "max_output_gb": 1
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "Modal GPU LLM canary",
+    "input": {
+      "prompt": "Return exactly: GPU LLM OK",
+      "max_tokens": 16
+    },
+    "routing": {
+      "estimated_input_tokens": 8,
+      "estimated_cpu_runtime_seconds": 600,
+      "estimated_gpu_runtime_seconds": 60,
+      "batch_size": 1,
+      "deadline_seconds": 1800,
+      "quality_requires_gpu": true
+    }
+  }
+}

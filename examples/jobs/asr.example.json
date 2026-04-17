@@ -1,0 +1,19 @@
+{
+  "job_type": "asr",
+  "input_uri": "s3://example-input/asr/sample-30min.mp4",
+  "output_uri": "s3://example-output/asr/sample-30min/",
+  "worker_image": "ghcr.io/example/gpu-asr-worker:canary",
+  "gpu_profile": "asr_fast",
+  "model": "whisper-large-v3",
+  "limits": {
+    "max_runtime_minutes": 120,
+    "max_cost_usd": 10,
+    "max_output_gb": 20
+  },
+  "verify": {
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "metadata": {
+    "purpose": "ASR canary job definition"
+  }
+}
