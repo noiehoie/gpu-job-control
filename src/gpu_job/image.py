@@ -16,11 +16,11 @@ def image_plan(worker: str = "asr") -> dict[str, Any]:
         "ok": True,
         "worker": worker,
         "image": "gpu-job-asr-worker:local",
-        "registry_image": "ghcr.io/example/gpu-job-asr-worker:canary",
+        "registry_image": "registry.example.com/gpu-job-control/asr-worker:canary",
         "dockerfile": "docker/asr-worker.Dockerfile",
         "context": ".",
         "build_host_policy": "remote linux builder or CI",
-        "push_policy": "disabled until registry credentials are explicitly configured",
+        "push_policy": "operator-controlled registry mirror; GitHub/GHCR is not required at runtime",
         "commands": {
             "check": "gpu-job image check --worker asr",
             "build": "gpu-job image build --worker asr --execute",

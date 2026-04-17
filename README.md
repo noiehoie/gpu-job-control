@@ -44,6 +44,7 @@ This repository is an early control-plane implementation. The public surface is 
 - no secrets belong in job payloads, examples, logs, or source control;
 - external providers remain behind promotion gates until repeatable canaries pass;
 - destructive provider operations must be explicitly authorized by policy.
+- GitHub and GHCR are publication and CI surfaces, not required runtime dependencies.
 
 ## Quick Start
 
@@ -102,14 +103,28 @@ curl -sS -H "Authorization: Bearer $GPU_JOB_API_TOKEN" \
 - [Job Contract](docs/worker-contract.md)
 - [Routing Policy](docs/routing-policy.md)
 - [Provider Promotion](docs/provider-promotion.md)
-- [GHCR Publishing](docs/ghcr-publish-runbook.md)
+- [Worker Image Distribution](docs/ghcr-publish-runbook.md)
 - [Operations](docs/operations.md)
+
+## Runtime Independence
+
+`gpu-job-control` should not require GitHub, GitHub Actions, or GHCR in the runtime path.
+
+Recommended deployment posture:
+
+- use GitHub for source review, releases, and reproducible CI evidence;
+- run the control plane on your own host or private network;
+- keep provider credentials in your own secret store, not in GitHub;
+- mirror worker images to the registry or provider-native template system you operate;
+- pin production worker images by digest and verify artifacts after execution.
+
+The public GHCR canary image is only a distribution convenience. Production deployments should be able to continue routing, guarding, and executing jobs during a GitHub or GHCR outage.
 
 ## Docker and Worker Images
 
 Do not assume the developer workstation has Docker. Use a remote Linux builder or CI for image builds.
 
-The RunPod canary worker is published by GitHub Actions:
+The repository includes a GitHub Actions workflow that builds a RunPod canary image:
 
 ```text
 .github/workflows/publish-runpod-worker.yml
@@ -121,6 +136,8 @@ The workflow builds and tests:
 docker/runpod-llm-worker.Dockerfile
 src/gpu_job/workers/runpod_llm.py
 ```
+
+Treat that workflow as a reproducibility example, not as required production plumbing.
 
 ## Security
 

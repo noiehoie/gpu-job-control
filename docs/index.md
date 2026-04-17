@@ -12,7 +12,7 @@ Start here when evaluating or integrating `gpu-job-control`.
 
 - [Operations](operations.md): runtime paths, API auth, configuration overrides, guard loop, and Docker build posture.
 - [Provider Promotion](provider-promotion.md): conditions for moving a provider from canary to production routing.
-- [GHCR Publishing](ghcr-publish-runbook.md): container publishing workflow for RunPod canary workers.
+- [Worker Image Distribution](ghcr-publish-runbook.md): reproducible image publishing and registry-mirroring guidance.
 
 ## Design
 

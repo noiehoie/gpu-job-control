@@ -14,6 +14,8 @@ cache:   $XDG_CACHE_HOME/gpu-job-control
 
 Provider credentials should be supplied by provider CLIs, environment variables, or a host-local secret manager. They must not be embedded in job JSON, examples, docs, or source code.
 
+GitHub is not part of the required runtime path. Use it for source distribution, issues, releases, and CI evidence. The control plane, provider credentials, guard loop, queue, and production worker image references should remain operable from your own hosts and registries.
+
 ## First Five Minutes
 
 The first run should require no cloud provider account and no paid GPU resource:
@@ -117,6 +119,17 @@ The guard should fail closed when it sees:
 Do not require Docker on a developer workstation. Prefer CI or a dedicated Linux builder.
 
 For local development on a remote builder, synchronize source explicitly and run Docker only there. Keep registry credentials scoped and short-lived where possible. The helper scripts in `scripts/remote-docker*` are thin SSH wrappers around a caller-supplied `GPU_JOB_DOCKER_BUILDER`.
+
+## Worker Image Distribution
+
+Worker images may be built by GitHub Actions, a remote Linux builder, or a provider-native build process. Production routing should reference an image location that you control operationally:
+
+- a provider-native serverless template;
+- a self-hosted or cloud container registry;
+- a mirror of the public canary image;
+- an immutable digest reference already accepted by the provider.
+
+Do not make production job execution depend on live access to this GitHub repository or to GitHub Actions. GHCR can be useful for public examples, but deployments that need higher reliability should mirror images and pin digests in their own configuration.
 
 ## Public Repository Hygiene
 
