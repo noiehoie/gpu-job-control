@@ -8,7 +8,8 @@ import time
 import modal
 
 
-image = modal.Image.debian_slim(python_version="3.12").pip_install("torch", "transformers", "accelerate", "sentencepiece")
+MODAL_LLM_PACKAGES = ["torch", "transformers", "accelerate", "sentencepiece", "gptqmodel"]
+image = modal.Image.debian_slim(python_version="3.12").pip_install(*MODAL_LLM_PACKAGES)
 app = modal.App("gpu-job-modal-llm")
 
 DEFAULT_HEAVY_MODEL = "Qwen/Qwen3-32B-AWQ"

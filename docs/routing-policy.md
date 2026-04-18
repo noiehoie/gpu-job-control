@@ -63,7 +63,7 @@ Do not purge RunPod endpoint queues automatically. Queue purge cancels existing 
 `llm_heavy` has three execution tiers:
 
 - `ollama`: fixed-cost resident model. Used for short prompts below `ollama_max_input_tokens`.
-- `modal`: executable GPU LLM canary worker. It runs `src/gpu_job/modal_llm.py` on Modal L4 and writes the standard artifact contract.
+- `modal`: executable GPU LLM worker. It runs `src/gpu_job/modal_llm.py` on Modal A100 and writes the standard artifact contract.
 - `runpod`: executable only when an existing serverless LLM endpoint is configured or discoverable. The endpoint must accept `input.prompt`, `input.system_prompt`, `input.model`, and `input.max_tokens`, and return one of `text`, `response`, `output`, `generated_text`, `answer`, or OpenAI-style `choices`.
 - `runpod` can also target an OpenAI-compatible RunPod endpoint by setting `RUNPOD_LLM_ENDPOINT_ID`, `RUNPOD_LLM_ENDPOINT_MODE=openai`, and `RUNPOD_LLM_MODEL_OVERRIDE` in the service environment. This is the preferred canary path for RunPod Public Endpoints because it avoids creating a private endpoint before basic provider liveness is proven.
 - RunPod Serverless vLLM endpoints created from raw GraphQL templates or unverified Hub-template reproduction are deferred for launch. The router must not depend on them as production primary until a Support answer or a Console/Hub diff closes the worker-init/routing gap.

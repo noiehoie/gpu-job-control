@@ -40,7 +40,7 @@ if "modal" not in sys.modules:
     fake_modal = types.SimpleNamespace(Image=_FakeImage, App=_FakeApp)
     sys.modules["modal"] = fake_modal
 
-from gpu_job.modal_llm import CANARY_MODEL, DEFAULT_HEAVY_MODEL, _model_context_limit, _model_name
+from gpu_job.modal_llm import CANARY_MODEL, DEFAULT_HEAVY_MODEL, MODAL_LLM_PACKAGES, _model_context_limit, _model_name
 
 
 class ModalLlmQualityTest(unittest.TestCase):
@@ -77,6 +77,9 @@ class ModalLlmQualityTest(unittest.TestCase):
             config = Config()
 
         self.assertEqual(_model_context_limit(Model()), 32768)
+
+    def test_awq_loader_dependency_is_installed_in_modal_image(self) -> None:
+        self.assertIn("gptqmodel", MODAL_LLM_PACKAGES)
 
 
 class VerifyPayloadTest(unittest.TestCase):
