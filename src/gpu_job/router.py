@@ -159,8 +159,8 @@ def workload_policy_decision(job: Job, profile: dict[str, Any], signal: dict[str
     startup = float(signal.get("estimated_startup_seconds") or 0)
     batch_size = max(1, _int_value(routing.get("batch_size"), input_data.get("batch_size"), default=1))
     burst_size = max(
-        batch_size,
         _int_value(routing.get("burst_size"), input_data.get("burst_size"), job.metadata.get("burst_size"), default=1),
+        1,
     )
     latency_class = _str_value(routing.get("latency_class"), input_data.get("latency_class"), default="batch")
     startup_amortized = startup / batch_size

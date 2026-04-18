@@ -56,6 +56,15 @@ class PolicyAndRouterTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("burst workload exceeds resident ollama concurrency", result["reason"])
 
+    def test_batch_size_does_not_imply_burst_concurrency(self) -> None:
+        job = make_job(routing={"batch_size": 15, "burst_size": 1, "estimated_gpu_runtime_seconds": 5})
+        profile = {"burst_policy": {"ollama_max_burst_size": 1}}
+        signal = {"provider": "ollama", "estimated_startup_seconds": 0}
+        result = workload_policy_decision(job, profile, signal)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["batch_size"], 15)
+        self.assertEqual(result["burst_size"], 1)
+
     def test_modal_prefers_burst_fanout(self) -> None:
         job = make_job(routing={"burst_size": 25, "estimated_gpu_runtime_seconds": 5})
         profile = {"burst_policy": {"modal_preferred_burst_size": 5}}
