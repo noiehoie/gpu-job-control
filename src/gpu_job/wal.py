@@ -75,6 +75,7 @@ def _read_wal_records(store: JobStore | None = None) -> list[dict[str, Any]]:
 
 
 def wal_recovery_status(store: JobStore | None = None) -> dict[str, Any]:
+    store = store or JobStore()
     records = _read_wal_records(store)
     parse_errors = [record for record in records if record.get("parse_error")]
     provider_submit: dict[str, dict[str, Any]] = {}
@@ -88,18 +89,25 @@ def wal_recovery_status(store: JobStore | None = None) -> dict[str, Any]:
             provider_submit[job_id] = record
         elif intent == "provider_submit_final":
             provider_final.add(job_id)
-    ambiguous = [
-        {
-            "job_id": job_id,
-            "line_number": record.get("line_number"),
-            "timestamp": record.get("timestamp"),
-            "provider": record.get("extra", {}).get("provider") if isinstance(record.get("extra"), dict) else "",
-            "execute": record.get("extra", {}).get("execute") if isinstance(record.get("extra"), dict) else None,
-            "recovery_action": "inspect provider-side state before retry or purge",
-        }
-        for job_id, record in sorted(provider_submit.items())
-        if job_id not in provider_final
-    ]
+    ambiguous = []
+    resolved = []
+    for job_id, record in sorted(provider_submit.items()):
+        if job_id in provider_final:
+            continue
+        resolution = _terminal_job_resolution(job_id, store)
+        if resolution:
+            resolved.append({**resolution, "line_number": record.get("line_number"), "timestamp": record.get("timestamp")})
+            continue
+        ambiguous.append(
+            {
+                "job_id": job_id,
+                "line_number": record.get("line_number"),
+                "timestamp": record.get("timestamp"),
+                "provider": record.get("extra", {}).get("provider") if isinstance(record.get("extra"), dict) else "",
+                "execute": record.get("extra", {}).get("execute") if isinstance(record.get("extra"), dict) else None,
+                "recovery_action": "inspect provider-side state before retry or purge",
+            }
+        )
     return {
         "ok": not parse_errors and not ambiguous,
         "wal_version": WAL_VERSION,
@@ -107,6 +115,25 @@ def wal_recovery_status(store: JobStore | None = None) -> dict[str, Any]:
         "parse_errors": parse_errors,
         "ambiguous_provider_submits": ambiguous,
         "ambiguous_count": len(ambiguous),
+        "resolved_terminal_provider_submits": resolved,
+        "resolved_terminal_count": len(resolved),
+    }
+
+
+def _terminal_job_resolution(job_id: str, store: JobStore) -> dict[str, Any] | None:
+    try:
+        job = store.load(job_id)
+    except Exception:
+        return None
+    if job.status not in {"succeeded", "failed", "cancelled"}:
+        return None
+    return {
+        "job_id": job_id,
+        "status": job.status,
+        "provider": job.provider or job.metadata.get("selected_provider") or job.metadata.get("requested_provider"),
+        "finished_at": job.finished_at,
+        "exit_code": job.exit_code,
+        "resolution": "job already terminal; provider_submit ambiguity resolved by durable job state",
     }
 
 
