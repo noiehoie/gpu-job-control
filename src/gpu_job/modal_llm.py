@@ -8,13 +8,13 @@ import time
 import modal
 
 
+MODAL_LLM_PYTHON_VERSION = "3.11"
 MODAL_LLM_PACKAGES = ["torch", "transformers", "accelerate", "sentencepiece"]
 MODAL_LLM_POST_INSTALL_COMMANDS = [
-    "python -m pip install pcre",
     "python -m pip install --no-build-isolation gptqmodel",
 ]
 image = (
-    modal.Image.debian_slim(python_version="3.12")
+    modal.Image.debian_slim(python_version=MODAL_LLM_PYTHON_VERSION)
     .pip_install(*MODAL_LLM_PACKAGES)
     .run_commands(*MODAL_LLM_POST_INSTALL_COMMANDS)
 )

@@ -48,6 +48,7 @@ from gpu_job.modal_llm import (
     DEFAULT_HEAVY_MODEL,
     MODAL_LLM_PACKAGES,
     MODAL_LLM_POST_INSTALL_COMMANDS,
+    MODAL_LLM_PYTHON_VERSION,
     _model_context_limit,
     _model_name,
 )
@@ -89,8 +90,8 @@ class ModalLlmQualityTest(unittest.TestCase):
         self.assertEqual(_model_context_limit(Model()), 32768)
 
     def test_awq_loader_dependency_is_installed_in_modal_image(self) -> None:
+        self.assertEqual(MODAL_LLM_PYTHON_VERSION, "3.11")
         self.assertIn("torch", MODAL_LLM_PACKAGES)
-        self.assertTrue(any("pcre" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
         self.assertTrue(any("gptqmodel" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
         self.assertTrue(any("--no-build-isolation" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
 
