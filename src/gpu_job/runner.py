@@ -50,13 +50,19 @@ def submit_job(
         return {"ok": False, "error": job.error, "job": job.to_dict(), "path": str(store.job_path(job.job_id))}
     circuit = provider_circuit_state(selected, store=store)
     if not circuit["ok"]:
-        job.status = "failed"
-        job.error = f"provider circuit open: {selected}"
-        job.metadata["error_class"] = classify_error(job.error, provider=selected, context={"gate": "circuit"})
+        if circuit.get("half_open_probe_allowed"):
+            job.metadata["circuit_probe"] = circuit
+            append_audit("submit.circuit.half_open_probe", {"job_id": job.job_id, "circuit": circuit}, store=store)
+        else:
+            job.status = "failed"
+            job.error = f"provider circuit open: {selected}"
+            job.metadata["error_class"] = classify_error(job.error, provider=selected, context={"gate": "circuit"})
+            job.metadata["circuit"] = circuit
+            store.save(job)
+            append_audit("submit.blocked.circuit", {"job_id": job.job_id, "circuit": circuit}, store=store)
+            return {"ok": False, "error": job.error, "job": job.to_dict(), "path": str(store.job_path(job.job_id))}
+    if circuit["ok"]:
         job.metadata["circuit"] = circuit
-        store.save(job)
-        append_audit("submit.blocked.circuit", {"job_id": job.job_id, "circuit": circuit}, store=store)
-        return {"ok": False, "error": job.error, "job": job.to_dict(), "path": str(store.job_path(job.job_id))}
     provenance = evaluate_provenance(job)
     job.metadata["selected_provider"] = selected
     compliance = evaluate_compliance(job)

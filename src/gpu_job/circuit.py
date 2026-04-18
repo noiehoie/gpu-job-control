@@ -52,6 +52,16 @@ def provider_circuit_state(provider: str, store: JobStore | None = None, policy:
         state = "open"
     elif rate_limit_failures:
         state = "degraded"
+    latest_sample = max(samples, key=lambda item: int(item.updated_at or item.created_at), default=None)
+    latest_failure = max(failures, key=lambda item: int(item.updated_at or item.created_at), default=None)
+    latest_success_after_failure = (
+        latest_sample is not None
+        and latest_failure is not None
+        and latest_sample.status == "succeeded"
+        and int(latest_sample.updated_at or latest_sample.created_at) >= int(latest_failure.updated_at or latest_failure.created_at)
+    )
+    if state == "open" and latest_success_after_failure:
+        state = "closed"
     return {
         "ok": state not in {"open"},
         "circuit_version": CIRCUIT_VERSION,
@@ -65,6 +75,8 @@ def provider_circuit_state(provider: str, store: JobStore | None = None, policy:
         "failure_rate": round(failure_rate, 3),
         "window_seconds": window_seconds,
         "half_open_probe_allowed": state == "open" and len(samples) >= min_samples,
+        "latest_sample_status": latest_sample.status if latest_sample else None,
+        "latest_success_after_failure": latest_success_after_failure,
     }
 
 
