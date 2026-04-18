@@ -107,6 +107,15 @@ curl -sS -H "Authorization: Bearer $GPU_JOB_API_TOKEN" \
 - [Worker Image Distribution](docs/ghcr-publish-runbook.md)
 - [Operations](docs/operations.md)
 
+## Canonical Source
+
+GitHub is the canonical source for the repository, including the reusable integration prompt for downstream systems. The `netcup` checkout is the operational runtime reference. Workstation checkouts are development clones only.
+
+- Canonical repository: `https://github.com/noiehoie/gpu-job-control`
+- Canonical integration prompt: `https://github.com/noiehoie/gpu-job-control/blob/main/docs/generic-system-integration-prompt.md`
+- Operational checkout: `/home/admin/gpu-job-control`
+- Operational integration prompt: `/home/admin/gpu-job-control/docs/generic-system-integration-prompt.md`
+
 ## Runtime Independence
 
 `gpu-job-control` should not require GitHub, GitHub Actions, or GHCR in the runtime path.

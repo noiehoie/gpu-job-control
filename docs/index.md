@@ -18,6 +18,15 @@ Start here when evaluating or integrating `gpu-job-control`.
 - [RunPod Support Question](runpod-support-question.md): reproducible evidence for the current Serverless vLLM endpoint blocker.
 - [Worker Image Distribution](ghcr-publish-runbook.md): runtime-independent image publishing and registry-mirroring guidance.
 
+## Canonical References
+
+GitHub is the canonical source for this repository, even when it is private. The operational checkout on `netcup` is the runtime reference used by the fleet. A workstation checkout, including `macstudio`, is only a development clone.
+
+- Canonical source: `https://github.com/noiehoie/gpu-job-control`
+- Canonical integration prompt: `https://github.com/noiehoie/gpu-job-control/blob/main/docs/generic-system-integration-prompt.md`
+- Operational checkout: `/home/admin/gpu-job-control`
+- Operational integration prompt: `/home/admin/gpu-job-control/docs/generic-system-integration-prompt.md`
+
 ## Design
 
 - [AI Workload OS Design](ai-workload-os-design.md): long-form design principles and constraints.
