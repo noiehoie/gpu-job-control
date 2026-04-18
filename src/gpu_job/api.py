@@ -158,14 +158,10 @@ def _ensure_auth_token() -> dict[str, Any]:
 def _job_response(job: Job) -> dict[str, Any]:
     store = JobStore()
     data = _public_job_dict(job.to_dict())
+    data["selected_provider"] = job.metadata.get("selected_provider") or job.provider
     artifact_dir = store.artifact_dir(job.job_id)
     data["artifact_dir"] = str(artifact_dir)
-    result_path = artifact_dir / "result.json"
-    if result_path.is_file():
-        try:
-            data["result"] = json.loads(result_path.read_text())
-        except json.JSONDecodeError:
-            data["result"] = {"error": "result.json is not valid JSON"}
+    _attach_artifact_summary(data, artifact_dir)
     return data
 
 
@@ -175,19 +171,69 @@ def _submit_response(result: dict[str, Any]) -> dict[str, Any]:
     if isinstance(job_data, dict):
         out["job"] = _public_job_dict(job_data)
         job_id = str(job_data.get("job_id") or "")
+        metadata = job_data.get("metadata") if isinstance(job_data.get("metadata"), dict) else {}
+        out["provider"] = job_data.get("provider") or metadata.get("selected_provider") or metadata.get("requested_provider")
+        out["selected_provider"] = metadata.get("selected_provider") or job_data.get("provider")
+        out["provider_job_id"] = job_data.get("provider_job_id")
         if job_id:
             out["job_id"] = job_id
-            out["artifact_dir"] = str(JobStore().artifact_dir(job_id))
-            result_path = JobStore().artifact_dir(job_id) / "result.json"
-            if result_path.is_file():
-                try:
-                    out["result"] = json.loads(result_path.read_text())
-                except json.JSONDecodeError:
-                    out["result"] = {"error": "result.json is not valid JSON"}
+            artifact_dir = JobStore().artifact_dir(job_id)
+            out["artifact_dir"] = str(artifact_dir)
+            _attach_artifact_summary(out, artifact_dir)
         for key in ("status", "artifact_count", "artifact_bytes", "exit_code", "runtime_seconds", "error"):
             if key in job_data:
                 out[key] = job_data[key]
     return out
+
+
+def _attach_artifact_summary(data: dict[str, Any], artifact_dir: Path) -> None:
+    result = _artifact_json(artifact_dir, "result.json")
+    metrics = _artifact_json(artifact_dir, "metrics.json")
+    verify = _artifact_json(artifact_dir, "verify.json")
+    if result is not None:
+        data["result"] = result
+    if metrics is not None:
+        data["metrics"] = metrics
+    if verify is not None:
+        data["verify_result"] = verify
+    if isinstance(result, dict):
+        text = _result_text(result)
+        if text is not None:
+            data["result_text"] = text
+        data["provider"] = data.get("provider") or result.get("provider")
+    if isinstance(metrics, dict):
+        data["metrics_runtime_seconds"] = metrics.get("runtime_seconds") or metrics.get("remote_runtime_seconds")
+        data["provider"] = data.get("provider") or metrics.get("provider")
+    if isinstance(verify, dict):
+        data["verify_ok"] = verify.get("ok")
+
+
+def _artifact_json(artifact_dir: Path, name: str) -> dict[str, Any] | None:
+    path = artifact_dir / name
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return {"error": f"{name} is not valid JSON"}
+    return value if isinstance(value, dict) else {"value": value}
+
+
+def _result_text(result: dict[str, Any]) -> str | None:
+    for key in ("text", "answer", "generated_text", "response"):
+        value = result.get(key)
+        if value is not None:
+            return str(value)
+    choices = result.get("choices")
+    if isinstance(choices, list) and choices:
+        first = choices[0]
+        if isinstance(first, dict):
+            message = first.get("message")
+            if isinstance(message, dict) and message.get("content") is not None:
+                return str(message["content"])
+            if first.get("text") is not None:
+                return str(first["text"])
+    return None
 
 
 def _public_job_dict(data: dict[str, Any]) -> dict[str, Any]:
@@ -233,7 +279,19 @@ class GPUJobHandler(BaseHTTPRequestHandler):
             if not _authorized(self):
                 _json_response(self, 401, {"ok": False, "error": "unauthorized"})
                 return
-            if path in {"/", "/health"}:
+            if path == "/health":
+                _json_response(
+                    self,
+                    200,
+                    {
+                        "ok": True,
+                        "service": "gpu-job-control",
+                        "auth_required": _requires_auth(),
+                        "health": "ok",
+                    },
+                )
+                return
+            if path == "/":
                 guard = collect_cost_guard()
                 doctors = [provider.doctor() for provider in PROVIDERS.values()]
                 _json_response(
