@@ -14,6 +14,7 @@ from gpu_job.workflow import (
     merge_json_array_results,
     plan_workflow,
     submit_bulk_workflow,
+    workflow_budget_monitor,
     workflow_strategies,
 )
 
@@ -141,6 +142,14 @@ class WorkflowPlannerTest(unittest.TestCase):
         listed = list_workflows()
         self.assertTrue(listed["ok"])
         self.assertEqual(listed["count"], 1)
+
+    def test_workflow_budget_monitor_reports_totals(self) -> None:
+        submit_bulk_workflow({"workflow_type": "bulk_test", "jobs": [_job_payload("a")]})
+        monitor = workflow_budget_monitor()
+
+        self.assertTrue(monitor["ok"])
+        self.assertEqual(monitor["totals"]["workflow_count"], 1)
+        self.assertIn("events_path", monitor)
 
 
 def _job_payload(suffix: str) -> dict:

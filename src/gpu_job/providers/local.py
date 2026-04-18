@@ -8,6 +8,7 @@ from gpu_job.models import Job, now_unix
 from gpu_job.providers.base import Provider
 from gpu_job.store import JobStore
 from gpu_job.verify import application_verify_payload, verify_artifacts
+from gpu_job.workflow_helpers import helper_metrics, run_cpu_workflow_helper
 
 
 class LocalProvider(Provider):
@@ -110,6 +111,12 @@ class LocalProvider(Provider):
                     "frames": frames,
                 }
             )
+        elif job.job_type == "cpu_workflow_helper":
+            result = {
+                **result,
+                **run_cpu_workflow_helper(job, artifact_dir),
+                "model": job.model or "local-cpu-workflow-helper",
+            }
         metrics: dict[str, Any] = {
             "job_id": job.job_id,
             "runtime_seconds": 0,
@@ -118,6 +125,8 @@ class LocalProvider(Provider):
             "worker_image": job.worker_image,
             "job_type": job.job_type,
         }
+        if job.job_type == "cpu_workflow_helper":
+            metrics.update(helper_metrics(job, result, runtime_seconds=0))
         (artifact_dir / "result.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "metrics.json").write_text(json.dumps(metrics, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "stdout.log").write_text(stdout)

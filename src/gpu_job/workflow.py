@@ -106,6 +106,12 @@ def workflow_path(workflow_id: str) -> Path:
     return workflow_dir() / f"{workflow_id}.json"
 
 
+def workflow_events_path() -> Path:
+    logs_dir = app_data_dir() / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    return logs_dir / "workflow-budget.jsonl"
+
+
 def make_workflow_id() -> str:
     return f"wf-{now_unix()}-{uuid.uuid4().hex[:8]}"
 
@@ -289,6 +295,7 @@ def submit_bulk_workflow(payload: dict[str, Any], *, execute: bool = False, enqu
     manifest["total_jobs"] = len(child_results)
     manifest["summary"] = aggregate_workflow(workflow_id)
     saved = _save_manifest(manifest)
+    record_workflow_budget_event("bulk_submitted", workflow_status(manifest))
     return {**saved, "workflow": workflow_status(manifest)}
 
 
@@ -348,10 +355,12 @@ def execute_workflow(payload: dict[str, Any]) -> dict[str, Any]:
     if decision == "reject":
         manifest["status"] = "rejected"
         saved = _save_manifest(manifest)
+        record_workflow_budget_event("rejected", workflow_status(manifest))
         return {**saved, "ok": False, "workflow": workflow_status(manifest)}
     if decision == "pending_approval" and not bool(workflow.get("force_approve")):
         manifest["status"] = "pending_approval"
         saved = _save_manifest(manifest)
+        record_workflow_budget_event("pending_approval", workflow_status(manifest))
         return {**saved, "ok": True, "workflow": workflow_status(manifest)}
     manifest["status"] = "queued"
     child_results = []
@@ -364,6 +373,7 @@ def execute_workflow(payload: dict[str, Any]) -> dict[str, Any]:
     manifest["children"] = child_results
     manifest["total_jobs"] = len(child_results)
     saved = _save_manifest(manifest)
+    record_workflow_budget_event("queued", workflow_status(manifest))
     return {**saved, "workflow": workflow_status(manifest)}
 
 
@@ -376,6 +386,7 @@ def approve_workflow(workflow_id: str, *, principal: str = "", reason: str = "",
     if manifest.get("status") == "pending_approval":
         manifest["status"] = "approved"
     _save_manifest(manifest)
+    record_workflow_budget_event("approved", workflow_status(manifest))
     if execute:
         workflow = dict(manifest.get("workflow") or {})
         workflow["workflow_id"] = workflow_id
@@ -394,6 +405,7 @@ def drain_workflow(workflow_id: str, *, reason: str = "") -> dict[str, Any]:
         manifest["status"] = "draining"
         manifest["drain"] = {"reason": reason, "drained_at": now_unix(), "cancel_result": result}
         _save_manifest(manifest)
+        record_workflow_budget_event("draining", workflow_status(manifest), extra={"reason": reason})
     return {"ok": True, "workflow_id": workflow_id, "cancel_result": result}
 
 
@@ -427,6 +439,72 @@ def workflow_status(manifest: dict[str, Any]) -> dict[str, Any]:
     if out.get("status") not in {"rejected", "pending_approval", "cancelled", "failed", "succeeded", "draining"}:
         out["status"] = _status_from_summary(out.get("status", "created"), summary)
     return out
+
+
+def workflow_budget_monitor(limit: int = 1000) -> dict[str, Any]:
+    workflows = []
+    totals = {
+        "workflow_count": 0,
+        "running_or_queued": 0,
+        "draining": 0,
+        "projected_cost_usd": 0.0,
+        "actual_cost_usd": 0.0,
+        "estimated_cost_usd": 0.0,
+    }
+    for row in list_workflows(limit=limit).get("workflows", []):
+        loaded = load_workflow(str(row.get("workflow_id") or ""))
+        if not loaded.get("ok"):
+            continue
+        workflow = loaded["workflow"]
+        summary = workflow.get("summary") if isinstance(workflow.get("summary"), dict) else {}
+        drift = workflow.get("cost_drift") if isinstance(workflow.get("cost_drift"), dict) else {}
+        status = str(workflow.get("status") or "")
+        compact = {
+            "workflow_id": workflow.get("workflow_id"),
+            "status": status,
+            "workflow_type": workflow.get("workflow_type"),
+            "business_context": workflow.get("business_context"),
+            "actual_cost_usd": summary.get("actual_cost_usd", 0.0),
+            "estimated_cost_usd": summary.get("estimated_cost_usd", 0.0),
+            "projected_cost_usd": drift.get("projected_cost_usd", 0.0),
+            "hard_cap_usd": drift.get("hard_cap_usd"),
+            "cost_action": drift.get("action"),
+            "counts": summary.get("counts", {}),
+        }
+        workflows.append(compact)
+        totals["workflow_count"] += 1
+        if status in {"queued", "running", "approved"}:
+            totals["running_or_queued"] += 1
+        if status == "draining":
+            totals["draining"] += 1
+        totals["projected_cost_usd"] += float(compact["projected_cost_usd"] or 0)
+        totals["actual_cost_usd"] += float(compact["actual_cost_usd"] or 0)
+        totals["estimated_cost_usd"] += float(compact["estimated_cost_usd"] or 0)
+    for key in ("projected_cost_usd", "actual_cost_usd", "estimated_cost_usd"):
+        totals[key] = round(float(totals[key]), 6)
+    return {"ok": True, "totals": totals, "workflows": workflows, "events_path": str(workflow_events_path())}
+
+
+def record_workflow_budget_event(event: str, workflow: dict[str, Any], *, extra: dict[str, Any] | None = None) -> None:
+    summary = workflow.get("summary") if isinstance(workflow.get("summary"), dict) else {}
+    drift = workflow.get("cost_drift") if isinstance(workflow.get("cost_drift"), dict) else {}
+    payload = {
+        "event": event,
+        "recorded_at": now_unix(),
+        "workflow_id": workflow.get("workflow_id"),
+        "status": workflow.get("status"),
+        "workflow_type": workflow.get("workflow_type"),
+        "business_context": workflow.get("business_context"),
+        "actual_cost_usd": summary.get("actual_cost_usd"),
+        "estimated_cost_usd": summary.get("estimated_cost_usd"),
+        "projected_cost_usd": drift.get("projected_cost_usd"),
+        "hard_cap_usd": drift.get("hard_cap_usd"),
+        "cost_action": drift.get("action"),
+    }
+    if extra:
+        payload["extra"] = dict(extra)
+    with workflow_events_path().open("a") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
 
 
 def aggregate_workflow(workflow_id: str, store: JobStore | None = None) -> dict[str, Any]:
