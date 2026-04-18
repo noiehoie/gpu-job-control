@@ -516,6 +516,78 @@ Community template search does find vLLM templates, but the hits are Pod templat
 
 This is why we need Support to identify the official Console / Hub Serverless vLLM template ID or the API endpoint that exposes it.
 
+## `runpodctl` Probe Results
+
+We installed the current Linux `runpodctl` release and verified the CLI surface directly:
+
+```text
+runpodctl 2.1.9-673143d
+```
+
+The official docs currently show:
+
+```bash
+runpodctl hub search vllm
+runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb --name "my-vllm"
+```
+
+But the installed CLI returned:
+
+```json
+{"error":"unknown command \"hub\" for \"runpodctl\""}
+```
+
+`runpodctl serverless create --help` also showed no `--hub-id` flag. It requires `--template-id`.
+
+We then tested whether public vLLM templates from `runpodctl template search vllm` can be bound to Serverless:
+
+```bash
+runpodctl serverless create \
+  --template-id pvcdqlwm9r \
+  --workers-min 0 \
+  --workers-max 0 \
+  --gpu-id "NVIDIA A40"
+```
+
+RunPod rejected this because the public template is a Pod template, not a Serverless template:
+
+```json
+{
+  "error": "create endpoint: create endpoint: graphql: Serverless endpoints cannot use pod templates. Please use a serverless template.",
+  "status": 500
+}
+```
+
+Finally, we created a Serverless template with `runpodctl template create --serverless`, using the Hub-derived image, 150GB container disk, and `ports=8000/http`. Template creation succeeded:
+
+```json
+{
+  "id": "t1drjw4fp9",
+  "imageName": "registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d",
+  "isServerless": true,
+  "containerDiskInGb": 150,
+  "ports": ["8000/http"]
+}
+```
+
+However, creating an endpoint from that template with `--workers-min 0 --workers-max 0` still returned `workersMax: 3`, and RunPod immediately created a worker object with:
+
+```json
+{
+  "desiredStatus": "EXITED",
+  "costPerHr": 1.39,
+  "imageName": "registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d",
+  "ports": ["8000/http"]
+}
+```
+
+A follow-up `runpodctl serverless update <endpoint-id> --workers-min 0 --workers-max 0` also returned `workersMax: 3`. We deleted the test endpoint and test template immediately. Post-guard confirmed no active RunPod billable resources.
+
+This raises two additional support questions:
+
+1. Why does `runpodctl serverless create --workers-max 0` return `workersMax: 3` and create a worker object?
+2. Is there a supported scale-to-zero Hub deployment path that does not create a worker before the operator explicitly submits a canary job?
+
 ## Cleanup
 
 For each test endpoint, we set:

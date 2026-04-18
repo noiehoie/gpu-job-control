@@ -362,7 +362,28 @@ model=facebook/opt-125m
 
 `ADA_24` still failed with `TRANSPORT_ERROR`, `jobs.inQueue=1`, and `workers.throttled=1`. `AMPERE_80` failed immediately with HTTP 500 `internal server error`. Both endpoints were disabled, deleted, and post-guard confirmed no RunPod billable resources.
 
-Current conclusion: raw GraphQL `saveTemplate` + `saveEndpoint` has still not reproduced the Hub/Console Serverless vLLM deployment path. The next decisive step is a Hub-created endpoint diff through Console or `runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb`; `runpodctl` is not currently installed in this environment.
+Current conclusion: raw GraphQL `saveTemplate` + `saveEndpoint` has still not reproduced the Hub/Console Serverless vLLM deployment path.
+
+Additional `runpodctl` verification on netcup:
+
+```text
+runpodctl 2.1.9-673143d
+```
+
+The current Linux release has no `hub` command and `runpodctl serverless create --help` has no `--hub-id` flag, despite the official docs showing `runpodctl hub search vllm` and `runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb`. The installed CLI can only create Serverless endpoints from `--template-id`.
+
+Public vLLM templates found by `runpodctl template search vllm` are Pod templates. Attempting to bind `pvcdqlwm9r` to Serverless failed with:
+
+```json
+{
+  "error": "create endpoint: create endpoint: graphql: Serverless endpoints cannot use pod templates. Please use a serverless template.",
+  "status": 500
+}
+```
+
+Creating a Serverless template through `runpodctl template create --serverless` with the Hub-derived image, `containerDiskInGb=150`, and `ports=8000/http` succeeded. Creating an endpoint from it with `--workers-min 0 --workers-max 0` did not preserve the requested scale-to-zero maximum: the response returned `workersMax=3` and a worker object appeared with `desiredStatus=EXITED` and `costPerHr=1.39`. Updating the endpoint with `--workers-min 0 --workers-max 0` also returned `workersMax=3`. The canary endpoint and template were deleted immediately, and post-guard confirmed `billable_resources=[]`.
+
+The next decisive step remains a real Console/Hub-created endpoint diff, or a RunPod support answer explaining how to invoke the Hub deployment path programmatically and safely with no warm capacity.
 
 ### Design B: Official vLLM worker + attached network volume
 
