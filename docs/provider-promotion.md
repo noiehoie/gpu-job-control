@@ -49,6 +49,8 @@ RunPod self-hosted Serverless endpoints have additional gates:
 7. If the endpoint uses a gated/private Hugging Face model, an approved secret reference is present.
 8. OpenAI-compatible `/models` and short generation canaries pass before production traffic.
 
+Launch rule: RunPod Serverless vLLM / Hub-template endpoints are deferred until Support or a Console/Hub diff proves the missing deployment semantics. They are not production candidates for the current launch. Use only existing public endpoints or bounded Pod routes that have passed the separate lifecycle gates.
+
 RunPod Pod routes have separate lifecycle gates:
 
 1. GPU type, stock signal, and hourly price are read before mutation.

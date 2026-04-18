@@ -10,6 +10,7 @@ from .drain import drain_status
 from .guard import collect_cost_guard
 from .metrics_export import metrics_snapshot
 from .policy_engine import policy_activation_record
+from .provider_stability import provider_stability_report
 from .queue import queue_status
 from .reconcile import reconcile_detect_only
 from .retention import retention_report
@@ -32,6 +33,7 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
     drain = drain_status()
     retention = retention_report()
     metrics = metrics_snapshot()
+    provider_stability = provider_stability_report()
     checks = {
         "billing_guard": bool(guard.get("ok")),
         "policy": bool(policy.get("ok")),
@@ -43,6 +45,7 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
         "drain_state": bool(drain.get("ok")),
         "retention_report": bool(retention.get("ok")),
         "metrics": bool(metrics.get("ok")),
+        "provider_stability": bool(provider_stability.get("ok")),
     }
     ok = all(checks.values())
     return {
@@ -60,6 +63,7 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
         "drain": drain,
         "retention": _compact(retention),
         "metrics": _compact(metrics),
+        "provider_stability": _compact(provider_stability),
         "queue": {"ok": queue.get("ok"), "counts": queue.get("counts"), "capacity": queue.get("capacity")},
     }
 

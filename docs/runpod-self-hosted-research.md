@@ -1,5 +1,23 @@
 # RunPod Self-Hosted Endpoint Research
 
+## Launch Decision
+
+RunPod Serverless vLLM / Hub-template work is deferred for launch.
+
+The launchable RunPod routes are:
+
+- Public OpenAI-compatible endpoint, when an existing endpoint is explicitly configured and guard reports no warm billable capacity.
+- Bounded Pod HTTP worker, only through create -> health/generate canary -> artifact verification -> terminate -> post-guard.
+- Network Volume attachment for approved fixed-cost storage and bounded Pod canaries.
+
+The non-launchable RunPod routes are:
+
+- raw GraphQL-created Serverless vLLM endpoints;
+- Hub/Console vLLM template reproduction through GraphQL or `runpodctl`;
+- any newly created Serverless endpoint that has not passed the full promotion gates.
+
+Support escalation remains useful, but it is no longer on the launch critical path. Production routing must not wait for this path.
+
 This note records the RunPod-specific facts that must be understood before creating another self-hosted LLM endpoint.
 
 ## Goal
@@ -32,8 +50,8 @@ RunPod exposes several different surfaces that must not be confused.
 | Route | Status | Evidence |
 | --- | --- | --- |
 | Public OpenAI-compatible endpoint | Proven | `qwen3-32b-awq` canary returns in about 1-2 seconds through the worker path. |
-| Self-hosted Serverless vLLM from raw GraphQL template | Blocked | Endpoint and template can be created, but workers remain unreachable and requests stay queued. See [RunPod Support Question](runpod-support-question.md). |
-| Hub/Console vLLM template path | Needs RunPod/template diff | Official docs point users to the Hub ready-to-deploy vLLM repo; the exact programmatic template/repo binding must be confirmed. |
+| Self-hosted Serverless vLLM from raw GraphQL template | Deferred for launch | Endpoint and template can be created, but workers remain unreachable and requests stay queued. See [RunPod Support Question](runpod-support-question.md). |
+| Hub/Console vLLM template path | Deferred for launch | Official docs point users to the Hub ready-to-deploy vLLM repo, but the current public CLI/API path has not reproduced the Console deploy behavior. |
 | Pod / Network Volume lifecycle | Lifecycle proven | `gpu-job runpod canary-pod-lifecycle --execute` created an RTX 3090 pod, observed `desiredStatus=RUNNING`, terminated it, and post-guard showed no billable pods. A later US-NC-1 Network Volume canary on RTX 4090 proved `/runpod-volume` write/read/delete. |
 | Pod HTTP worker through proxy | Implemented canary | `gpu-job runpod canary-pod-http-worker --execute` creates a Pod, exposes `8000/http`, probes `https://<pod_id>-8000.proxy.runpod.net/health`, and terminates the Pod. |
 | Pod HTTP `llm_heavy` job contract | Proven deterministic canary | `gpu-job submit examples/jobs/llm-heavy.runpod-pod.json --provider runpod --execute` reached `/generate`, returned deterministic text, wrote artifacts, and terminated the Pod. |
@@ -364,7 +382,7 @@ model=facebook/opt-125m
 
 `ADA_24` still failed with `TRANSPORT_ERROR`, `jobs.inQueue=1`, and `workers.throttled=1`. `AMPERE_80` failed immediately with HTTP 500 `internal server error`. Both endpoints were disabled, deleted, and post-guard confirmed no RunPod billable resources.
 
-Current conclusion: raw GraphQL `saveTemplate` + `saveEndpoint` has still not reproduced the Hub/Console Serverless vLLM deployment path.
+Launch conclusion: raw GraphQL `saveTemplate` + `saveEndpoint` has still not reproduced the Hub/Console Serverless vLLM deployment path, so it is not a launch dependency and must not receive production traffic.
 
 Additional `runpodctl` verification on netcup:
 
@@ -385,7 +403,7 @@ Public vLLM templates found by `runpodctl template search vllm` are Pod template
 
 Creating a Serverless template through `runpodctl template create --serverless` with the Hub-derived image, `containerDiskInGb=150`, and `ports=8000/http` succeeded. Creating an endpoint from it with `--workers-min 0 --workers-max 0` did not preserve the requested scale-to-zero maximum: the response returned `workersMax=3` and a worker object appeared with `desiredStatus=EXITED` and `costPerHr=1.39`. Updating the endpoint with `--workers-min 0 --workers-max 0` also returned `workersMax=3`. The canary endpoint and template were deleted immediately, and post-guard confirmed `billable_resources=[]`.
 
-The next decisive step remains a real Console/Hub-created endpoint diff, or a RunPod support answer explaining how to invoke the Hub deployment path programmatically and safely with no warm capacity.
+The next decisive step remains a real Console/Hub-created endpoint diff, or a RunPod support answer explaining how to invoke the Hub deployment path programmatically and safely with no warm capacity. That work is deferred until after launch.
 
 ### Design B: Official vLLM worker + attached network volume
 

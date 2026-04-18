@@ -42,8 +42,8 @@ def provider_stability_report() -> dict[str, Any]:
             "now": [
                 "modal is primary for external GPU llm_heavy because it has a successful canary and zero standing resources.",
                 (
-                    "runpod may be used only through async run/cancel with queue timeout, "
-                    "and only against endpoints with workersMin=0 and workersStandby=0."
+                    "runpod serverless vLLM / Hub-template creation is deferred for launch; "
+                    "runpod may be used only through proven public endpoints or bounded Pod routes with cleanup."
                 ),
                 (
                     "vast may be used only after serverless endpoint/workergroup canary succeeds; "
@@ -122,7 +122,7 @@ def _runpod_stability(
         "safety_ok": bool(provider_guard.get("ok")),
         "stable_for_controlled_canary": candidate,
         "stable_for_production": False,
-        "status": "cold_serverless_candidate" if candidate else "quarantined",
+        "status": "public_or_pod_only_serverless_vllm_deferred" if candidate else "quarantined",
         "reasons": _reasons(
             candidate,
             [
@@ -130,7 +130,8 @@ def _runpod_stability(
                 "existing serverless endpoint present",
                 "workersMin=0 and workersStandby=0 on all observed endpoints",
                 "provider queue is empty",
-                "production promotion still requires a bounded async canary after the current cancel-path implementation",
+                "RunPod Serverless vLLM / Hub-template path is deferred for launch",
+                "use only proven public endpoints or bounded Pod routes with cleanup",
             ],
             [
                 provider_guard.get("reason") or "",
@@ -138,6 +139,7 @@ def _runpod_stability(
                 "" if zero_warm else "warm serverless capacity detected",
                 "" if queue_clean else f"provider queue not empty: inQueue={queue_depth}, inProgress={in_progress}",
                 "" if not known_unhealthy else "configured unhealthy RunPod endpoint remained queued and was cancelled",
+                "RunPod Serverless vLLM / Hub-template path is deferred for launch",
                 "Public Endpoint scratch creation produced hidden workersStandby=1 and was deleted",
             ],
         ),
@@ -147,6 +149,7 @@ def _runpod_stability(
             "cancel provider job when queue wait exceeds max_queue_seconds",
             "guard before submit and after completion/cancel",
             "new Public Endpoint creation must go through quarantine: create, guard, delete if warm capacity appears, post-guard",
+            "do not promote raw GraphQL or Hub-template Serverless vLLM endpoints before Support or Console/Hub diff closes the worker-init gap",
         ],
         "endpoints": [_runpod_endpoint_summary(endpoint) for endpoint in endpoints],
         "guard": provider_guard,
