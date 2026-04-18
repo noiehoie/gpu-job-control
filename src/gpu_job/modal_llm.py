@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import os
 import sys
 import time
 
@@ -11,12 +12,23 @@ import modal
 MODAL_LLM_PYTHON_VERSION = "3.11"
 MODAL_LLM_PACKAGES = ["torch", "transformers", "accelerate", "sentencepiece"]
 MODAL_LLM_POST_INSTALL_COMMANDS: list[str] = []
+MODAL_LLM_CACHE_VOLUME_NAME = "gpu-job-modal-llm-cache"
+MODAL_LLM_CACHE_MOUNT = "/cache"
+MODAL_LLM_HF_HOME = f"{MODAL_LLM_CACHE_MOUNT}/huggingface"
 image = (
     modal.Image.debian_slim(python_version=MODAL_LLM_PYTHON_VERSION)
     .pip_install(*MODAL_LLM_PACKAGES)
     .run_commands(*MODAL_LLM_POST_INSTALL_COMMANDS)
+    .env(
+        {
+            "HF_HOME": MODAL_LLM_HF_HOME,
+            "HF_HUB_CACHE": f"{MODAL_LLM_HF_HOME}/hub",
+            "TRANSFORMERS_CACHE": f"{MODAL_LLM_HF_HOME}/transformers",
+        }
+    )
 )
 app = modal.App("gpu-job-modal-llm")
+model_cache_volume = modal.Volume.from_name(MODAL_LLM_CACHE_VOLUME_NAME, create_if_missing=True)
 
 DEFAULT_HEAVY_MODEL = "Qwen/Qwen2.5-32B-Instruct"
 CANARY_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -80,7 +92,14 @@ def _model_context_limit(model: object) -> int | None:
     return None
 
 
-@app.function(image=image, gpu="A100-80GB", timeout=1800)
+def _commit_cache() -> None:
+    try:
+        model_cache_volume.commit()
+    except Exception:
+        pass
+
+
+@app.function(image=image, gpu="A100-80GB", timeout=3600, volumes={MODAL_LLM_CACHE_MOUNT: model_cache_volume})
 def run_llm(job: dict) -> dict:
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -88,12 +107,15 @@ def run_llm(job: dict) -> dict:
     model_name = _model_name(job)
     prompt = _prompt(job)
     max_tokens = _max_tokens(job)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    os.makedirs(MODAL_LLM_HF_HOME, exist_ok=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=MODAL_LLM_HF_HOME)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype="auto",
         device_map="auto",
+        cache_dir=MODAL_LLM_HF_HOME,
     )
+    _commit_cache()
     messages = [{"role": "user", "content": prompt}]
     text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = tokenizer([text], return_tensors="pt").to(model.device)

@@ -21,6 +21,9 @@ class _FakeImage:
     def run_commands(self, *commands: str) -> "_FakeImage":
         return self
 
+    def env(self, values: dict[str, str]) -> "_FakeImage":
+        return self
+
 
 class _FakeApp:
     def __init__(self, name: str) -> None:
@@ -39,13 +42,28 @@ class _FakeApp:
         return decorator
 
 
+class _FakeVolume:
+    @classmethod
+    def from_name(cls, name: str, create_if_missing: bool = False) -> "_FakeVolume":
+        instance = cls()
+        instance.name = name
+        instance.create_if_missing = create_if_missing
+        return instance
+
+    def commit(self) -> None:
+        return None
+
+
 if "modal" not in sys.modules:
-    fake_modal = types.SimpleNamespace(Image=_FakeImage, App=_FakeApp)
+    fake_modal = types.SimpleNamespace(Image=_FakeImage, App=_FakeApp, Volume=_FakeVolume)
     sys.modules["modal"] = fake_modal
 
 from gpu_job.modal_llm import (
     CANARY_MODEL,
     DEFAULT_HEAVY_MODEL,
+    MODAL_LLM_CACHE_MOUNT,
+    MODAL_LLM_CACHE_VOLUME_NAME,
+    MODAL_LLM_HF_HOME,
     MODAL_LLM_PACKAGES,
     MODAL_LLM_POST_INSTALL_COMMANDS,
     MODAL_LLM_PYTHON_VERSION,
@@ -94,6 +112,11 @@ class ModalLlmQualityTest(unittest.TestCase):
         self.assertIn("torch", MODAL_LLM_PACKAGES)
         self.assertNotIn("AWQ", DEFAULT_HEAVY_MODEL)
         self.assertFalse(any("gptqmodel" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
+
+    def test_modal_llm_uses_persistent_hf_cache_volume(self) -> None:
+        self.assertEqual(MODAL_LLM_CACHE_VOLUME_NAME, "gpu-job-modal-llm-cache")
+        self.assertEqual(MODAL_LLM_CACHE_MOUNT, "/cache")
+        self.assertEqual(MODAL_LLM_HF_HOME, "/cache/huggingface")
 
 
 class VerifyPayloadTest(unittest.TestCase):
