@@ -42,8 +42,8 @@
       "notes": "Bulk transcription. Modal only until Vast serverless route and RunPod endpoint health are proven."
     },
     "embedding": {
-      "preferred_provider": "local",
-      "fallback_providers": [],
+      "preferred_provider": "ollama",
+      "fallback_providers": ["local"],
       "min_vram_gb": 0,
       "min_compute_cap": 0,
       "max_cost_usd": 0,
@@ -59,7 +59,7 @@
         "runpod_preferred_runtime_seconds": 3600,
         "interactive_deadline_seconds": 60
       },
-      "notes": "Local deterministic embedding canary profile. Production embedding models should be registered explicitly before promotion."
+      "notes": "Production embedding profile. Prefer fixed-cost resident Ollama bge-m3, with deterministic local fallback for canary-only validation."
     },
     "vlm_ocr": {
       "preferred_provider": "ollama",

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from urllib import request
 import base64
+import hashlib
 import json
 import time
 
@@ -33,6 +34,7 @@ class OllamaProvider(Provider):
             "models": models,
             "has_text_model": "qwen2.5:72b" in models or "qwen2.5:32b" in models,
             "has_vision_model": "gemma3:4b" in models,
+            "has_embedding_model": "bge-m3:latest" in models or "bge-m3" in models,
         }
 
     def signal(self, profile: dict[str, Any]) -> dict[str, Any]:
@@ -79,6 +81,7 @@ class OllamaProvider(Provider):
             "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
             "notes": [
                 "Uses resident Ollama capacity for zero marginal cloud GPU spend.",
+                "embedding uses bge-m3 when available.",
                 "llm_heavy uses qwen2.5:72b when available.",
                 "vlm_ocr uses gemma3:4b vision when available.",
             ],
@@ -93,7 +96,7 @@ class OllamaProvider(Provider):
             job.status = "planned"
             store.save(job)
             return job
-        if job.job_type not in {"llm_heavy", "vlm_ocr"}:
+        if job.job_type not in {"embedding", "llm_heavy", "vlm_ocr"}:
             job.status = "failed"
             job.error = f"ollama execute does not support job_type: {job.job_type}"
             job.exit_code = 2
@@ -110,26 +113,46 @@ class OllamaProvider(Provider):
         stderr = ""
         try:
             model = _select_model(job)
-            prompt = _prompt(job)
-            payload: dict[str, Any] = {"model": model, "prompt": prompt, "stream": False}
-            max_tokens = _max_tokens(job)
-            if max_tokens:
-                payload["options"] = {"num_predict": max_tokens}
-            if job.job_type == "vlm_ocr":
-                payload["images"] = [_image_base64(job)]
             timeout = max(30, int(job.limits.get("max_runtime_minutes", 10)) * 60)
             remote_start = time.monotonic()
-            response = _ollama_json("POST", "/api/generate", payload=payload, timeout=timeout)
-            remote_runtime = time.monotonic() - remote_start
-            text = str(response.get("response") or "")
-            result = {
-                "job_id": job.job_id,
-                "job_type": job.job_type,
-                "provider": self.name,
-                "model": model,
-                "text": text,
-                "done": response.get("done", False),
-            }
+            if job.job_type == "embedding":
+                texts = _embedding_input_texts(job)
+                response = _ollama_embedding_json(model=model, texts=texts, timeout=timeout)
+                vectors = _embedding_vectors(response)
+                remote_runtime = time.monotonic() - remote_start
+                result = {
+                    "job_id": job.job_id,
+                    "job_type": job.job_type,
+                    "provider": self.name,
+                    "model": model,
+                    "dimensions": len(vectors[0]) if vectors else 0,
+                    "count": len(vectors),
+                    "items": [
+                        {"index": index, "text_sha256": hashlib.sha256(text.encode()).hexdigest(), "vector": vector}
+                        for index, (text, vector) in enumerate(zip(texts, vectors, strict=True))
+                    ],
+                }
+                stdout = f"ollama embed completed model={model} count={len(vectors)}\n"
+            else:
+                prompt = _prompt(job)
+                payload: dict[str, Any] = {"model": model, "prompt": prompt, "stream": False}
+                max_tokens = _max_tokens(job)
+                if max_tokens:
+                    payload["options"] = {"num_predict": max_tokens}
+                if job.job_type == "vlm_ocr":
+                    payload["images"] = [_image_base64(job)]
+                response = _ollama_json("POST", "/api/generate", payload=payload, timeout=timeout)
+                remote_runtime = time.monotonic() - remote_start
+                text = str(response.get("response") or "")
+                result = {
+                    "job_id": job.job_id,
+                    "job_type": job.job_type,
+                    "provider": self.name,
+                    "model": model,
+                    "text": text,
+                    "done": response.get("done", False),
+                }
+                stdout = f"ollama generate completed model={model} chars={len(text)}\n"
             metrics = {
                 "job_id": job.job_id,
                 "job_type": job.job_type,
@@ -141,7 +164,6 @@ class OllamaProvider(Provider):
             }
             (artifact_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
             (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-            stdout = f"ollama generate completed model={model} chars={len(text)}\n"
         except Exception as exc:
             stderr = str(exc)
             job.error = stderr
@@ -179,6 +201,8 @@ def _ollama_json(method: str, path: str, payload: dict[str, Any] | None = None, 
 
 def _select_model(job: Job) -> str:
     requested = (job.model or "").lower()
+    if job.job_type == "embedding":
+        return job.model or "bge-m3"
     if job.job_type == "vlm_ocr":
         return "gemma3:4b"
     if "32b" in requested:
@@ -223,3 +247,39 @@ def _image_path(job: Job) -> Path:
     if job.input_uri.startswith("file://"):
         return Path(job.input_uri.removeprefix("file://"))
     return Path(job.input_uri)
+
+
+def _embedding_input_texts(job: Job) -> list[str]:
+    payload = job.metadata.get("input")
+    if isinstance(payload, dict):
+        texts = payload.get("texts")
+        if isinstance(texts, list):
+            return [str(item) for item in texts]
+        text = payload.get("text")
+        if text is not None:
+            return [str(text)]
+        prompt = payload.get("prompt")
+        if prompt is not None:
+            return [str(prompt)]
+    if job.input_uri.startswith("text://"):
+        return [job.input_uri.removeprefix("text://")]
+    return [job.input_uri]
+
+
+def _ollama_embedding_json(model: str, texts: list[str], timeout: int) -> dict[str, Any]:
+    try:
+        return _ollama_json("POST", "/api/embed", payload={"model": model, "input": texts}, timeout=timeout)
+    except Exception:
+        if len(texts) != 1:
+            raise
+        return _ollama_json("POST", "/api/embeddings", payload={"model": model, "prompt": texts[0]}, timeout=timeout)
+
+
+def _embedding_vectors(response: dict[str, Any]) -> list[list[float]]:
+    embeddings = response.get("embeddings")
+    if isinstance(embeddings, list):
+        return [[float(value) for value in vector] for vector in embeddings if isinstance(vector, list)]
+    embedding = response.get("embedding")
+    if isinstance(embedding, list):
+        return [[float(value) for value in embedding]]
+    raise ValueError("Ollama embedding response did not contain embeddings")

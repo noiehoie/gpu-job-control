@@ -48,6 +48,14 @@
       "vision": true,
       "asr": false
     },
+    "ollama:bge-m3": {
+      "provider": "ollama",
+      "job_types": ["embedding"],
+      "max_input_tokens": 8192,
+      "quality_tier": "high",
+      "vision": false,
+      "asr": false
+    },
     "modal:default": {
       "provider": "modal",
       "job_types": ["smoke", "asr", "llm_heavy", "pdf_ocr", "vlm_ocr"],
