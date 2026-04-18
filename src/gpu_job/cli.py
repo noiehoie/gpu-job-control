@@ -46,7 +46,16 @@ from .store import JobStore
 from .timeout import timeout_contract
 from .verify import verify_artifacts
 from .wal import wal_recovery_plan, wal_recovery_status, wal_status
-from .workflow import load_workflow, save_workflow
+from .workflow import (
+    approve_workflow,
+    drain_workflow,
+    execute_workflow,
+    list_workflows,
+    load_workflow,
+    plan_workflow,
+    save_workflow,
+    submit_bulk_workflow,
+)
 
 
 def print_json(data: object) -> None:
@@ -434,10 +443,38 @@ def cmd_workflow(args: argparse.Namespace) -> int:
         data = json.loads(Path(args.workflow).read_text())
         print_json(save_workflow(data))
         return 0
+    if args.workflow_command == "list":
+        print_json(list_workflows(limit=args.limit))
+        return 0
     if args.workflow_command == "status":
         result = load_workflow(args.workflow_id)
         print_json(result)
         return 0 if result.get("ok") else 1
+    if args.workflow_command == "plan":
+        data = json.loads(Path(args.workflow).read_text())
+        result = plan_workflow(data)
+        print_json(result)
+        return 0 if result.get("ok") else 2
+    if args.workflow_command == "execute":
+        data = json.loads(Path(args.workflow).read_text())
+        if args.execute:
+            data["execute"] = True
+        result = execute_workflow(data)
+        print_json(result)
+        return 0 if result.get("ok") else 2
+    if args.workflow_command == "bulk":
+        data = json.loads(Path(args.workflow).read_text())
+        result = submit_bulk_workflow(data, execute=args.execute, enqueue=not args.execute)
+        print_json(result)
+        return 0 if result.get("ok") else 2
+    if args.workflow_command == "approve":
+        result = approve_workflow(args.workflow_id, principal=args.principal, reason=args.reason, execute=args.execute)
+        print_json(result)
+        return 0 if result.get("ok") else 2
+    if args.workflow_command == "drain":
+        result = drain_workflow(args.workflow_id, reason=args.reason)
+        print_json(result)
+        return 0 if result.get("ok") else 2
     raise ValueError(f"unknown workflow command: {args.workflow_command}")
 
 
@@ -841,14 +878,38 @@ def build_parser() -> argparse.ArgumentParser:
     dlq.add_argument("--limit", type=int, default=100, help="maximum failed jobs to show")
     dlq.set_defaults(func=cmd_dlq)
 
-    workflow = sub.add_parser("workflow", help="validate and inspect workflow records")
+    workflow = sub.add_parser("workflow", help="plan, execute, approve, and inspect workflow records")
     workflow_sub = workflow.add_subparsers(dest="workflow_command", required=True)
+    workflow_list = workflow_sub.add_parser("list", help="list stored workflows")
+    workflow_list.add_argument("--limit", type=int, default=100, help="maximum workflows to show")
+    workflow_list.set_defaults(func=cmd_workflow)
     workflow_validate = workflow_sub.add_parser("validate", help="validate and store a workflow JSON file")
     workflow_validate.add_argument("workflow", help="path to workflow JSON file")
     workflow_validate.set_defaults(func=cmd_workflow)
+    workflow_plan = workflow_sub.add_parser("plan", help="plan and estimate a workflow JSON file")
+    workflow_plan.add_argument("workflow", help="path to workflow JSON file")
+    workflow_plan.set_defaults(func=cmd_workflow)
+    workflow_execute = workflow_sub.add_parser("execute", help="plan and enqueue or execute a workflow JSON file")
+    workflow_execute.add_argument("workflow", help="path to workflow JSON file")
+    workflow_execute.add_argument("--execute", action="store_true", help="execute child jobs immediately instead of queueing")
+    workflow_execute.set_defaults(func=cmd_workflow)
+    workflow_bulk = workflow_sub.add_parser("bulk", help="submit a bulk workflow with explicit child jobs")
+    workflow_bulk.add_argument("workflow", help="path to workflow JSON file")
+    workflow_bulk.add_argument("--execute", action="store_true", help="execute child jobs immediately instead of queueing")
+    workflow_bulk.set_defaults(func=cmd_workflow)
     workflow_status = workflow_sub.add_parser("status", help="show a stored workflow")
     workflow_status.add_argument("workflow_id", help="workflow id to load")
     workflow_status.set_defaults(func=cmd_workflow)
+    workflow_approve = workflow_sub.add_parser("approve", help="approve a pending workflow")
+    workflow_approve.add_argument("workflow_id", help="workflow id to approve")
+    workflow_approve.add_argument("--principal", default="", help="approving principal")
+    workflow_approve.add_argument("--reason", default="", help="approval reason")
+    workflow_approve.add_argument("--execute", action="store_true", help="execute the approved workflow")
+    workflow_approve.set_defaults(func=cmd_workflow)
+    workflow_drain = workflow_sub.add_parser("drain", help="cancel queued child jobs in a workflow")
+    workflow_drain.add_argument("workflow_id", help="workflow id to drain")
+    workflow_drain.add_argument("--reason", default="", help="drain reason")
+    workflow_drain.set_defaults(func=cmd_workflow)
 
     image = sub.add_parser("image", help="plan, check, or build worker images")
     image_sub = image.add_subparsers(dest="image_command", required=True)

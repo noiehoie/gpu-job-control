@@ -18,6 +18,7 @@ VALID_JOB_TYPES = {
     "llm_heavy",
     "embedding",
     "smoke",
+    "cpu_workflow_helper",
 }
 
 VALID_STATUSES = {

@@ -15,7 +15,7 @@ from .store import JobStore
 
 ACTIVE_STATUSES = {"starting", "running"}
 EXECUTABLE_JOB_TYPES = {
-    "local": {"smoke", "embedding", "llm_heavy", "pdf_ocr", "vlm_ocr"},
+    "local": {"smoke", "embedding", "llm_heavy", "pdf_ocr", "vlm_ocr", "cpu_workflow_helper"},
     "modal": {"smoke", "asr", "llm_heavy", "pdf_ocr", "vlm_ocr"},
     "ollama": {"embedding", "llm_heavy", "vlm_ocr"},
     "runpod": {"smoke", "llm_heavy"},

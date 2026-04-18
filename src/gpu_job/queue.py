@@ -279,6 +279,9 @@ def work_once() -> dict[str, Any]:
             }
         replan = replan_queued_jobs()
         intake = plan_intake_groups(policy)
+        from .workflow import enforce_workflow_budget_drains
+
+        workflow_budget_drains = enforce_workflow_budget_drains()
         job, scheduling = next_runnable_job(store, policy)
         if not job:
             return {
@@ -288,6 +291,7 @@ def work_once() -> dict[str, Any]:
                 "recovered": recovered,
                 "replan": replan,
                 "intake": intake,
+                "workflow_budget_drains": workflow_budget_drains,
                 "scheduling": scheduling,
             }
         provider_name = str(job.metadata.get("selected_provider") or job.metadata.get("requested_provider") or job.provider or "auto")
@@ -306,6 +310,7 @@ def work_once() -> dict[str, Any]:
             "recovered": recovered,
             "replan": replan,
             "intake": intake,
+            "workflow_budget_drains": workflow_budget_drains,
             "scheduling": scheduling,
             "result": result,
             "remediation": remediation,

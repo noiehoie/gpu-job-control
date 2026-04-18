@@ -45,7 +45,16 @@ from .store import JobStore
 from .timeout import timeout_contract
 from .verify import verify_artifacts
 from .wal import wal_recovery_plan, wal_recovery_status, wal_status
-from .workflow import load_workflow, save_workflow
+from .workflow import (
+    approve_workflow,
+    drain_workflow,
+    execute_workflow,
+    list_workflows,
+    load_workflow,
+    plan_workflow,
+    save_workflow,
+    submit_bulk_workflow,
+)
 
 MAX_JSON_BODY_BYTES = int(os.getenv("GPU_JOB_MAX_JSON_BODY_BYTES", str(10 * 1024 * 1024)))
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -420,6 +429,11 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 result = replay_all_decisions(limit=limit)
                 _json_response(self, 200 if result["ok"] else 409, result)
                 return
+            if path == "/workflows":
+                qs = parse_qs(parsed.query)
+                limit = int(_first(qs, "limit", "100") or "100")
+                _json_response(self, 200, list_workflows(limit=limit))
+                return
             if path.startswith("/workflows/"):
                 workflow_id = _safe_id(path.split("/", 2)[2], field="workflow_id")
                 _json_response(self, 200, load_workflow(workflow_id))
@@ -496,7 +510,50 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, plan_intake_groups())
                 return
             if path == "/workflows":
-                _json_response(self, 202, save_workflow(payload))
+                if isinstance(payload.get("jobs"), list):
+                    execute = bool(payload.get("execute", False)) or _truthy(_first(qs, "execute", ""))
+                    enqueue = not execute
+                    _json_response(self, 202, submit_bulk_workflow(payload, execute=execute, enqueue=enqueue))
+                elif payload.get("job_template") is not None:
+                    _json_response(self, 202, execute_workflow(payload))
+                else:
+                    _json_response(self, 202, save_workflow(payload))
+                return
+            if path == "/workflows/plan":
+                _json_response(self, 200, plan_workflow(payload))
+                return
+            if path == "/workflows/bulk":
+                execute = bool(payload.get("execute", False)) or _truthy(_first(qs, "execute", ""))
+                enqueue = not execute
+                _json_response(self, 202, submit_bulk_workflow(payload, execute=execute, enqueue=enqueue))
+                return
+            if path == "/workflows/execute":
+                _json_response(self, 202, execute_workflow(payload))
+                return
+            if path == "/workflows/approve":
+                workflow_id = str(payload.get("workflow_id") or _first(qs, "workflow_id", ""))
+                if not workflow_id:
+                    raise ValueError("missing workflow_id")
+                _json_response(
+                    self,
+                    200,
+                    approve_workflow(
+                        _safe_id(workflow_id, field="workflow_id"),
+                        principal=str(payload.get("principal") or ""),
+                        reason=str(payload.get("reason") or ""),
+                        execute=bool(payload.get("execute", False)),
+                    ),
+                )
+                return
+            if path == "/workflows/drain":
+                workflow_id = str(payload.get("workflow_id") or _first(qs, "workflow_id", ""))
+                if not workflow_id:
+                    raise ValueError("missing workflow_id")
+                _json_response(
+                    self,
+                    200,
+                    drain_workflow(_safe_id(workflow_id, field="workflow_id"), reason=str(payload.get("reason") or "")),
+                )
                 return
             if path == "/approval":
                 action = str(payload.get("action") or "")

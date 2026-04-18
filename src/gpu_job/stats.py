@@ -70,9 +70,23 @@ def _startup_overhead(runtime_seconds: int | None, remote_runtime_seconds: objec
 
 def _series(values: list[float]) -> dict[str, float | None]:
     if not values:
-        return {"min": None, "p50": None, "max": None}
+        return {"min": None, "p50": None, "p95": None, "max": None}
+    ordered = sorted(values)
     return {
         "min": round(min(values), 3),
         "p50": round(median(values), 3),
+        "p95": round(_percentile(ordered, 0.95), 3),
         "max": round(max(values), 3),
     }
+
+
+def _percentile(ordered: list[float], fraction: float) -> float:
+    if not ordered:
+        return 0.0
+    if len(ordered) == 1:
+        return ordered[0]
+    index = (len(ordered) - 1) * fraction
+    lower = int(index)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = index - lower
+    return ordered[lower] * (1 - weight) + ordered[upper] * weight

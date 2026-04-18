@@ -32,6 +32,14 @@
       "vision": true,
       "asr": false
     },
+    "local:default": {
+      "provider": "local",
+      "job_types": ["smoke", "embedding", "llm_heavy", "pdf_ocr", "vlm_ocr", "cpu_workflow_helper"],
+      "max_input_tokens": 4096,
+      "quality_tier": "canary",
+      "vision": true,
+      "asr": false
+    },
     "ollama:qwen2.5:72b": {
       "provider": "ollama",
       "job_types": ["llm_heavy"],

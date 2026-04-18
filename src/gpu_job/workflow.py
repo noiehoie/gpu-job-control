@@ -3,12 +3,97 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 import json
+import uuid
 
-from .canonical import canonical_hash
-from .models import app_data_dir, now_unix
+from .cost import cost_estimate
+from .models import Job, app_data_dir, now_unix
+from .policy import load_execution_policy
+from .stats import collect_stats
+from .store import JobStore
 
 
-WORKFLOW_VERSION = "gpu-job-workflow-v1"
+WORKFLOW_VERSION = "gpu-job-workflow-v2"
+WORKFLOW_STATUSES = {
+    "created",
+    "planned",
+    "pending_approval",
+    "queued",
+    "running",
+    "succeeded",
+    "failed",
+    "cancelled",
+    "rejected",
+    "draining",
+}
+DEFAULT_PROVIDER_PRICE_USD_PER_SECOND = {
+    "local": 0.0,
+    "ollama": 0.0,
+    "modal": 0.0009,
+    "runpod": 0.0008,
+    "vast": 0.0005,
+}
+DEFAULT_STRATEGIES = {
+    "json_array_chunker": {
+        "kind": "splitter",
+        "media": "json",
+        "runs_in_api": True,
+        "worker_job_type": None,
+    },
+    "json_array_merger": {
+        "kind": "reducer",
+        "media": "json",
+        "runs_in_api": True,
+        "worker_job_type": None,
+    },
+    "llm_reduce": {
+        "kind": "reducer",
+        "media": "json",
+        "runs_in_api": False,
+        "worker_job_type": "llm_heavy",
+    },
+    "token_estimator": {
+        "kind": "estimator",
+        "media": "text",
+        "runs_in_api": True,
+        "worker_job_type": None,
+    },
+    "ffprobe_estimator": {
+        "kind": "estimator",
+        "media": "video",
+        "runs_in_api": False,
+        "worker_job_type": "cpu_workflow_helper",
+    },
+    "ffmpeg_time_splitter": {
+        "kind": "splitter",
+        "media": "video",
+        "runs_in_api": False,
+        "worker_job_type": "cpu_workflow_helper",
+    },
+    "timeline_reducer": {
+        "kind": "reducer",
+        "media": "video",
+        "runs_in_api": False,
+        "worker_job_type": "cpu_workflow_helper",
+    },
+    "pdf_page_estimator": {
+        "kind": "estimator",
+        "media": "pdf",
+        "runs_in_api": False,
+        "worker_job_type": "cpu_workflow_helper",
+    },
+    "pdf_page_splitter": {
+        "kind": "splitter",
+        "media": "pdf",
+        "runs_in_api": False,
+        "worker_job_type": "cpu_workflow_helper",
+    },
+    "page_result_merger": {
+        "kind": "reducer",
+        "media": "pdf",
+        "runs_in_api": False,
+        "worker_job_type": "cpu_workflow_helper",
+    },
+}
 
 
 def workflow_dir() -> Path:
@@ -17,7 +102,92 @@ def workflow_dir() -> Path:
     return path
 
 
+def workflow_path(workflow_id: str) -> Path:
+    return workflow_dir() / f"{workflow_id}.json"
+
+
+def make_workflow_id() -> str:
+    return f"wf-{now_unix()}-{uuid.uuid4().hex[:8]}"
+
+
+def workflow_strategies(policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    policy = policy or load_execution_policy()
+    configured = policy.get("workflow_strategies")
+    if isinstance(configured, dict):
+        merged = dict(DEFAULT_STRATEGIES)
+        merged.update(configured)
+        return merged
+    return dict(DEFAULT_STRATEGIES)
+
+
+def budget_policy(policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    policy = policy or load_execution_policy()
+    configured = policy.get("workflow_budget_policy")
+    if isinstance(configured, dict):
+        return configured
+    return {
+        "default_budget_class": "standard",
+        "budget_classes": {
+            "standard": {
+                "auto_approve_cap_usd": 1.0,
+                "hard_cap_usd": 3.0,
+                "allowed_providers": ["local", "ollama", "modal", "runpod", "vast"],
+                "retry_multiplier": 1.2,
+                "safety_margin": 1.3,
+            },
+            "daily_news_core": {
+                "auto_approve_cap_usd": 3.0,
+                "hard_cap_usd": 8.0,
+                "allowed_providers": ["modal", "runpod", "ollama"],
+                "retry_multiplier": 1.3,
+                "safety_margin": 1.4,
+            },
+            "batch_low_cost": {
+                "auto_approve_cap_usd": 0.5,
+                "hard_cap_usd": 2.0,
+                "allowed_providers": ["ollama", "vast"],
+                "retry_multiplier": 1.1,
+                "safety_margin": 1.2,
+            },
+            "critical": {
+                "auto_approve_cap_usd": 10.0,
+                "hard_cap_usd": 25.0,
+                "allowed_providers": ["modal", "runpod", "ollama"],
+                "retry_multiplier": 1.5,
+                "safety_margin": 1.5,
+            },
+        },
+    }
+
+
+def resolve_budget_class(business_context: dict[str, Any] | None = None, policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    business_context = business_context if isinstance(business_context, dict) else {}
+    budgets = budget_policy(policy)
+    classes = dict(budgets.get("budget_classes", {}))
+    budget_class = str(business_context.get("budget_class") or budgets.get("default_budget_class") or "standard")
+    item = dict(classes.get(budget_class) or classes.get("standard") or {})
+    if not item:
+        item = {
+            "auto_approve_cap_usd": 0.0,
+            "hard_cap_usd": 0.0,
+            "allowed_providers": [],
+            "retry_multiplier": 1.0,
+            "safety_margin": 1.0,
+        }
+    item["budget_class"] = budget_class
+    item["ok"] = budget_class in classes
+    if not item["ok"]:
+        item["reason"] = f"unknown budget_class: {budget_class}"
+    else:
+        item["reason"] = "budget class resolved"
+    return item
+
+
 def validate_workflow(workflow: dict[str, Any]) -> dict[str, Any]:
+    if "nodes" not in workflow and "jobs" not in workflow and "job_template" not in workflow:
+        return {"ok": False, "workflow_version": WORKFLOW_VERSION, "errors": ["workflow must contain nodes, jobs, or job_template"]}
+    if "nodes" not in workflow:
+        return {"ok": True, "workflow_version": WORKFLOW_VERSION, "errors": []}
     nodes = workflow.get("nodes", [])
     edges = workflow.get("edges", [])
     errors = []
@@ -58,22 +228,639 @@ def validate_workflow(workflow: dict[str, Any]) -> dict[str, Any]:
 
 def save_workflow(workflow: dict[str, Any]) -> dict[str, Any]:
     validation = validate_workflow(workflow)
-    workflow_id = str(workflow.get("workflow_id") or canonical_hash(workflow)["sha256"][:16])
-    data = {
-        "workflow_version": WORKFLOW_VERSION,
-        "workflow_id": workflow_id,
-        "created_at": now_unix(),
-        "status": "created" if validation["ok"] else "failed",
-        "workflow": workflow,
-        "validation": validation,
-    }
-    path = workflow_dir() / f"{workflow_id}.json"
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-    return {"ok": validation["ok"], "workflow_id": workflow_id, "path": str(path), "validation": validation}
+    workflow_id = str(workflow.get("workflow_id") or make_workflow_id())
+    manifest = _base_manifest(workflow_id, workflow, validation=validation)
+    manifest["status"] = "created" if validation["ok"] else "failed"
+    return _save_manifest(manifest)
 
 
 def load_workflow(workflow_id: str) -> dict[str, Any]:
-    path = workflow_dir() / f"{workflow_id}.json"
+    path = workflow_path(workflow_id)
     if not path.is_file():
         return {"ok": False, "error": "workflow not found", "workflow_id": workflow_id}
-    return {"ok": True, "workflow": json.loads(path.read_text()), "path": str(path)}
+    manifest = json.loads(path.read_text())
+    return {"ok": True, "workflow": workflow_status(manifest), "path": str(path)}
+
+
+def list_workflows(limit: int = 100) -> dict[str, Any]:
+    rows = []
+    for path in sorted(workflow_dir().glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:limit]:
+        try:
+            manifest = json.loads(path.read_text())
+        except Exception:
+            continue
+        rows.append(_compact_workflow(workflow_status(manifest)))
+    return {"ok": True, "count": len(rows), "workflows": rows}
+
+
+def submit_bulk_workflow(payload: dict[str, Any], *, execute: bool = False, enqueue: bool = True) -> dict[str, Any]:
+    from .queue import enqueue_job
+    from .runner import submit_job
+
+    workflow = _normalize_workflow_payload(payload)
+    validation = validate_workflow(workflow)
+    workflow_id = str(workflow.get("workflow_id") or make_workflow_id())
+    business_context = _business_context(workflow)
+    budget = resolve_budget_class(business_context)
+    jobs_payload = workflow.get("jobs")
+    if not isinstance(jobs_payload, list) or not jobs_payload:
+        raise ValueError("bulk workflow requires non-empty jobs list")
+    manifest = _base_manifest(workflow_id, workflow, validation=validation)
+    manifest["business_context"] = business_context
+    manifest["budget_policy"] = budget
+    manifest["status"] = "queued" if validation["ok"] else "failed"
+    child_results = []
+    for index, raw_job in enumerate(jobs_payload):
+        job = Job.from_dict(dict(raw_job))
+        _attach_workflow_metadata(job, workflow_id, stage=str(raw_job.get("workflow_stage") or "map"), index=index, business_context=business_context)
+        result: dict[str, Any]
+        if execute:
+            provider = str(raw_job.get("provider") or workflow.get("provider") or "auto")
+            result = submit_job(job, provider_name=provider, execute=True)
+        elif enqueue:
+            provider = str(raw_job.get("provider") or workflow.get("provider") or "auto")
+            result = enqueue_job(job, provider_name=provider)
+        else:
+            store = JobStore()
+            store.save(job)
+            result = {"ok": True, "job": job.to_dict(), "path": str(store.job_path(job.job_id))}
+        child_results.append(_child_from_job_dict(_result_job_dict(result), stage=job.metadata["workflow_stage"], index=index))
+    manifest["children"] = child_results
+    manifest["total_jobs"] = len(child_results)
+    manifest["summary"] = aggregate_workflow(workflow_id)
+    saved = _save_manifest(manifest)
+    return {**saved, "workflow": workflow_status(manifest)}
+
+
+def plan_workflow(payload: dict[str, Any]) -> dict[str, Any]:
+    workflow = _normalize_workflow_payload(payload)
+    workflow_type = str(workflow.get("workflow_type") or "scatter_gather")
+    strategy = dict(workflow.get("strategy") or {})
+    splitter = str(strategy.get("splitter") or "json_array_chunker")
+    reducer = str(strategy.get("reducer") or "json_array_merger")
+    strategies = workflow_strategies()
+    if splitter not in strategies:
+        raise ValueError(f"unknown splitter: {splitter}")
+    if reducer not in strategies:
+        raise ValueError(f"unknown reducer: {reducer}")
+    business_context = _business_context(workflow)
+    budget = resolve_budget_class(business_context)
+    job_template = dict(workflow.get("job_template") or {})
+    chunks = _plan_chunks(workflow, job_template, splitter)
+    reduce_job_count = 1 if chunks else 0
+    estimate = estimate_workflow_cost(workflow, chunks=chunks, reduce_job_count=reduce_job_count, budget=budget)
+    decision = approval_decision(estimate, budget, workflow.get("limits"))
+    plan = {
+        "workflow_type": workflow_type,
+        "strategy": {"splitter": splitter, "reducer": reducer},
+        "chunk_count": len(chunks),
+        "map_job_count": len(chunks),
+        "reduce_job_count": reduce_job_count,
+        "chunks": [_public_chunk(item) for item in chunks],
+    }
+    return {
+        "ok": decision["decision"] not in {"reject"},
+        "workflow_version": WORKFLOW_VERSION,
+        "business_context": business_context,
+        "budget_policy": budget,
+        "plan": plan,
+        "estimate": estimate,
+        "approval": decision,
+    }
+
+
+def execute_workflow(payload: dict[str, Any]) -> dict[str, Any]:
+    from .queue import enqueue_job
+    from .runner import submit_job
+
+    workflow = _normalize_workflow_payload(payload)
+    if "jobs" in workflow:
+        return submit_bulk_workflow(workflow, execute=bool(workflow.get("execute")), enqueue=not bool(workflow.get("execute")))
+    planned = plan_workflow(workflow)
+    workflow_id = str(workflow.get("workflow_id") or make_workflow_id())
+    manifest = _base_manifest(workflow_id, workflow, validation=validate_workflow(workflow))
+    manifest["business_context"] = planned["business_context"]
+    manifest["budget_policy"] = planned["budget_policy"]
+    manifest["plan"] = planned["plan"]
+    manifest["estimate"] = planned["estimate"]
+    manifest["approval"] = planned["approval"]
+    decision = planned["approval"]["decision"]
+    if decision == "reject":
+        manifest["status"] = "rejected"
+        saved = _save_manifest(manifest)
+        return {**saved, "ok": False, "workflow": workflow_status(manifest)}
+    if decision == "pending_approval" and not bool(workflow.get("force_approve")):
+        manifest["status"] = "pending_approval"
+        saved = _save_manifest(manifest)
+        return {**saved, "ok": True, "workflow": workflow_status(manifest)}
+    manifest["status"] = "queued"
+    child_results = []
+    job_template = dict(workflow.get("job_template") or {})
+    for index, chunk in enumerate(_plan_chunks(workflow, job_template, manifest["plan"]["strategy"]["splitter"])):
+        job = _job_from_chunk(job_template, chunk, workflow_id=workflow_id, index=index, business_context=manifest["business_context"])
+        provider = str(workflow.get("provider") or "auto")
+        result = submit_job(job, provider_name=provider, execute=True) if bool(workflow.get("execute")) else enqueue_job(job, provider_name=provider)
+        child_results.append(_child_from_job_dict(_result_job_dict(result), stage="map", index=index))
+    manifest["children"] = child_results
+    manifest["total_jobs"] = len(child_results)
+    saved = _save_manifest(manifest)
+    return {**saved, "workflow": workflow_status(manifest)}
+
+
+def approve_workflow(workflow_id: str, *, principal: str = "", reason: str = "", execute: bool = False) -> dict[str, Any]:
+    loaded = load_workflow(workflow_id)
+    if not loaded["ok"]:
+        return loaded
+    manifest = loaded["workflow"]
+    manifest["approved"] = {"principal": principal, "reason": reason, "approved_at": now_unix()}
+    if manifest.get("status") == "pending_approval":
+        manifest["status"] = "approved"
+    _save_manifest(manifest)
+    if execute:
+        workflow = dict(manifest.get("workflow") or {})
+        workflow["workflow_id"] = workflow_id
+        workflow["force_approve"] = True
+        return execute_workflow(workflow)
+    return {"ok": True, "workflow": workflow_status(manifest)}
+
+
+def drain_workflow(workflow_id: str, *, reason: str = "") -> dict[str, Any]:
+    from .queue import cancel_group
+
+    result = cancel_group(workflow_id=workflow_id)
+    loaded = load_workflow(workflow_id)
+    if loaded["ok"]:
+        manifest = loaded["workflow"]
+        manifest["status"] = "draining"
+        manifest["drain"] = {"reason": reason, "drained_at": now_unix(), "cancel_result": result}
+        _save_manifest(manifest)
+    return {"ok": True, "workflow_id": workflow_id, "cancel_result": result}
+
+
+def enforce_workflow_budget_drains(limit: int = 1000) -> dict[str, Any]:
+    drained = []
+    checked = 0
+    for path in sorted(workflow_dir().glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True)[:limit]:
+        try:
+            manifest = json.loads(path.read_text())
+        except Exception:
+            continue
+        status = str(manifest.get("status") or "")
+        if status in {"succeeded", "failed", "cancelled", "rejected", "draining"}:
+            continue
+        checked += 1
+        current = workflow_status(manifest)
+        drift = current.get("cost_drift") if isinstance(current.get("cost_drift"), dict) else {}
+        if drift.get("action") != "drain":
+            continue
+        result = drain_workflow(str(current.get("workflow_id")), reason="workflow projected cost exceeds hard cap")
+        drained.append({"workflow_id": current.get("workflow_id"), "cost_drift": drift, "drain": result})
+    return {"ok": True, "checked": checked, "drained_count": len(drained), "drained": drained}
+
+
+def workflow_status(manifest: dict[str, Any]) -> dict[str, Any]:
+    workflow_id = str(manifest.get("workflow_id") or "")
+    summary = aggregate_workflow(workflow_id) if workflow_id else _empty_summary()
+    out = dict(manifest)
+    out["summary"] = summary
+    out["cost_drift"] = cost_drift_decision(out, summary)
+    if out.get("status") not in {"rejected", "pending_approval", "cancelled", "failed", "succeeded", "draining"}:
+        out["status"] = _status_from_summary(out.get("status", "created"), summary)
+    return out
+
+
+def aggregate_workflow(workflow_id: str, store: JobStore | None = None) -> dict[str, Any]:
+    store = store or JobStore()
+    if not workflow_id:
+        return _empty_summary()
+    jobs = []
+    for job in store.list_jobs(limit=10000):
+        if str(job.metadata.get("workflow_id") or "") == workflow_id:
+            jobs.append(job)
+    counts: dict[str, int] = {}
+    runtime = 0
+    estimated_cost = 0.0
+    actual_cost = 0.0
+    children = []
+    for job in sorted(jobs, key=lambda item: (item.created_at, item.job_id)):
+        counts[job.status] = counts.get(job.status, 0) + 1
+        runtime += int(job.runtime_seconds or 0)
+        estimated_cost += _job_estimated_cost(job)
+        actual_cost += _job_actual_cost(job)
+        children.append(
+            {
+                "job_id": job.job_id,
+                "status": job.status,
+                "provider": job.provider or job.metadata.get("selected_provider") or job.metadata.get("requested_provider"),
+                "stage": job.metadata.get("workflow_stage"),
+                "chunk_index": job.metadata.get("workflow_chunk_index"),
+                "runtime_seconds": job.runtime_seconds,
+                "estimated_cost_usd": round(_job_estimated_cost(job), 6),
+                "actual_cost_usd": round(_job_actual_cost(job), 6),
+                "error": job.error,
+            }
+        )
+    return {
+        "workflow_id": workflow_id,
+        "total_jobs": len(jobs),
+        "counts": counts,
+        "runtime_seconds_sum": runtime,
+        "estimated_cost_usd": round(estimated_cost, 6),
+        "actual_cost_usd": round(actual_cost, 6),
+        "children": children,
+    }
+
+
+def cost_drift_decision(manifest: dict[str, Any], summary: dict[str, Any] | None = None) -> dict[str, Any]:
+    summary = summary or aggregate_workflow(str(manifest.get("workflow_id") or ""))
+    estimate = manifest.get("estimate") if isinstance(manifest.get("estimate"), dict) else {}
+    approval = manifest.get("approval") if isinstance(manifest.get("approval"), dict) else {}
+    hard_cap = float(approval.get("effective_hard_cap_usd") or estimate.get("hard_cap_usd") or 0)
+    actual = float(summary.get("actual_cost_usd") or summary.get("estimated_cost_usd") or 0)
+    remaining_estimate = _remaining_estimated_cost(manifest, summary)
+    projected = actual + remaining_estimate
+    should_drain = bool(hard_cap and projected > hard_cap)
+    return {
+        "ok": not should_drain,
+        "actual_cost_usd": round(actual, 6),
+        "remaining_estimated_cost_usd": round(remaining_estimate, 6),
+        "projected_cost_usd": round(projected, 6),
+        "hard_cap_usd": hard_cap or None,
+        "action": "drain" if should_drain else "continue",
+    }
+
+
+def merge_json_array_results(items: list[Any]) -> dict[str, Any]:
+    merged = []
+    for item in items:
+        if isinstance(item, list):
+            merged.extend(item)
+        elif isinstance(item, dict) and isinstance(item.get("items"), list):
+            merged.extend(item["items"])
+        else:
+            merged.append(item)
+    return {"ok": True, "reducer": "json_array_merger", "items": merged, "count": len(merged)}
+
+
+def _normalize_workflow_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    workflow = payload.get("workflow") if isinstance(payload.get("workflow"), dict) else payload
+    return dict(workflow)
+
+
+def _business_context(workflow: dict[str, Any]) -> dict[str, Any]:
+    value = workflow.get("business_context")
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _base_manifest(workflow_id: str, workflow: dict[str, Any], *, validation: dict[str, Any]) -> dict[str, Any]:
+    business_context = _business_context(workflow)
+    return {
+        "workflow_version": WORKFLOW_VERSION,
+        "workflow_id": workflow_id,
+        "created_at": now_unix(),
+        "updated_at": now_unix(),
+        "status": "created",
+        "workflow_type": str(workflow.get("workflow_type") or "workflow"),
+        "workflow": workflow,
+        "business_context": business_context,
+        "expected_budget_class": business_context.get("budget_class"),
+        "validation": validation,
+        "total_jobs": 0,
+        "children": [],
+    }
+
+
+def _save_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
+    manifest = dict(manifest)
+    manifest["updated_at"] = now_unix()
+    workflow_id = str(manifest.get("workflow_id") or make_workflow_id())
+    manifest["workflow_id"] = workflow_id
+    path = workflow_path(workflow_id)
+    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    return {"ok": manifest.get("status") not in {"failed", "rejected"}, "workflow_id": workflow_id, "path": str(path)}
+
+
+def _compact_workflow(manifest: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "workflow_id": manifest.get("workflow_id"),
+        "status": manifest.get("status"),
+        "workflow_type": manifest.get("workflow_type"),
+        "business_context": manifest.get("business_context"),
+        "summary": {k: v for k, v in dict(manifest.get("summary") or {}).items() if k != "children"},
+        "approval": manifest.get("approval"),
+        "created_at": manifest.get("created_at"),
+        "updated_at": manifest.get("updated_at"),
+    }
+
+
+def _attach_workflow_metadata(
+    job: Job,
+    workflow_id: str,
+    *,
+    stage: str,
+    index: int,
+    business_context: dict[str, Any],
+) -> None:
+    job.metadata["workflow_id"] = workflow_id
+    job.metadata["workflow_stage"] = stage
+    job.metadata["workflow_chunk_index"] = index
+    job.metadata["business_context"] = dict(business_context)
+    if business_context.get("app_id"):
+        job.metadata["source_system"] = business_context["app_id"]
+
+
+def _result_job_dict(result: dict[str, Any]) -> dict[str, Any]:
+    job_data = result.get("job")
+    return job_data if isinstance(job_data, dict) else {}
+
+
+def _child_from_job_dict(job_data: dict[str, Any], *, stage: str, index: int) -> dict[str, Any]:
+    metadata = job_data.get("metadata") if isinstance(job_data.get("metadata"), dict) else {}
+    return {
+        "job_id": job_data.get("job_id"),
+        "status": job_data.get("status"),
+        "stage": metadata.get("workflow_stage") or stage,
+        "chunk_index": metadata.get("workflow_chunk_index", index),
+        "provider": job_data.get("provider") or metadata.get("selected_provider") or metadata.get("requested_provider"),
+        "estimated_cost_usd": round(float(((metadata.get("cost_result") or {}) if isinstance(metadata.get("cost_result"), dict) else {}).get("estimated_total_cost_usd") or 0), 6),
+        "runtime_seconds": job_data.get("runtime_seconds"),
+        "error": job_data.get("error", ""),
+    }
+
+
+def _plan_chunks(workflow: dict[str, Any], job_template: dict[str, Any], splitter: str) -> list[dict[str, Any]]:
+    if splitter != "json_array_chunker":
+        return [
+            {
+                "chunk_index": 0,
+                "items": [],
+                "estimated_tokens": _input_size_hint(workflow).get("estimated_tokens", 0),
+                "splitter": splitter,
+                "external": True,
+            }
+        ]
+    items = _json_items(workflow)
+    max_tokens = _chunk_token_budget(workflow, job_template)
+    chunks = []
+    current: list[Any] = []
+    current_tokens = 0
+    for item in items:
+        item_tokens = max(1, _estimated_json_tokens(item))
+        if current and current_tokens + item_tokens > max_tokens:
+            chunks.append({"chunk_index": len(chunks), "items": current, "estimated_tokens": current_tokens, "splitter": splitter})
+            current = []
+            current_tokens = 0
+        current.append(item)
+        current_tokens += item_tokens
+    if current or not chunks:
+        chunks.append({"chunk_index": len(chunks), "items": current, "estimated_tokens": current_tokens, "splitter": splitter})
+    return chunks
+
+
+def _json_items(workflow: dict[str, Any]) -> list[Any]:
+    payload = workflow.get("input_payload") if isinstance(workflow.get("input_payload"), dict) else {}
+    for key in ("items", "json_array"):
+        value = payload.get(key) if isinstance(payload, dict) else None
+        if isinstance(value, list):
+            return value
+    input_uri = str(workflow.get("input_uri") or payload.get("input_uri") or payload.get("path") or "")
+    if input_uri.startswith("file://"):
+        input_uri = input_uri.removeprefix("file://")
+    if input_uri and not input_uri.startswith(("s3://", "http://", "https://")):
+        path = Path(input_uri).expanduser()
+        if path.is_file():
+            value = json.loads(path.read_text())
+            if isinstance(value, list):
+                return value
+            if isinstance(value, dict) and isinstance(value.get("items"), list):
+                return value["items"]
+    size = _input_size_hint(workflow)
+    count = int(size.get("item_count") or size.get("article_count") or 0)
+    if count > 0:
+        return [{"item_id": index, "estimated_tokens": int(size.get("estimated_tokens_per_item") or 500)} for index in range(count)]
+    return []
+
+
+def _input_size_hint(workflow: dict[str, Any]) -> dict[str, Any]:
+    payload = workflow.get("input_payload") if isinstance(workflow.get("input_payload"), dict) else {}
+    size = workflow.get("input_size") if isinstance(workflow.get("input_size"), dict) else {}
+    payload_size = payload.get("input_size") if isinstance(payload.get("input_size"), dict) else {}
+    out = dict(size)
+    out.update(payload_size)
+    for key in ("article_count", "item_count", "estimated_tokens", "duration_seconds", "page_count"):
+        if key in payload and key not in out:
+            out[key] = payload[key]
+    return out
+
+
+def _chunk_token_budget(workflow: dict[str, Any], job_template: dict[str, Any]) -> int:
+    strategy = workflow.get("strategy") if isinstance(workflow.get("strategy"), dict) else {}
+    requested = int(strategy.get("max_chunk_tokens") or strategy.get("target_chunk_tokens") or 0)
+    if requested:
+        return max(1, requested)
+    routing = (job_template.get("metadata") or {}).get("routing") if isinstance(job_template.get("metadata"), dict) else {}
+    routing = routing if isinstance(routing, dict) else {}
+    model_limit = int(routing.get("max_input_tokens") or workflow.get("max_input_tokens") or 32768)
+    reserved = int(strategy.get("reserved_output_tokens") or 4096)
+    return max(1024, model_limit - reserved)
+
+
+def _estimated_json_tokens(item: Any) -> int:
+    if isinstance(item, dict) and item.get("estimated_tokens") is not None:
+        try:
+            return int(item["estimated_tokens"])
+        except (TypeError, ValueError):
+            pass
+    return max(1, len(json.dumps(item, ensure_ascii=False)) // 4)
+
+
+def _job_from_chunk(
+    job_template: dict[str, Any],
+    chunk: dict[str, Any],
+    *,
+    workflow_id: str,
+    index: int,
+    business_context: dict[str, Any],
+) -> Job:
+    data = dict(job_template)
+    metadata = dict(data.get("metadata") or {})
+    input_data = dict(metadata.get("input") or {})
+    input_data["items"] = chunk.get("items", [])
+    input_data["estimated_input_tokens"] = chunk.get("estimated_tokens", 0)
+    metadata["input"] = input_data
+    routing = dict(metadata.get("routing") or {})
+    routing["estimated_input_tokens"] = chunk.get("estimated_tokens", 0)
+    metadata["routing"] = routing
+    data["metadata"] = metadata
+    data.setdefault("input_uri", f"workflow://{workflow_id}/chunks/{index}")
+    data.setdefault("output_uri", f"workflow://{workflow_id}/outputs/{index}")
+    job = Job.from_dict(data)
+    _attach_workflow_metadata(job, workflow_id, stage="map", index=index, business_context=business_context)
+    return job
+
+
+def _public_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "chunk_index": chunk.get("chunk_index"),
+        "item_count": len(chunk.get("items") or []),
+        "estimated_tokens": chunk.get("estimated_tokens"),
+        "splitter": chunk.get("splitter"),
+        "external": bool(chunk.get("external")),
+    }
+
+
+def estimate_workflow_cost(
+    workflow: dict[str, Any],
+    *,
+    chunks: list[dict[str, Any]],
+    reduce_job_count: int,
+    budget: dict[str, Any],
+) -> dict[str, Any]:
+    provider = str(workflow.get("provider") or _first_allowed_provider(budget) or "modal")
+    price = _provider_price(provider)
+    runtime = _estimated_runtime_seconds(workflow, provider)
+    map_count = len(chunks)
+    reducer_runtime = float(((workflow.get("strategy") or {}) if isinstance(workflow.get("strategy"), dict) else {}).get("estimated_reduce_seconds") or max(10.0, runtime * 0.5))
+    raw = (map_count * runtime + reduce_job_count * reducer_runtime) * price
+    retry_multiplier = float(budget.get("retry_multiplier") or 1.0)
+    safety_margin = float(budget.get("safety_margin") or 1.0)
+    p50 = raw * retry_multiplier
+    p95 = p50 * safety_margin
+    return {
+        "provider": provider,
+        "provider_price_usd_per_second": price,
+        "map_job_count": map_count,
+        "reduce_job_count": reduce_job_count,
+        "estimated_runtime_seconds_per_map": round(runtime, 3),
+        "estimated_runtime_seconds_reduce": round(reducer_runtime, 3),
+        "retry_multiplier": retry_multiplier,
+        "safety_margin": safety_margin,
+        "estimated_cost_p50_usd": round(p50, 6),
+        "estimated_cost_p95_usd": round(p95, 6),
+        "auto_approve_cap_usd": float(budget.get("auto_approve_cap_usd") or 0),
+        "hard_cap_usd": float(budget.get("hard_cap_usd") or 0),
+    }
+
+
+def approval_decision(estimate: dict[str, Any], budget: dict[str, Any], limits: Any = None) -> dict[str, Any]:
+    limits = limits if isinstance(limits, dict) else {}
+    hard_cap = float(budget.get("hard_cap_usd") or 0)
+    if limits.get("max_cost_usd") is not None:
+        hard_cap = min(hard_cap, float(limits.get("max_cost_usd"))) if hard_cap else float(limits.get("max_cost_usd"))
+    auto_cap = float(budget.get("auto_approve_cap_usd") or 0)
+    p95 = float(estimate.get("estimated_cost_p95_usd") or 0)
+    if hard_cap and p95 > hard_cap:
+        decision = "reject"
+        reason = "estimated p95 cost exceeds hard cap"
+    elif auto_cap and p95 > auto_cap:
+        decision = "pending_approval"
+        reason = "estimated p95 cost exceeds auto approval cap"
+    else:
+        decision = "auto_execute"
+        reason = "estimated p95 cost within auto approval cap"
+    return {
+        "decision": decision,
+        "reason": reason,
+        "estimated_cost_p95_usd": p95,
+        "auto_approve_cap_usd": auto_cap,
+        "effective_hard_cap_usd": hard_cap or None,
+    }
+
+
+def _provider_price(provider: str) -> float:
+    policy = load_execution_policy()
+    table = policy.get("provider_price_usd_per_second")
+    if isinstance(table, dict) and table.get(provider) is not None:
+        return float(table[provider])
+    cost_model = policy.get("workflow_cost_model")
+    if isinstance(cost_model, dict):
+        provider_prices = cost_model.get("provider_price_usd_per_second")
+        if isinstance(provider_prices, dict) and provider_prices.get(provider) is not None:
+            return float(provider_prices[provider])
+    return float(DEFAULT_PROVIDER_PRICE_USD_PER_SECOND.get(provider, 0.001))
+
+
+def _estimated_runtime_seconds(workflow: dict[str, Any], provider: str) -> float:
+    strategy = workflow.get("strategy") if isinstance(workflow.get("strategy"), dict) else {}
+    if strategy.get("estimated_map_seconds") is not None:
+        return float(strategy["estimated_map_seconds"])
+    template = workflow.get("job_template") if isinstance(workflow.get("job_template"), dict) else {}
+    routing = (template.get("metadata") or {}).get("routing") if isinstance(template.get("metadata"), dict) else {}
+    if isinstance(routing, dict) and routing.get("estimated_gpu_runtime_seconds") is not None:
+        return float(routing["estimated_gpu_runtime_seconds"])
+    stats = collect_stats()
+    key = f"{provider}:{template.get('job_type') or 'llm_heavy'}:{template.get('gpu_profile') or 'llm_heavy'}"
+    group = (stats.get("groups") or {}).get(key)
+    if isinstance(group, dict):
+        remote = group.get("remote_runtime_seconds") if isinstance(group.get("remote_runtime_seconds"), dict) else {}
+        if remote.get("p50") is not None:
+            return float(remote["p50"])
+    return 60.0
+
+
+def _first_allowed_provider(budget: dict[str, Any]) -> str:
+    allowed = budget.get("allowed_providers")
+    if isinstance(allowed, list) and allowed:
+        return str(allowed[0])
+    return "modal"
+
+
+def _status_from_summary(current: str, summary: dict[str, Any]) -> str:
+    total = int(summary.get("total_jobs") or 0)
+    counts = summary.get("counts") if isinstance(summary.get("counts"), dict) else {}
+    if not total:
+        return current
+    if counts.get("running") or counts.get("starting"):
+        return "running"
+    if counts.get("queued"):
+        return "queued"
+    if counts.get("failed"):
+        return "failed"
+    if counts.get("cancelled"):
+        return "cancelled"
+    if counts.get("succeeded") == total:
+        return "succeeded"
+    return current
+
+
+def _remaining_estimated_cost(manifest: dict[str, Any], summary: dict[str, Any]) -> float:
+    estimate = manifest.get("estimate") if isinstance(manifest.get("estimate"), dict) else {}
+    total = int((manifest.get("plan") or {}).get("map_job_count") or manifest.get("total_jobs") or summary.get("total_jobs") or 0)
+    done = 0
+    counts = summary.get("counts") if isinstance(summary.get("counts"), dict) else {}
+    for status in ("succeeded", "failed", "cancelled"):
+        done += int(counts.get(status) or 0)
+    remaining = max(0, total - done)
+    if not total:
+        return 0.0
+    p95 = float(estimate.get("estimated_cost_p95_usd") or 0)
+    return (p95 / total) * remaining if p95 else 0.0
+
+
+def _empty_summary() -> dict[str, Any]:
+    return {
+        "workflow_id": "",
+        "total_jobs": 0,
+        "counts": {},
+        "runtime_seconds_sum": 0,
+        "estimated_cost_usd": 0.0,
+        "actual_cost_usd": 0.0,
+        "children": [],
+    }
+
+
+def _job_estimated_cost(job: Job) -> float:
+    cost_result = job.metadata.get("cost_result")
+    if isinstance(cost_result, dict):
+        return float(cost_result.get("estimated_total_cost_usd") or 0)
+    return float(cost_estimate(job).get("estimated_total_cost_usd") or 0)
+
+
+def _job_actual_cost(job: Job) -> float:
+    actual = job.metadata.get("actual_cost_usd")
+    if actual is not None:
+        try:
+            return float(actual)
+        except (TypeError, ValueError):
+            return 0.0
+    return _job_estimated_cost(job)
