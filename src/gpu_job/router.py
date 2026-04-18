@@ -198,9 +198,9 @@ def workload_policy_decision(job: Job, profile: dict[str, Any], signal: dict[str
     if provider == "ollama" and burst_size > ollama_max_burst:
         ok = False
         reasons.append("burst workload exceeds resident ollama concurrency")
-    if provider == "ollama" and quality_requires_gpu:
+    if provider in {"local", "ollama"} and quality_requires_gpu:
         ok = False
-        reasons.append("quality_requires_gpu excludes fixed local ollama")
+        reasons.append("quality_requires_gpu excludes fixed/local deterministic providers")
     if cpu_runtime and expected_total >= cpu_runtime and not quality_requires_gpu:
         ok = False
         reasons.append("expected provider time is not faster than CPU/local path")

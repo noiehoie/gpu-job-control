@@ -63,7 +63,7 @@
     },
     "vlm_ocr": {
       "preferred_provider": "ollama",
-      "fallback_providers": ["modal"],
+      "fallback_providers": ["local", "modal"],
       "min_vram_gb": 48,
       "min_compute_cap": 800,
       "max_cost_usd": 20,
