@@ -1,32 +1,106 @@
-# RunPod Support Question v6: Need Official Serverless vLLM Hub Template / Image Pull Diff
+# RunPod Support Question v7: Serverless vLLM Hub Deploy vs GraphQL Diff
 
-Updated: 2026-04-18 09:05 JST.
+Updated: 2026-04-18 09:42 JST.
 
-We need RunPod Support to confirm the exact difference between:
+## Support-Ready Summary
 
-1. A GraphQL-created Serverless endpoint using `saveTemplate(imageName + env)` and `saveEndpoint`.
-2. The Console / Hub "Serverless vLLM" deploy flow.
+We need RunPod Support to diagnose a blocker specifically on **Serverless vLLM** and confirm the exact difference between:
 
-Our current evidence shows two separate Serverless vLLM failure modes:
+1. a GraphQL-created Serverless endpoint using `saveTemplate(imageName + env)` and `saveEndpoint`; and
+2. the Console / Hub "Serverless vLLM" deploy flow for Hub ID `cm8h09d9n000008jvh2rqdsmb`.
 
-1. `facebook/opt-125m` with `runpod/worker-v1-vllm:v2.14.0`, `containerDiskInGb=30`, and `flashBootType=FLASHBOOT` stays at `image pull: pending`, with endpoint health reporting `throttled: 1`.
-2. Earlier `Qwen/Qwen2.5-0.5B-Instruct` attempts reached `ready: 1` or `running: 1`, but the job status stayed `IN_QUEUE`.
+Pods, Pod HTTP proxy execution, Pod `llm_heavy` generation, and Pod Network Volume attachment are proven healthy on the same account and API key. The remaining blocker is only the Serverless vLLM / Hub-template path.
 
-The first mode occurs before HTTP routing, entrypoint, readiness, or OpenAI proxy behavior can be evaluated. The second mode may be a distinct routing, worker, or request-dispatch problem. We need RunPod to clarify which differences between Hub-created Serverless vLLM endpoints and raw GraphQL `saveTemplate(imageName + env)` endpoints matter.
+## Cases
 
-Scope update: RunPod Pod lifecycle, Pod HTTP proxy execution, Pod `llm_heavy` generation canary, and Pod Network Volume attachment are now proven separately. The remaining blocker is specifically the Serverless vLLM / Hub-template path.
+| Case | Symptom | Primary endpoint/template evidence | Priority |
+|---|---|---|---|
+| A: provisioning / placement / worker init | `throttled=1`, `initializing=0`, `ready=0`, `running=0`, `jobs.inQueue=1`, `/openai/v1/models` timeout | `vllm-886lfe61fzhhfg` / `n4gi1ni6kw`; retained endpoint `vllm-623t63akmshaoi` / `7nwbqj31ti` | P0 |
+| B: dispatch / queue | worker reached `ready=1` or `running=1`, but job status stayed `IN_QUEUE` | earlier `Qwen/Qwen2.5-0.5B-Instruct` attempts | P1 / secondary |
 
-## Direct Questions
+Please prioritize **Case A** first. Case B may be related, but it can be treated as secondary unless internal logs show the same root cause.
+
+## Investigation Keys
+
+| Item | Value |
+|---|---|
+| Time window | 2026-04-18 00:00-01:00 UTC, plus retained endpoint inspection after that window |
+| Hub ID under investigation | `cm8h09d9n000008jvh2rqdsmb` |
+| Hub repo metadata reported externally | owner `runpod-workers`, title `vLLM`, release `v2.14.0` |
+| Hub-derived image tested | `registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d` |
+| Raw Docker Hub image tested | `runpod/worker-v1-vllm:v2.14.0` |
+| Retained disabled endpoint | `vllm-623t63akmshaoi` |
+| Retained template | `7nwbqj31ti` |
+| Hub-derived ADA_24 retest | endpoint `vllm-886lfe61fzhhfg`, template `n4gi1ni6kw` |
+| Hub-derived AMPERE_80 retest | endpoint `vllm-4z0vha0ofxeupm`, template `0o8jdbjtw1` |
+| CLI version tested | `runpodctl 2.1.9-673143d` |
+
+## Core Questions For Support
 
 1. The official docs show Hub deployment through `runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb --name "my-vllm"`. Is Hub ID `cm8h09d9n000008jvh2rqdsmb` the correct stable vLLM Hub source for programmatic deployment?
 2. Is there a GraphQL equivalent to `runpodctl serverless create --hub-id ...`, or is Hub deployment only supported through `runpodctl` / Console?
-3. If using GraphQL directly, should the template image be the Hub release image `registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d` instead of `runpod/worker-v1-vllm:v2.14.0`?
-4. Does the official Hub vLLM release require or default to `containerDiskInGb=150`? Can `containerDiskInGb=30` cause `image pull: pending` / `throttled: 1` for the vLLM worker?
-5. Can `flashBootType=FLASHBOOT` make an uncached large image stay in `image pull: pending` or `throttled` on `ADA_24`?
-6. Why does the endpoint health show `throttled: 1` and queued jobs while no worker ever becomes reachable through `/openai/v1/models`?
-7. What is the exact expected native `/run` or `/runsync` input schema for the official vLLM worker? The public vLLM quickstart shows `{"input": {"prompt": "Hello World"}}`; is that still correct for Hub vLLM release `v2.14.0`?
-8. Is `workersStandby: 1` the expected API response default when `workersMin=0`? Does it represent billable warm capacity or just an observed scaler state?
-9. Is there any public API to fetch scheduler/router/worker init logs for this endpoint ID, or must Support inspect internal logs?
+3. If GraphQL is the supported direct API path, can Support provide the exact resolved Serverless template and endpoint fields that Console/Hub deploy creates for Hub ID `cm8h09d9n000008jvh2rqdsmb`, so we can diff them field-by-field against our GraphQL-created endpoint?
+4. For the official Hub vLLM release, what are the minimum and recommended values for `imageName`, `containerDiskInGb`, GPU pool, `ports`, `dockerArgs` or start command, readiness/health behavior, and OpenAI routing mode?
+5. In Case A, why does endpoint health show `throttled=1` and `jobs.inQueue=1` while `initializing=0`, `ready=0`, `running=0`, and `/openai/v1/models` never becomes reachable?
+6. Does `workersStandby` represent any warm or billable capacity when `workersMin=0`, or is it only an observed scaler state?
+7. Is `workersMax=0` invalid for endpoint creation and treated as unset/default `3`? We now use `workersMin=0, workersMax=1` for canary creation and reserve `workersMax=0` only for a cleanup/quiesce attempt before deletion. Please confirm the intended spec.
+8. Do `flashBootType=FLASHBOOT` and `ports=8000/http` change worker scheduling, image pull, readiness, or OpenAI gateway routing behavior for the official vLLM Serverless worker?
+9. What is the exact expected native `/run` or `/runsync` input schema for Hub vLLM release `v2.14.0`? The public quickstart shows `{"input": {"prompt": "Hello World"}}`; is that still correct?
+10. Is there any public API to fetch scheduler/router/worker-init logs for these endpoint IDs, or must Support inspect internal logs?
+
+## CLI Surface Mismatch Evidence
+
+The RunPod CLI documentation says Serverless endpoints can be created from either a template or a Hub repo:
+
+```bash
+runpodctl serverless create --name "my-endpoint" --template-id "tpl_abc123"
+runpodctl hub search vllm
+runpodctl serverless create --hub-id cm8h09d9n000008jvh2rqdsmb --name "my-vllm"
+```
+
+But the current Linux binary we installed reported:
+
+```text
+runpodctl 2.1.9-673143d
+```
+
+and returned:
+
+```json
+{"error":"unknown command \"hub\" for \"runpodctl\""}
+```
+
+`runpodctl serverless create --help` also showed no `--hub-id` flag. It requires `--template-id`.
+
+## Short Account Health Evidence
+
+This does not appear to be an account-wide GPU allocation failure. Bounded Pod canaries can allocate GPUs, serve HTTP through the RunPod proxy, run a standard `llm_heavy` job, attach a Network Volume, and clean up with no active billable resources.
+
+Representative known-good Pod result:
+
+```json
+{
+  "ok": true,
+  "status": "succeeded",
+  "provider": "runpod",
+  "provider_job_id": "0fojxrmy4s1t81",
+  "runtime_seconds": 27,
+  "exit_code": 0,
+  "gpu_probe_stdout": "NVIDIA GeForce RTX 3090, 24576 MiB",
+  "billable_resources_after_cleanup": []
+}
+```
+
+Network Volume canary also succeeded with RTX 4090 in `US-NC-1`:
+
+```text
+volume_probe.ok=true
+volume_probe.write_read_delete=true
+cleanup.ok=true
+post_guard.providers.runpod.billable_resources=[]
+```
+
+## Detailed Evidence Appendix
 
 ## Known-Good Pod Evidence
 
@@ -592,7 +666,7 @@ Based on RunPod AI's follow-up explanation, we now treat the intended scale-to-z
 
 ## Cleanup
 
-For each test endpoint, we set:
+For cleanup, we attempted a GraphQL quiesce update before endpoint deletion:
 
 ```json
 {
@@ -601,14 +675,16 @@ For each test endpoint, we set:
 }
 ```
 
-Then we deleted the endpoint. Post-guard showed:
+Then we deleted the endpoint. Based on later RunPod AI guidance and our own `runpodctl` probe, we no longer treat `workersMax=0` as a valid creation shape. Canary creation now uses `workersMin=0` and `workersMax=1`; `workersMax=0` is delete/quiesce-only.
+
+Post-guard showed no active billable resources. A retained disabled endpoint may still show stale queued jobs, but all worker counts are zero:
 
 ```json
 {
   "billable_resources": [],
   "estimated_hourly_usd": 0,
   "ok": true,
-  "serverless_queue": []
+  "note": "A retained disabled endpoint may still show stale inQueue jobs, but workers are all zero and no billable resources are active."
 }
 ```
 
