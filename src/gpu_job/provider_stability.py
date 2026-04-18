@@ -61,7 +61,7 @@ def provider_stability_report() -> dict[str, Any]:
         "sources": {
             "runpod": [
                 "RunPod endpoint API supports workersMin=0/workersMax and idleTimeout.",
-                "RunPod endpoint deletion requires workersMin=0 and workersMax=0 first.",
+                "RunPod endpoint deletion attempts workersMin=0/workersMax=0 quiesce first, then deletes and verifies guard.",
                 "RunPod cached models reduce cold start and model download cost for Hugging Face models.",
             ],
             "vast": [

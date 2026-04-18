@@ -714,6 +714,15 @@ mutation {{
         served_model_name: str,
         flashboot: bool,
     ) -> dict[str, Any]:
+        if workers_max < 1:
+            return {
+                "ok": False,
+                "provider": self.name,
+                "plan_version": "runpod-vllm-endpoint-plan-v1",
+                "error": "invalid_workers_max",
+                "reason": "RunPod scale-to-zero creation uses workersMin=0 with workersMax>=1; workersMax=0 is delete/quiesce-only.",
+                "workers_max": workers_max,
+            }
         gpu_selection = _validate_runpod_gpu_ids(gpu_ids)
         if not gpu_selection["ok"]:
             return {
@@ -763,7 +772,8 @@ mutation {{
                 "idle_timeout_seconds": idle_timeout,
                 "requires_clean_pre_guard": True,
                 "requires_clean_post_guard": True,
-                "delete_precondition": "set workersMax=0 and workersMin=0 before delete",
+                "create_shape": "workersMin=0 and workersMax>=1; workersMax=0 is not a valid creation shape",
+                "delete_precondition": "attempt GraphQL workersMin=0/workersMax=0 quiesce, then delete endpoint and verify guard",
             },
             "template": template,
             "endpoint": endpoint,
@@ -933,6 +943,7 @@ mutation {{
             "containerDiskInGb": container_disk_in_gb,
             "volumeInGb": 0,
             "dockerArgs": "",
+            "ports": "8000/http",
             "env": env,
         }
 
@@ -1003,8 +1014,9 @@ mutation {{
             f" containerDiskInGb: {int(template['containerDiskInGb'])},"
             f" volumeInGb: {int(template['volumeInGb'])},"
             f" dockerArgs: {_graphql_string(str(template['dockerArgs']))},"
+            f" ports: {_graphql_string(str(template['ports']))},"
             f" env: [{env}]"
-            " }) { id name imageName isServerless containerDiskInGb volumeInGb dockerArgs env { key value } }"
+            " }) { id name imageName isServerless containerDiskInGb volumeInGb dockerArgs ports env { key value } }"
             "}"
         )
         return self._run_graphql(query)["data"]["saveTemplate"]
@@ -1069,7 +1081,7 @@ mutation {{
         workers_standby = int(endpoint.get("workersStandby") or 0)
         workers_max = int(endpoint.get("workersMax") or 0)
         return {
-            "ok": workers_min == 0 and workers_max <= 1,
+            "ok": workers_min == 0 and workers_max == 1,
             "workersMin": workers_min,
             "workersStandby": workers_standby,
             "workersMax": workers_max,
@@ -1796,6 +1808,7 @@ def _public_template(template: dict[str, Any]) -> dict[str, Any]:
         "containerDiskInGb": template.get("containerDiskInGb"),
         "volumeInGb": template.get("volumeInGb"),
         "dockerArgs": template.get("dockerArgs"),
+        "ports": template.get("ports"),
         "env_keys": [item.get("key") for item in template.get("env", []) if isinstance(item, dict)],
     }
 

@@ -54,7 +54,7 @@ The GraphQL `saveEndpoint` mutation creates or updates endpoints. Important fiel
 - `scalerType`: `QUEUE_DELAY` or `REQUEST_COUNT`.
 - `scalerValue`: target scaler value.
 
-Deletion has an important precondition: set both `workersMin` and `workersMax` to `0` before deleting an endpoint.
+Scale-to-zero creation uses `workersMin=0` with a positive `workersMax`, normally `1` for canaries. Do not create endpoints with `workersMax=0`; `runpodctl` 2.1.9 treated that as invalid or unset and returned the documented default `workersMax=3`. For deletion, first attempt a GraphQL quiesce with `workersMin=0` and `workersMax=0`, then delete the endpoint and verify guard output. If a CLI or API surface ignores `workersMax=0`, deletion and post-guard verification are the authoritative cleanup.
 
 ### Templates
 
@@ -333,6 +333,8 @@ The promotion helper must keep these invariants:
 - `workersMin=0`;
 - `workersMin=0` is the fixed warm-capacity guard; `workersStandby` may be observed in API responses but is not accepted by `EndpointInput`;
 - `workersMax=1` for the first canary;
+- `workersMax=0` is delete/quiesce-only, not a valid canary creation shape;
+- `ports=8000/http` is set on the Serverless template;
 - clean pre-guard before creation;
 - short OpenAI-compatible canary before traffic promotion;
 - clean post-guard after canary;
@@ -453,7 +455,7 @@ Required canaries:
 
 Failed canary response:
 
-1. set `workersMax=0`;
+1. attempt GraphQL quiesce with `workersMin=0` and `workersMax=0`;
 2. delete endpoint if safe;
 3. delete template only if no endpoint uses it and delete preconditions pass;
 4. keep network volumes unless explicitly approved for deletion;

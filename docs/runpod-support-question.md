@@ -588,6 +588,8 @@ This raises two additional support questions:
 1. Why does `runpodctl serverless create --workers-max 0` return `workersMax: 3` and create a worker object?
 2. Is there a supported scale-to-zero Hub deployment path that does not create a worker before the operator explicitly submits a canary job?
 
+Based on RunPod AI's follow-up explanation, we now treat the intended scale-to-zero creation shape as `workersMin=0` with a positive `workersMax`, normally `1` for canaries. `workersMax=0` is now considered delete/quiesce-only in our tooling, and the canary planner rejects `workersMax < 1`. The remaining support issue is whether endpoint creation with `workersMin=0, workersMax=1` should create any worker object before the first request, and whether Hub/Console deployment injects additional worker-init or router metadata.
+
 ## Cleanup
 
 For each test endpoint, we set:

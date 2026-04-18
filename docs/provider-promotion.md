@@ -42,8 +42,8 @@ RunPod self-hosted Serverless endpoints have additional gates:
 
 1. Template source identified as official RunPod worker, RunPod Hub/repo worker, or operator image.
 2. Model source identified as Public Endpoint, cached Hugging Face model, network volume, or baked image.
-3. Endpoint has `workersMin=0` before and after canary unless paid warm capacity is explicitly selected.
-4. Endpoint delete path is proven: set `workersMax=0`, then delete.
+3. Endpoint creation uses `workersMin=0` and `workersMax=1` for the first canary unless paid warm capacity is explicitly selected.
+4. Endpoint delete path is proven: attempt GraphQL quiesce with `workersMin=0`/`workersMax=0`, then delete and verify guard.
 5. Model materialization strategy is measured separately from inference runtime.
 6. If a network volume is attached, it is on the approved volume allowlist and within storage budget.
 7. If the endpoint uses a gated/private Hugging Face model, an approved secret reference is present.
