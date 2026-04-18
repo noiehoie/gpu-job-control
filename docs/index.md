@@ -14,6 +14,7 @@ Start here when evaluating or integrating `gpu-job-control`.
 - [Provider Promotion](provider-promotion.md): conditions for moving a provider from canary to production routing.
 - [RunPod Self-Hosted Endpoint Research](runpod-self-hosted-research.md): RunPod templates, cached models, network volumes, and endpoint promotion gates.
 - [Launch Decision](launch-decision.md): current launch route decision and deferred provider paths.
+- [Generic System Integration Prompt](generic-system-integration-prompt.md): reusable prompt for adapting any system to gpu-job-control without confusing synchronous submit with asynchronous intake.
 - [RunPod Support Question](runpod-support-question.md): reproducible evidence for the current Serverless vLLM endpoint blocker.
 - [Worker Image Distribution](ghcr-publish-runbook.md): runtime-independent image publishing and registry-mirroring guidance.
 
