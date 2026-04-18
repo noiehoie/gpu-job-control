@@ -77,6 +77,14 @@ class PolicyAndRouterTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertIn("modal preferred for burst fanout", result["preferences"])
 
+    def test_modal_rejects_prompt_above_model_context_capability(self) -> None:
+        from gpu_job.capabilities import evaluate_model_capability
+
+        job = make_job(routing={"estimated_input_tokens": 44415, "estimated_gpu_runtime_seconds": 30})
+        result = evaluate_model_capability(job, "modal")
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["checks"]["tokens_ok"])
+
     def test_quality_required_vlm_excludes_local_and_ollama(self) -> None:
         job = Job(
             job_id="vlm-quality-test",

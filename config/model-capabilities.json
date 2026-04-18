@@ -59,7 +59,7 @@
     "modal:default": {
       "provider": "modal",
       "job_types": ["smoke", "asr", "llm_heavy", "pdf_ocr", "vlm_ocr"],
-      "max_input_tokens": 200000,
+      "max_input_tokens": 32768,
       "quality_tier": "external_gpu",
       "vision": true,
       "asr": true

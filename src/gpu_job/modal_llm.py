@@ -32,11 +32,20 @@ model_cache_volume = modal.Volume.from_name(MODAL_LLM_CACHE_VOLUME_NAME, create_
 
 DEFAULT_HEAVY_MODEL = "Qwen/Qwen2.5-32B-Instruct"
 CANARY_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+MODEL_CONTEXT_LIMITS = {
+    DEFAULT_HEAVY_MODEL: 32768,
+    CANARY_MODEL: 32768,
+    "Qwen/Qwen2.5-7B-Instruct": 32768,
+}
 MODEL_ALIASES = {
     "claude-sonnet-4-6": DEFAULT_HEAVY_MODEL,
     "claude-sonnet-4.6": DEFAULT_HEAVY_MODEL,
     "claude-sonnet": DEFAULT_HEAVY_MODEL,
+    "claude-haiku-4-5-20251001": DEFAULT_HEAVY_MODEL,
+    "claude-haiku-4.5": DEFAULT_HEAVY_MODEL,
+    "claude-haiku": DEFAULT_HEAVY_MODEL,
     "sonnet": DEFAULT_HEAVY_MODEL,
+    "haiku": DEFAULT_HEAVY_MODEL,
 }
 
 
@@ -70,6 +79,8 @@ def _model_name(job: dict) -> str:
     normalized = requested.lower()
     if normalized in MODEL_ALIASES:
         return MODEL_ALIASES[normalized]
+    if normalized.startswith("claude-"):
+        return DEFAULT_HEAVY_MODEL
     if not requested:
         return DEFAULT_HEAVY_MODEL if quality_required else CANARY_MODEL
     if quality_required and normalized in {"qwen/qwen2.5-0.5b-instruct", "qwen2.5-0.5b-instruct"}:
@@ -92,6 +103,10 @@ def _model_context_limit(model: object) -> int | None:
     return None
 
 
+def _known_context_limit(model_name: str) -> int | None:
+    return MODEL_CONTEXT_LIMITS.get(model_name)
+
+
 def _commit_cache() -> None:
     try:
         model_cache_volume.commit()
@@ -109,9 +124,20 @@ def run_llm(job: dict) -> dict:
     prompt = _prompt(job)
     max_tokens = _max_tokens(job)
     os.makedirs(MODAL_LLM_HF_HOME, exist_ok=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=MODAL_LLM_HF_HOME)
+    _commit_cache()
+    messages = [{"role": "user", "content": prompt}]
+    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    inputs = tokenizer([text], return_tensors="pt")
+    input_tokens = int(inputs.input_ids.shape[1])
+    context_limit = _known_context_limit(model_name)
+    if context_limit is not None and input_tokens + max_tokens > context_limit:
+        raise ValueError(
+            f"prompt exceeds model context before weight load: input_tokens={input_tokens} "
+            f"max_new_tokens={max_tokens} context_limit={context_limit} model={model_name}"
+        )
     snapshot_download(model_name, cache_dir=MODAL_LLM_HF_HOME)
     _commit_cache()
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=MODAL_LLM_HF_HOME)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype="auto",
@@ -119,10 +145,7 @@ def run_llm(job: dict) -> dict:
         cache_dir=MODAL_LLM_HF_HOME,
     )
     _commit_cache()
-    messages = [{"role": "user", "content": prompt}]
-    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = tokenizer([text], return_tensors="pt").to(model.device)
-    input_tokens = int(inputs.input_ids.shape[1])
+    inputs = inputs.to(model.device)
     context_limit = _model_context_limit(model)
     if context_limit is not None and input_tokens + max_tokens > context_limit:
         raise ValueError(

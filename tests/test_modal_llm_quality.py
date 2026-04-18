@@ -68,6 +68,7 @@ from gpu_job.modal_llm import (
     MODAL_LLM_PACKAGES,
     MODAL_LLM_POST_INSTALL_COMMANDS,
     MODAL_LLM_PYTHON_VERSION,
+    _known_context_limit,
     _model_context_limit,
     _model_name,
 )
@@ -79,6 +80,14 @@ class ModalLlmQualityTest(unittest.TestCase):
             "job_type": "llm_heavy",
             "model": "claude-sonnet-4-6",
             "metadata": {"routing": {"quality_requires_gpu": True}},
+        }
+        self.assertEqual(_model_name(job), DEFAULT_HEAVY_MODEL)
+
+    def test_claude_haiku_alias_maps_to_heavy_model(self) -> None:
+        job = {
+            "job_type": "llm_heavy",
+            "model": "claude-haiku-4-5-20251001",
+            "metadata": {"routing": {"quality_requires_gpu": False}},
         }
         self.assertEqual(_model_name(job), DEFAULT_HEAVY_MODEL)
 
@@ -107,6 +116,9 @@ class ModalLlmQualityTest(unittest.TestCase):
             config = Config()
 
         self.assertEqual(_model_context_limit(Model()), 32768)
+
+    def test_known_context_limit_for_modal_heavy_model(self) -> None:
+        self.assertEqual(_known_context_limit(DEFAULT_HEAVY_MODEL), 32768)
 
     def test_modal_heavy_model_avoids_awq_loader_dependency(self) -> None:
         self.assertEqual(MODAL_LLM_PYTHON_VERSION, "3.11")
