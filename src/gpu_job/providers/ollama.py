@@ -12,7 +12,7 @@ from gpu_job.models import Job, now_unix
 from gpu_job.providers.base import Provider
 from gpu_job.resource import ollama_resource_ok
 from gpu_job.store import JobStore
-from gpu_job.verify import verify_artifacts
+from gpu_job.verify import application_verify_payload, verify_artifacts
 
 
 OLLAMA_URL = "http://127.0.0.1:11434"
@@ -174,7 +174,9 @@ class OllamaProvider(Provider):
             (artifact_dir / "result.json").write_text(json.dumps({"text": "", "error": stderr}, ensure_ascii=False, indent=2) + "\n")
         if not (artifact_dir / "metrics.json").exists():
             (artifact_dir / "metrics.json").write_text(json.dumps({"job_id": job.job_id, "provider": self.name}, indent=2) + "\n")
-        (artifact_dir / "verify.json").write_text("{}\n")
+        result_payload = json.loads((artifact_dir / "result.json").read_text())
+        app_verify = application_verify_payload(job.job_type, result_payload, error=stderr)
+        (artifact_dir / "verify.json").write_text(json.dumps(app_verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         verify = verify_artifacts(artifact_dir)
         (artifact_dir / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         job.finished_at = now_unix()

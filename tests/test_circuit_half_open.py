@@ -81,6 +81,47 @@ class CircuitHalfOpenTest(unittest.TestCase):
         else:
             os.environ["XDG_DATA_HOME"] = old_data_home
 
+    def test_execute_cost_guard_defaults_to_selected_provider_only(self) -> None:
+        class FakeProvider:
+            def submit(self, job: Job, store: JobStore, execute: bool = False) -> Job:
+                job.status = "succeeded"
+                job.exit_code = 0
+                store.save(job)
+                return job
+
+        old_data_home = os.environ.get("XDG_DATA_HOME")
+        with TemporaryDirectory() as tmp:
+            os.environ["XDG_DATA_HOME"] = tmp
+            job = _job("guard-scope", "planned", updated_at=now_unix())
+            guard_calls: list[list[str] | None] = []
+
+            def _guard(provider_names=None):
+                guard_calls.append(provider_names)
+                return {"ok": True, "providers": provider_names}
+
+            with patch("gpu_job.runner.validate_policy", return_value={"ok": True}), \
+                patch("gpu_job.runner.evaluate_provenance", return_value={"ok": True}), \
+                patch("gpu_job.runner.evaluate_compliance", return_value={"ok": True}), \
+                patch("gpu_job.runner.evaluate_model_capability", return_value={"ok": True}), \
+                patch("gpu_job.runner.quota_check", return_value={"ok": True}), \
+                patch("gpu_job.runner.cost_estimate", return_value={"ok": True}), \
+                patch("gpu_job.runner.secret_check", return_value={"ok": True}), \
+                patch("gpu_job.runner.placement_check", return_value={"ok": True}), \
+                patch("gpu_job.runner.preemption_check", return_value={"ok": True}), \
+                patch("gpu_job.runner.timeout_contract", return_value={"ok": True, "timeout_seconds": 60}), \
+                patch("gpu_job.runner.make_decision", return_value={"decision_hash": "test"}), \
+                patch("gpu_job.runner.reserve_direct_execution_slot", return_value={"ok": True}), \
+                patch("gpu_job.runner.collect_cost_guard", side_effect=_guard), \
+                patch("gpu_job.runner.get_provider", return_value=FakeProvider()):
+                result = submit_job(job, provider_name="modal", execute=True)
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(guard_calls, [["modal"], ["modal"]])
+        if old_data_home is None:
+            os.environ.pop("XDG_DATA_HOME", None)
+        else:
+            os.environ["XDG_DATA_HOME"] = old_data_home
+
 
 if __name__ == "__main__":
     unittest.main()

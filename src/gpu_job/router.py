@@ -5,6 +5,7 @@ from typing import Any
 import json
 
 from .config import config_path
+from .circuit import provider_circuit_state
 from .models import Job
 from .policy import load_execution_policy
 from .providers import PROVIDERS
@@ -396,17 +397,20 @@ def route_job(job: Job, config_path: Path | None = None) -> dict[str, Any]:
     eligible_ranked = []
     for name in ordered:
         signal = provider_signals.get(name, {})
+        circuit_decision = provider_circuit_state(name)
         capability_decision = capability_policy_decision(job, name)
         startup_decision = startup_policy_decision(job, profile, signal)
         workload_decision = workload_policy_decision(job, profile, signal)
         ok = (
             bool(capability_decision["ok"])
+            and bool(circuit_decision["ok"])
             and bool(signal.get("available"))
             and bool(startup_decision["ok"])
             and bool(workload_decision["ok"])
         )
         provider_decisions[name] = {
             "eligible": ok,
+            "circuit": circuit_decision,
             "capability_policy": capability_decision,
             "provider_available": bool(signal.get("available")),
             "startup_policy": startup_decision,

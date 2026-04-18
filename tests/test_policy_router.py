@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import unittest
+import os
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
-from gpu_job.models import Job
+from gpu_job.models import Job, now_unix
 from gpu_job.policy_engine import validate_policy
-from gpu_job.router import capability_policy_decision, startup_policy_decision, workload_policy_decision
+from gpu_job.router import capability_policy_decision, route_job, startup_policy_decision, workload_policy_decision
 from gpu_job.secrets_policy import secret_check
+from gpu_job.store import JobStore
 
 
 def make_job(**metadata) -> Job:
@@ -127,6 +131,43 @@ class PolicyAndRouterTest(unittest.TestCase):
         result = secret_check(job, provider="modal", policy=policy)
         self.assertFalse(result["ok"])
         self.assertEqual(result["denied_secret_refs"], ["denied"])
+
+    def test_route_skips_provider_with_open_circuit(self) -> None:
+        old_data_home = os.environ.get("XDG_DATA_HOME")
+        try:
+            with TemporaryDirectory() as tmp:
+                os.environ["XDG_DATA_HOME"] = tmp
+                store = JobStore()
+                now = now_unix()
+                for idx in range(5):
+                    failed = make_job()
+                    failed.job_id = f"modal-failed-{idx}"
+                    failed.provider = "modal"
+                    failed.status = "failed"
+                    failed.created_at = now + idx
+                    failed.updated_at = now + idx
+                    failed.metadata["selected_provider"] = "modal"
+                    store.save(failed)
+
+                def _signal(name, _profile):
+                    return {
+                        "provider": name,
+                        "available": True,
+                        "estimated_startup_seconds": 1,
+                    }
+
+                with patch("gpu_job.router.provider_signal", side_effect=_signal), \
+                    patch("gpu_job.router.collect_stats", return_value={"ok": True, "groups": {}}):
+                    result = route_job(make_job(routing={"estimated_gpu_runtime_seconds": 5}))
+
+                self.assertEqual(result["selected_provider"], "ollama")
+                self.assertFalse(result["provider_decisions"]["modal"]["eligible"])
+                self.assertEqual(result["provider_decisions"]["modal"]["circuit"]["state"], "open")
+        finally:
+            if old_data_home is None:
+                os.environ.pop("XDG_DATA_HOME", None)
+            else:
+                os.environ["XDG_DATA_HOME"] = old_data_home
 
 
 if __name__ == "__main__":

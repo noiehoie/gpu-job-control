@@ -112,7 +112,8 @@ def submit_job(
         append_audit("submit.blocked.timeout", {"job_id": job.job_id, "timeout": timeout}, store=store)
         return {"ok": False, "error": job.error, "job": job.to_dict(), "path": str(store.job_path(job.job_id))}
     decision = make_decision(job, phase="submit", route_result=route_result, store=store)
-    pre_guard = collect_cost_guard(provider_names=guard_provider_names) if execute else None
+    billing_guard_providers = guard_provider_names if guard_provider_names is not None else [selected]
+    pre_guard = collect_cost_guard(provider_names=billing_guard_providers) if execute else None
     if pre_guard and not pre_guard["ok"]:
         job.status = "failed"
         job.error = "pre-submit cost guard failed"
@@ -173,7 +174,7 @@ def submit_job(
         store.save(saved)
     finally:
         if execute:
-            post_guard = collect_cost_guard(provider_names=guard_provider_names)
+            post_guard = collect_cost_guard(provider_names=billing_guard_providers)
 
     saved.metadata["pre_submit_guard"] = pre_guard
     saved.metadata["post_submit_guard"] = post_guard

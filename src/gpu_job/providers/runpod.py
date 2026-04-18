@@ -17,7 +17,7 @@ from gpu_job.models import Job, now_unix
 from gpu_job.policy import load_execution_policy
 from gpu_job.providers.base import Provider
 from gpu_job.store import JobStore
-from gpu_job.verify import verify_artifacts
+from gpu_job.verify import application_verify_payload, verify_artifacts
 
 
 def runpod_bin() -> str | None:
@@ -1591,7 +1591,8 @@ mutation {{
         (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "stdout.log").write_text(stdout)
         (artifact_dir / "stderr.log").write_text(stderr)
-        (artifact_dir / "verify.json").write_text("{}\n")
+        app_verify = application_verify_payload(job.job_type, result, error=stderr)
+        (artifact_dir / "verify.json").write_text(json.dumps(app_verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         verify = verify_artifacts(artifact_dir)
         (artifact_dir / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         job.finished_at = now_unix()
@@ -1670,7 +1671,8 @@ mutation {{
         (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "stdout.log").write_text(stdout)
         (artifact_dir / "stderr.log").write_text(stderr)
-        (artifact_dir / "verify.json").write_text("{}\n")
+        app_verify = application_verify_payload(job.job_type, result, error=stderr)
+        (artifact_dir / "verify.json").write_text(json.dumps(app_verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         verify = verify_artifacts(artifact_dir)
         (artifact_dir / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         job.finished_at = now_unix()
