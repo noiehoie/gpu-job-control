@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import sys
 import time
 
 import modal
@@ -9,6 +10,15 @@ import modal
 
 image = modal.Image.debian_slim(python_version="3.12").pip_install("torch", "transformers", "accelerate", "sentencepiece")
 app = modal.App("gpu-job-modal-llm")
+
+DEFAULT_HEAVY_MODEL = "Qwen/Qwen3-32B-AWQ"
+CANARY_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+MODEL_ALIASES = {
+    "claude-sonnet-4-6": DEFAULT_HEAVY_MODEL,
+    "claude-sonnet-4.6": DEFAULT_HEAVY_MODEL,
+    "claude-sonnet": DEFAULT_HEAVY_MODEL,
+    "sonnet": DEFAULT_HEAVY_MODEL,
+}
 
 
 def _prompt(job: dict) -> str:
@@ -34,15 +44,36 @@ def _max_tokens(job: dict) -> int:
 
 
 def _model_name(job: dict) -> str:
-    requested = str(job.get("model") or "")
+    requested = str(job.get("model") or "").strip()
+    metadata = job.get("metadata") if isinstance(job.get("metadata"), dict) else {}
+    routing = metadata.get("routing") if isinstance(metadata.get("routing"), dict) else {}
+    quality_required = bool(routing.get("quality_requires_gpu"))
+    normalized = requested.lower()
+    if normalized in MODEL_ALIASES:
+        return MODEL_ALIASES[normalized]
+    if not requested:
+        return DEFAULT_HEAVY_MODEL if quality_required else CANARY_MODEL
+    if quality_required and normalized in {"qwen/qwen2.5-0.5b-instruct", "qwen2.5-0.5b-instruct"}:
+        raise ValueError(f"quality_requires_gpu job cannot run on canary model: {requested}")
     if requested.startswith("Qwen/"):
         return requested
     if "7b" in requested.lower():
         return "Qwen/Qwen2.5-7B-Instruct"
-    return "Qwen/Qwen2.5-0.5B-Instruct"
+    if quality_required:
+        raise ValueError(f"unsupported quality model alias for modal llm worker: {requested}")
+    return CANARY_MODEL
 
 
-@app.function(image=image, gpu="L4", timeout=1800)
+def _model_context_limit(model: object) -> int | None:
+    config = getattr(model, "config", None)
+    for name in ("max_position_embeddings", "max_sequence_length", "seq_length"):
+        value = getattr(config, name, None)
+        if isinstance(value, int) and value > 0:
+            return value
+    return None
+
+
+@app.function(image=image, gpu="A100", timeout=1800)
 def run_llm(job: dict) -> dict:
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -59,6 +90,13 @@ def run_llm(job: dict) -> dict:
     messages = [{"role": "user", "content": prompt}]
     text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = tokenizer([text], return_tensors="pt").to(model.device)
+    input_tokens = int(inputs.input_ids.shape[1])
+    context_limit = _model_context_limit(model)
+    if context_limit is not None and input_tokens + max_tokens > context_limit:
+        raise ValueError(
+            f"prompt exceeds model context: input_tokens={input_tokens} "
+            f"max_new_tokens={max_tokens} context_limit={context_limit} model={model_name}"
+        )
     generated = model.generate(**inputs, max_new_tokens=max_tokens, do_sample=False)
     new_tokens = generated[:, inputs.input_ids.shape[1] :]
     output = tokenizer.batch_decode(new_tokens, skip_special_tokens=True)[0]
@@ -68,7 +106,7 @@ def run_llm(job: dict) -> dict:
         "provider": "modal",
         "model": model_name,
         "text": output,
-        "input_tokens": int(inputs.input_ids.shape[1]),
+        "input_tokens": input_tokens,
         "output_chars": len(output),
         "runtime_seconds": round(time.time() - started, 3),
     }
@@ -110,3 +148,4 @@ def main(job_json: str, artifact_dir: str):
     (out / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     (out / "stdout.log").write_text(stdout)
     (out / "stderr.log").write_text(stderr)
+    sys.exit(0 if ok else 1)

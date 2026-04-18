@@ -27,7 +27,12 @@ def verify_artifacts(path: Path, required: list[str] | None = None) -> dict[str,
                 parsed_json[name] = True
             except json.JSONDecodeError:
                 parsed_json[name] = False
-    ok = not missing and all(parsed_json.values())
+    verify_payload_ok = True
+    if (path / "verify.json").is_file() and parsed_json.get("verify.json"):
+        verify_payload = json.loads((path / "verify.json").read_text())
+        if isinstance(verify_payload, dict) and "ok" in verify_payload:
+            verify_payload_ok = bool(verify_payload.get("ok"))
+    ok = not missing and all(parsed_json.values()) and verify_payload_ok
     manifest = verify_manifest(path)
     ok = ok and bool(manifest.get("ok"))
     return {
