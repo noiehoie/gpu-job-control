@@ -50,10 +50,10 @@
     },
     "modal:default": {
       "provider": "modal",
-      "job_types": ["smoke", "asr", "llm_heavy"],
+      "job_types": ["smoke", "asr", "llm_heavy", "pdf_ocr", "vlm_ocr"],
       "max_input_tokens": 200000,
       "quality_tier": "external_gpu",
-      "vision": false,
+      "vision": true,
       "asr": true
     },
     "runpod:default": {

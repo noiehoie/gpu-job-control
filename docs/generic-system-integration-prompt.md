@@ -18,9 +18,10 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
 5. provider をシステム側で決め打ちしない。Modal / Ollama / RunPod / Vast の選択は gpu-job-control 側に任せる。
 6. RunPod Serverless vLLM / Hub-template 新規作成には依存しない。現ローンチ方針では deferred。
 7. 429 は model failure ではなく backpressure として扱う。Retry-After を尊重し、必要なら既存 fallback に逃がす。
-8. 完了報告には実コマンド出力を添付する。「実装したはず」で終わらせない。
-9. API token や secret をログ・テスト・fixture・README に出さない。
-10. 破壊操作、DB DROP、既存データ削除、provider-side purge は行わない。
+8. `quality_requires_gpu=true` の処理を、品質要求を満たさない local/Ollama/既存軽量 backend へ自動 fallback してはいけない。品質劣化 fallback は、呼び出し側が `allow_quality_downgrade=true` のような明示設定を持つ場合だけ許す。
+9. 完了報告には実コマンド出力を添付する。「実装したはず」で終わらせない。
+10. API token や secret をログ・テスト・fixture・README に出さない。
+11. 破壊操作、DB DROP、既存データ削除、provider-side purge は行わない。
 
 ## 最重要: `/submit` と `/intake` の意味差
 
@@ -37,6 +38,7 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
 - 即時実行 API ではない。
 - job を `buffered` として保存し、短時間 hold して group planning する入口。
 - `/intake` 自体は LLM text を返さない。
+- `/intake` response に `job_id` が含まれていても、それは「結果」ではない。必ず `GET /jobs/{job_id}` で terminal status を待つ。
 - 実行には gpu-job-control 側の planner/worker が別途動いている必要がある。
 - `buffered -> queued -> starting -> running -> succeeded/failed` へ進むのは worker 側の仕事。
 - 大量 burst、非同期 batch、後で status polling できる処理だけに使う。
@@ -53,6 +55,7 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
 - provider は指定しない。`auto` のままにする。
 - 成功時は response.result から text を抽出する。
 - 429/backpressure、timeout、provider failure、URL/token 未設定時は既存 backend に fallback する。
+- ただし `quality_requires_gpu=true` の job は、品質を満たさない backend へ fallback しない。明示エラーとして返すか、上位の再試行/保留に委ねる。
 - default mode は原則 `sync` にする。既存 CLI や HTTP endpoint の互換性を壊さないため。
 
 ### 2. async_intake mode
@@ -67,6 +70,7 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
 - `succeeded` かつ `result` が存在する時だけ text 抽出する。
 - `failed`, `cancelled` は fallback または明示エラー。
 - polling timeout を超えたら既存 backend に fallback するか、pending としてユーザーに返す。
+- ただし `quality_requires_gpu=true` の job は、polling timeout 時も品質劣化 fallback しない。明示エラー、pending、または再投入可能な状態として扱う。
 - README に「async_intake は gpu-job-control worker 稼働が前提」と明記する。
 
 環境変数例:
@@ -160,6 +164,10 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
 4. routing metadata を必ず入れる
    - `source_system`: このシステム名
    - `task_family`: 要約、翻訳、分類、抽出、semantic_match など
+     - 粒度を粗くしすぎない。単に `summary` だけにせず、実際の処理段階に応じて `summary_day`, `summary_chunk`, `summary_merge`, `summary_week`, `summary_final` のように分ける。
+     - VLM/OCR は `vlm_ocr`, `pdf_ocr`, `image_understanding` のように、画像/PDF/後処理を区別する。
+     - ASR は `asr_transcribe`, `asr_diarize`, `asr_align` のように、文字起こし・話者分離・アラインメントを区別する。
+     - 異種混在 burst でも group planning できるよう、同じシステム内の job は `source_system` を揃え、`task_family` で種類を分ける。
    - `estimated_input_tokens`: 文字数から概算してよい。未指定にしない。
    - `estimated_cpu_runtime_seconds`: 既存 backend での見込み時間
    - `estimated_gpu_runtime_seconds`: GPU backend での見込み時間
@@ -167,11 +175,20 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
    - `quality_requires_gpu`: 品質上 GPU/高性能モデルが必要な時だけ true
    - `burst_size`: 呼び出し側で分かる並列数。分からない単発は 1。
    - `batch_size`: 同一性質の job がまとまる数。分からない単発は 1。
+   - `latency_class`: 分かる場合は `interactive`, `batch`, `bulk` のいずれかを入れる。
+   - `allow_quality_downgrade`: 品質劣化 fallback を許す場合だけ true。省略時は false とみなす。
 
 5. 並列・burst 対応
    - 大量並列が予想される処理だけ `async_intake` を検討する。
    - 1件ずつ同期結果が必要な処理で `/intake` を使わない。
    - 呼び出し側が burst_size を渡せない場合でも、gpu-job-control 側 intake の observed burst に任せる設計にする。
+   - 呼び出し側で分かる burst は必ず渡す。例:
+     - RSS semantic match 15件並列: `burst_size=15`, `task_family=semantic_match`
+     - 海外Vision 22紙: `burst_size=22`, `task_family=vlm_ocr`
+     - 大量要約 chunk 8個: `burst_size=8`, `task_family=summary_chunk`
+     - 429件の小粒分類: `burst_size=429`, `task_family=classify`
+   - 同じ瞬間に異なる種類の処理が混在する場合も、各 job は自分の `task_family` と `burst_size` を正確に渡す。混在全体の整理は gpu-job-control の `/intake` と observed burst に任せる。
+   - `burst_size` を水増しして provider を誘導してはいけない。呼び出し側が観測または予定できる同時投入数だけを書く。
    - 429 が返った場合:
      - retry_after_seconds / Retry-After を読む。
      - すぐ同じ provider に連打しない。
@@ -182,6 +199,9 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
    - `GPU_JOB_CONTROL_URL` または token が未設定なら、既存 backend をそのまま使う。
    - gpu-job-control が 429/backpressure を返した場合、既存 backend に fallback できるなら fallback する。
    - gpu-job-control が timeout/provider failure を返した場合、呼び出し用途に応じて fallback する。
+   - `quality_requires_gpu=true` かつ `allow_quality_downgrade` が true でない場合は、既存 backend が動いていても fallback しない。これは「品質要求を満たさない安価な実行先へ逃がさない」ための安全条件である。
+   - fallback を発火させた場合は、必ず回数・理由・対象 task_family を報告する。
+   - 実負荷テストでは「fallback が無駄に発火していないか」を grep で検証する。単に成功しただけでは合格にしない。
    - JSON strict 出力が必要な処理では、fallback 後も JSON validation を必ず行う。
 
 7. 出力パース
@@ -217,6 +237,10 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
      - 500 provider failure
      - timeout
      - GPU_JOB_CONTROL_URL 未設定時の fallback
+     - `quality_requires_gpu=true` では品質劣化 fallback しない
+     - `allow_quality_downgrade=true` の場合だけ品質劣化 fallback を許す
+     - task_family が処理段階別に入る
+     - burst_size / batch_size が呼び出し側の想定並列数を反映する
      - JSON strict 処理が壊れない
    - 既存 LLM 呼び出しの挙動を壊していないことをテストする。
 
@@ -229,6 +253,11 @@ Use this prompt when a Codex agent must adapt any existing system to use `gpu-jo
    - 結果の status, provider, artifact_count, verify.ok を確認
    - smoke 後に再度 `GET /guard`
    - async_intake mode は gpu-job-control worker が稼働している環境でだけ smoke する
+   - 実負荷に近い小型 E2E がある場合は、以下を確認する:
+     - 実データが adapter 経由で gpu-job-control に投げられる
+     - 逐次/分割/統合など複数 LLM 呼び出しが混在しても terminal status まで進む
+     - fallback grep が期待通りで、無駄な fallback がない
+     - 生成物が従来 backend と同等の形式で取得できる
 
 11. 完了報告
    完了報告は以下の順に書く:

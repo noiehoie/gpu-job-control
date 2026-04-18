@@ -126,7 +126,7 @@ class ModalProvider(Provider):
             "output_uri": job.output_uri,
             "notes": [
                 "Modal runs GPU jobs as functions rather than SSH instances.",
-                "Execute supports GPU smoke, ASR canaries, and llm_heavy canaries and writes the standard artifact contract.",
+                "Execute supports GPU smoke, ASR canaries, llm_heavy canaries, and VLM/OCR canaries and writes the standard artifact contract.",
                 "Worker must write result.json, metrics.json, verify.json, stdout.log, stderr.log.",
             ],
         }
@@ -165,6 +165,18 @@ class ModalProvider(Provider):
             ]
         if job.job_type == "llm_heavy":
             script = package_dir / "modal_llm.py"
+            job_json = JobStore().job_path(job.job_id)
+            return [
+                binary,
+                "run",
+                str(script),
+                "--job-json",
+                str(job_json),
+                "--artifact-dir",
+                str(artifact_dir),
+            ]
+        if job.job_type in {"vlm_ocr", "pdf_ocr"}:
+            script = package_dir / "modal_vlm.py"
             job_json = JobStore().job_path(job.job_id)
             return [
                 binary,

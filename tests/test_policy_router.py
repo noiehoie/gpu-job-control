@@ -64,6 +64,51 @@ class PolicyAndRouterTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertIn("modal preferred for burst fanout", result["preferences"])
 
+    def test_quality_required_vlm_excludes_local_and_ollama(self) -> None:
+        job = Job(
+            job_id="vlm-quality-test",
+            job_type="vlm_ocr",
+            input_uri="text://vision",
+            output_uri="local://out",
+            worker_image="auto",
+            gpu_profile="vlm_ocr",
+            limits={"max_runtime_minutes": 10},
+            metadata={
+                "routing": {
+                    "quality_requires_gpu": True,
+                    "estimated_gpu_runtime_seconds": 30,
+                    "estimated_cpu_runtime_seconds": 0,
+                    "burst_size": 1,
+                }
+            },
+        )
+        profile = {"burst_policy": {"ollama_max_burst_size": 1}}
+        for provider in ("local", "ollama"):
+            result = workload_policy_decision(job, profile, {"provider": provider, "estimated_startup_seconds": 0})
+            self.assertFalse(result["ok"])
+            self.assertIn("quality_requires_gpu excludes", result["reason"])
+
+    def test_modal_supports_quality_required_vlm_job_type(self) -> None:
+        job = Job(
+            job_id="vlm-quality-test",
+            job_type="vlm_ocr",
+            input_uri="text://vision",
+            output_uri="local://out",
+            worker_image="auto",
+            gpu_profile="vlm_ocr",
+            limits={"max_runtime_minutes": 10},
+            metadata={
+                "routing": {
+                    "quality_requires_gpu": True,
+                    "estimated_gpu_runtime_seconds": 30,
+                    "estimated_cpu_runtime_seconds": 0,
+                    "burst_size": 1,
+                }
+            },
+        )
+        result = capability_policy_decision(job, "modal")
+        self.assertTrue(result["ok"])
+
     def test_secret_policy_denies_unlisted_refs(self) -> None:
         job = make_job(source_system="my-app", secret_refs=["allowed", "denied"])
         policy = {
