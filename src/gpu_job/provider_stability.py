@@ -149,7 +149,10 @@ def _runpod_stability(
             "cancel provider job when queue wait exceeds max_queue_seconds",
             "guard before submit and after completion/cancel",
             "new Public Endpoint creation must go through quarantine: create, guard, delete if warm capacity appears, post-guard",
-            "do not promote raw GraphQL or Hub-template Serverless vLLM endpoints before Support or Console/Hub diff closes the worker-init gap",
+            (
+                "do not promote raw GraphQL or Hub-template Serverless vLLM endpoints before "
+                "Support or Console/Hub diff closes the worker-init gap"
+            ),
         ],
         "endpoints": [_runpod_endpoint_summary(endpoint) for endpoint in endpoints],
         "guard": provider_guard,
