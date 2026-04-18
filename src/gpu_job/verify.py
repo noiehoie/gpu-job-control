@@ -15,7 +15,7 @@ def artifact_stats(path: Path) -> tuple[int, int]:
     return len(files), sum(p.stat().st_size for p in files)
 
 
-def verify_artifacts(path: Path, required: list[str] | None = None) -> dict[str, Any]:
+def verify_artifacts(path: Path, required: list[str] | None = None, *, require_manifest: bool = False) -> dict[str, Any]:
     required = required or DEFAULT_REQUIRED
     missing = [name for name in required if not (path / name).is_file()]
     count, bytes_total = artifact_stats(path)
@@ -35,9 +35,11 @@ def verify_artifacts(path: Path, required: list[str] | None = None) -> dict[str,
             verify_payload_ok = bool(verify_payload.get("ok"))
             nested_application_verify = verify_payload.get("application_verify")
             application_verify = nested_application_verify if isinstance(nested_application_verify, dict) else verify_payload
+        else:
+            verify_payload_ok = False
     ok = not missing and all(parsed_json.values()) and verify_payload_ok
     manifest = verify_manifest(path)
-    ok = ok and bool(manifest.get("ok"))
+    ok = ok and bool(manifest.get("ok")) and (not require_manifest or bool(manifest.get("manifest_present")))
     return {
         "ok": ok,
         "artifact_dir": str(path),
@@ -48,6 +50,7 @@ def verify_artifacts(path: Path, required: list[str] | None = None) -> dict[str,
         "json_valid": parsed_json,
         "application_verify": application_verify,
         "manifest": manifest,
+        "require_manifest": require_manifest,
     }
 
 

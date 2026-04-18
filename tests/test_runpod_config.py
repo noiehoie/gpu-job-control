@@ -179,10 +179,10 @@ class RunPodConfigTest(unittest.TestCase):
         result = provider._endpoint_scale_to_zero_invariant({"workersMin": 1, "workersStandby": 0, "workersMax": 1})
         self.assertFalse(result["ok"])
 
-    def test_vllm_endpoint_invariant_allows_observed_standby_without_workers_min(self) -> None:
+    def test_vllm_endpoint_invariant_rejects_observed_standby_without_workers_min(self) -> None:
         provider = RunPodProvider()
         result = provider._endpoint_scale_to_zero_invariant({"workersMin": 0, "workersStandby": 1, "workersMax": 1})
-        self.assertTrue(result["ok"])
+        self.assertFalse(result["ok"])
 
     def test_vllm_endpoint_invariant_rejects_unbounded_default_workers_max(self) -> None:
         provider = RunPodProvider()
@@ -256,6 +256,38 @@ class RunPodConfigTest(unittest.TestCase):
     def test_actual_pod_cost_guard_uses_allocated_cost(self) -> None:
         self.assertTrue(_actual_pod_cost_guard({"costPerHr": 0.46}, max_uptime_seconds=60, max_estimated_cost_usd=0.02)["ok"])
         self.assertFalse(_actual_pod_cost_guard({"costPerHr": 0.46}, max_uptime_seconds=180, max_estimated_cost_usd=0.02)["ok"])
+
+    def test_llm_endpoint_requires_explicit_configuration(self) -> None:
+        old_endpoint = os.environ.pop("RUNPOD_LLM_ENDPOINT_ID", None)
+        old_mode = os.environ.pop("RUNPOD_LLM_ENDPOINT_MODE", None)
+        try:
+            provider = RunPodProvider()
+            endpoints = [{"id": "ep-1", "name": "obvious-llm-endpoint"}]
+            self.assertIsNone(provider._llm_endpoint(endpoints))
+        finally:
+            if old_endpoint is not None:
+                os.environ["RUNPOD_LLM_ENDPOINT_ID"] = old_endpoint
+            if old_mode is not None:
+                os.environ["RUNPOD_LLM_ENDPOINT_MODE"] = old_mode
+
+    def test_llm_endpoint_uses_explicit_configuration_only(self) -> None:
+        old_endpoint = os.environ.get("RUNPOD_LLM_ENDPOINT_ID")
+        old_mode = os.environ.get("RUNPOD_LLM_ENDPOINT_MODE")
+        try:
+            os.environ["RUNPOD_LLM_ENDPOINT_ID"] = "ep-configured"
+            os.environ["RUNPOD_LLM_ENDPOINT_MODE"] = "openai"
+            provider = RunPodProvider()
+            endpoint = provider._llm_endpoint([{"id": "ep-other", "name": "llm"}])
+            self.assertEqual(endpoint, {"id": "ep-configured", "name": "RUNPOD_LLM_ENDPOINT_ID", "mode": "openai"})
+        finally:
+            if old_endpoint is None:
+                os.environ.pop("RUNPOD_LLM_ENDPOINT_ID", None)
+            else:
+                os.environ["RUNPOD_LLM_ENDPOINT_ID"] = old_endpoint
+            if old_mode is None:
+                os.environ.pop("RUNPOD_LLM_ENDPOINT_MODE", None)
+            else:
+                os.environ["RUNPOD_LLM_ENDPOINT_MODE"] = old_mode
 
 
 if __name__ == "__main__":

@@ -11,8 +11,11 @@ from gpu_job.runner import submit_job
 from gpu_job.store import JobStore
 
 
-def _job(job_id: str, status: str, provider: str = "modal", updated_at: int | None = None) -> Job:
+def _job(job_id: str, status: str, provider: str = "modal", updated_at: int | None = None, metadata: dict | None = None) -> Job:
     timestamp = updated_at if updated_at is not None else now_unix()
+    job_metadata = {"selected_provider": provider}
+    if metadata:
+        job_metadata.update(metadata)
     return Job(
         job_id=job_id,
         job_type="llm_heavy",
@@ -24,7 +27,7 @@ def _job(job_id: str, status: str, provider: str = "modal", updated_at: int | No
         status=status,
         created_at=timestamp,
         updated_at=timestamp,
-        metadata={"selected_provider": provider},
+        metadata=job_metadata,
     )
 
 
@@ -41,11 +44,19 @@ class CircuitHalfOpenTest(unittest.TestCase):
             self.assertFalse(open_state["ok"])
             self.assertTrue(open_state["half_open_probe_allowed"])
 
-            store.save(_job("probe-success", "succeeded", updated_at=now + 10))
+            store.save(_job("unrelated-success", "succeeded", updated_at=now + 10))
+            still_open_state = provider_circuit_state("modal", store=store)
+            self.assertFalse(still_open_state["ok"])
+            self.assertEqual(still_open_state["state"], "open")
+            self.assertTrue(still_open_state["latest_success_after_failure"])
+            self.assertFalse(still_open_state["latest_success_is_circuit_probe"])
+
+            store.save(_job("probe-success", "succeeded", updated_at=now + 11, metadata={"circuit_probe": open_state}))
             closed_state = provider_circuit_state("modal", store=store)
             self.assertTrue(closed_state["ok"])
             self.assertEqual(closed_state["state"], "closed")
             self.assertTrue(closed_state["latest_success_after_failure"])
+            self.assertTrue(closed_state["latest_success_is_circuit_probe"])
         if old_data_home is None:
             os.environ.pop("XDG_DATA_HOME", None)
         else:

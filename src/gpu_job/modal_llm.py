@@ -10,7 +10,7 @@ import modal
 
 
 MODAL_LLM_PYTHON_VERSION = "3.11"
-MODAL_LLM_PACKAGES = ["torch", "transformers", "accelerate", "sentencepiece"]
+MODAL_LLM_PACKAGES = ["torch", "transformers", "accelerate", "sentencepiece", "huggingface_hub"]
 MODAL_LLM_POST_INSTALL_COMMANDS: list[str] = []
 MODAL_LLM_CACHE_VOLUME_NAME = "gpu-job-modal-llm-cache"
 MODAL_LLM_CACHE_MOUNT = "/cache"
@@ -95,12 +95,13 @@ def _model_context_limit(model: object) -> int | None:
 def _commit_cache() -> None:
     try:
         model_cache_volume.commit()
-    except Exception:
-        pass
+    except Exception as exc:
+        raise RuntimeError("failed to commit Modal Hugging Face cache volume") from exc
 
 
 @app.function(image=image, gpu="A100-80GB", timeout=3600, volumes={MODAL_LLM_CACHE_MOUNT: model_cache_volume})
 def run_llm(job: dict) -> dict:
+    from huggingface_hub import snapshot_download
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     started = time.time()
@@ -108,6 +109,8 @@ def run_llm(job: dict) -> dict:
     prompt = _prompt(job)
     max_tokens = _max_tokens(job)
     os.makedirs(MODAL_LLM_HF_HOME, exist_ok=True)
+    snapshot_download(model_name, cache_dir=MODAL_LLM_HF_HOME)
+    _commit_cache()
     tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=MODAL_LLM_HF_HOME)
     model = AutoModelForCausalLM.from_pretrained(
         model_name,

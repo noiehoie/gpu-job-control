@@ -10,7 +10,15 @@ from .resource import collect_resource_guard
 def collect_cost_guard(provider_names: list[str] | None = None) -> dict[str, Any]:
     names = provider_names or sorted(PROVIDERS)
     guards = {name: PROVIDERS[name].cost_guard() for name in names}
-    resource_guard = collect_resource_guard()
+    include_local_resource_guard = provider_names is None or any(name in {"local", "ollama"} for name in names)
+    if include_local_resource_guard:
+        resource_guard = collect_resource_guard()
+    else:
+        resource_guard = {
+            "ok": True,
+            "skipped": True,
+            "reason": "local resource guard not applicable to selected remote providers",
+        }
     ok = all(item.get("ok") for item in guards.values()) and bool(resource_guard.get("ok"))
     estimated = 0.0
     unknown_estimate = False

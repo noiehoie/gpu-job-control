@@ -1081,13 +1081,13 @@ mutation {{
         workers_standby = int(endpoint.get("workersStandby") or 0)
         workers_max = int(endpoint.get("workersMax") or 0)
         return {
-            "ok": workers_min == 0 and workers_max == 1,
+            "ok": workers_min == 0 and workers_standby == 0 and workers_max == 1,
             "workersMin": workers_min,
             "workersStandby": workers_standby,
             "workersMax": workers_max,
             "fixed_warm_capacity_basis": (
-                "workersMin is the input-configurable minimum active worker count; "
-                "workersStandby is observed but not accepted by EndpointInput"
+                "workersMin and workersStandby must both remain zero; "
+                "workersStandby is billable warm capacity when observed"
             ),
         }
 
@@ -1379,7 +1379,7 @@ mutation {{
         for endpoint in endpoints:
             workers_min = int(endpoint.get("workersMin") or 0)
             workers_standby = int(endpoint.get("workersStandby") or 0)
-            if workers_min > 0:
+            if workers_min > 0 or workers_standby > 0:
                 warm_endpoints.append(
                     {
                         "type": "serverless_endpoint_warm_capacity",
@@ -1694,11 +1694,7 @@ mutation {{
                 if str(endpoint.get("id")) == configured:
                     return endpoint
             return {"id": configured, "name": "RUNPOD_LLM_ENDPOINT_ID", "mode": os.getenv("RUNPOD_LLM_ENDPOINT_MODE", "").strip()}
-        for endpoint in endpoints:
-            name = str(endpoint.get("name") or "").lower()
-            if "llm" in name:
-                return endpoint
-        return endpoints[0] if endpoints else None
+        return None
 
     def _run_llm_endpoint(self, endpoint: dict[str, Any], job: Job) -> Any:
         if endpoint.get("mode") == "openai":
@@ -1785,7 +1781,8 @@ mutation {{
         except urllib.error.HTTPError as exc:
             body = exc.read().decode(errors="replace")
             raise RuntimeError(f"runpod openai endpoint http {exc.code}: {body}") from exc
-        return {"id": endpoint_id, "status": "COMPLETED", "output": output}
+        provider_job_id = str(output.get("id") or endpoint_id) if isinstance(output, dict) else endpoint_id
+        return {"id": provider_job_id, "endpoint_id": endpoint_id, "status": "COMPLETED", "output": output}
 
 
 def _public_endpoint(endpoint: dict[str, Any]) -> dict[str, Any]:

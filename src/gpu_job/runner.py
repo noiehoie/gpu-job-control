@@ -25,6 +25,7 @@ from .store import JobStore
 from .telemetry import ensure_trace
 from .timeout import runtime_within_timeout, timeout_contract
 from .wal import append_wal
+from .verify import verify_artifacts
 
 
 def submit_job(
@@ -211,7 +212,18 @@ def submit_job(
     store.save(saved)
     if execute and store.artifact_dir(saved.job_id).is_dir():
         try:
-            write_manifest(store.artifact_dir(saved.job_id))
+            artifact_dir = store.artifact_dir(saved.job_id)
+            write_manifest(artifact_dir)
+            final_verify = verify_artifacts(artifact_dir, require_manifest=True)
+            saved.metadata["final_artifact_verify"] = final_verify
+            saved.artifact_count = final_verify["artifact_count"]
+            saved.artifact_bytes = final_verify["artifact_bytes"]
+            if not final_verify["ok"] and saved.status == "succeeded":
+                saved.status = "failed"
+                saved.error = "final artifact verification failed"
+                saved.exit_code = saved.exit_code if saved.exit_code not in {None, 0} else 1
+                saved.metadata["error_class"] = classify_error(saved.error, provider=selected, context={"gate": "artifact_verify"})
+            store.save(saved)
         except Exception as exc:
             saved.metadata["manifest_error"] = str(exc)
             store.save(saved)

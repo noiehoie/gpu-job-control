@@ -60,7 +60,12 @@ def provider_circuit_state(provider: str, store: JobStore | None = None, policy:
         and latest_sample.status == "succeeded"
         and int(latest_sample.updated_at or latest_sample.created_at) >= int(latest_failure.updated_at or latest_failure.created_at)
     )
-    if state == "open" and latest_success_after_failure:
+    latest_success_is_circuit_probe = (
+        latest_sample is not None
+        and latest_sample.status == "succeeded"
+        and isinstance(latest_sample.metadata.get("circuit_probe"), dict)
+    )
+    if state == "open" and latest_success_after_failure and latest_success_is_circuit_probe:
         state = "closed"
     return {
         "ok": state not in {"open"},
@@ -77,6 +82,7 @@ def provider_circuit_state(provider: str, store: JobStore | None = None, policy:
         "half_open_probe_allowed": state == "open" and len(samples) >= min_samples,
         "latest_sample_status": latest_sample.status if latest_sample else None,
         "latest_success_after_failure": latest_success_after_failure,
+        "latest_success_is_circuit_probe": latest_success_is_circuit_probe,
     }
 
 

@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from gpu_job.verify import verify_artifacts
+from gpu_job.manifest import write_manifest
 
 
 class _FakeImage:
@@ -110,6 +111,7 @@ class ModalLlmQualityTest(unittest.TestCase):
     def test_modal_heavy_model_avoids_awq_loader_dependency(self) -> None:
         self.assertEqual(MODAL_LLM_PYTHON_VERSION, "3.11")
         self.assertIn("torch", MODAL_LLM_PACKAGES)
+        self.assertIn("huggingface_hub", MODAL_LLM_PACKAGES)
         self.assertNotIn("AWQ", DEFAULT_HEAVY_MODEL)
         self.assertFalse(any("gptqmodel" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
 
@@ -132,6 +134,37 @@ class VerifyPayloadTest(unittest.TestCase):
             result = verify_artifacts(path)
             self.assertFalse(result["ok"])
             self.assertEqual(result["missing"], [])
+
+    def test_verify_artifacts_rejects_verify_json_without_ok(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            (path / "result.json").write_text(json.dumps({"text": "ok"}) + "\n")
+            (path / "metrics.json").write_text(json.dumps({"runtime_seconds": 1}) + "\n")
+            (path / "verify.json").write_text(json.dumps({"checks": {"text_nonempty": True}}) + "\n")
+            (path / "stdout.log").write_text("")
+            (path / "stderr.log").write_text("")
+
+            result = verify_artifacts(path)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["missing"], [])
+
+    def test_verify_artifacts_can_require_manifest(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            (path / "result.json").write_text(json.dumps({"text": "ok"}) + "\n")
+            (path / "metrics.json").write_text(json.dumps({"runtime_seconds": 1}) + "\n")
+            (path / "verify.json").write_text(json.dumps({"ok": True, "checks": {"text_nonempty": True}}) + "\n")
+            (path / "stdout.log").write_text("")
+            (path / "stderr.log").write_text("")
+
+            without_manifest = verify_artifacts(path, require_manifest=True)
+            self.assertFalse(without_manifest["ok"])
+            self.assertFalse(without_manifest["manifest"]["manifest_present"])
+
+            write_manifest(path)
+            with_manifest = verify_artifacts(path, require_manifest=True)
+            self.assertTrue(with_manifest["ok"])
+            self.assertTrue(with_manifest["manifest"]["manifest_present"])
 
 
 if __name__ == "__main__":
