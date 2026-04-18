@@ -4,7 +4,7 @@
   "output_uri": "local://llm-heavy-modal-canary",
   "worker_image": "modal:qwen2.5",
   "gpu_profile": "llm_heavy",
-  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model": "claude-sonnet-4-6",
   "limits": {
     "max_runtime_minutes": 30,
     "max_cost_usd": 2,
@@ -14,7 +14,7 @@
     "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
   },
   "metadata": {
-    "purpose": "Modal GPU LLM canary",
+    "purpose": "Modal GPU LLM 32B canary",
     "input": {
       "prompt": "Return exactly: GPU LLM OK",
       "max_tokens": 16
