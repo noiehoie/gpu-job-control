@@ -89,11 +89,11 @@ class ModalLlmQualityTest(unittest.TestCase):
 
         self.assertEqual(_model_context_limit(Model()), 32768)
 
-    def test_awq_loader_dependency_is_installed_in_modal_image(self) -> None:
+    def test_modal_heavy_model_avoids_awq_loader_dependency(self) -> None:
         self.assertEqual(MODAL_LLM_PYTHON_VERSION, "3.11")
         self.assertIn("torch", MODAL_LLM_PACKAGES)
-        self.assertTrue(any("gptqmodel" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
-        self.assertTrue(any("--no-build-isolation" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
+        self.assertNotIn("AWQ", DEFAULT_HEAVY_MODEL)
+        self.assertFalse(any("gptqmodel" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
 
 
 class VerifyPayloadTest(unittest.TestCase):

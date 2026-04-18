@@ -10,9 +10,7 @@ import modal
 
 MODAL_LLM_PYTHON_VERSION = "3.11"
 MODAL_LLM_PACKAGES = ["torch", "transformers", "accelerate", "sentencepiece"]
-MODAL_LLM_POST_INSTALL_COMMANDS = [
-    "python -m pip install --no-build-isolation gptqmodel",
-]
+MODAL_LLM_POST_INSTALL_COMMANDS: list[str] = []
 image = (
     modal.Image.debian_slim(python_version=MODAL_LLM_PYTHON_VERSION)
     .pip_install(*MODAL_LLM_PACKAGES)
@@ -20,7 +18,7 @@ image = (
 )
 app = modal.App("gpu-job-modal-llm")
 
-DEFAULT_HEAVY_MODEL = "Qwen/Qwen3-32B-AWQ"
+DEFAULT_HEAVY_MODEL = "Qwen/Qwen2.5-32B-Instruct"
 CANARY_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
 MODEL_ALIASES = {
     "claude-sonnet-4-6": DEFAULT_HEAVY_MODEL,
@@ -82,7 +80,7 @@ def _model_context_limit(model: object) -> int | None:
     return None
 
 
-@app.function(image=image, gpu="A100", timeout=1800)
+@app.function(image=image, gpu="A100-80GB", timeout=1800)
 def run_llm(job: dict) -> dict:
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
