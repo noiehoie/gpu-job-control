@@ -69,9 +69,14 @@ def intake_job(job: Job, provider_name: str = "auto") -> dict[str, Any]:
     if not idempotency["ok"]:
         duplicate = store.load(str(idempotency["duplicate_job_id"]))
         append_audit("intake.duplicate", {"job_id": job.job_id, **idempotency}, store=store)
+        duplicate_intake = _as_dict(duplicate.metadata.get("intake"))
         return {
             "ok": True,
             "duplicate": True,
+            "job_id": duplicate.job_id,
+            "status": duplicate.status,
+            "intake_state": duplicate_intake.get("state"),
+            "group_key": duplicate_intake.get("group_key") or intake_group_key(duplicate),
             "idempotency": idempotency,
             "job": compact_job(duplicate),
             "path": str(store.job_path(duplicate.job_id)),
@@ -92,7 +97,15 @@ def intake_job(job: Job, provider_name: str = "auto") -> dict[str, Any]:
     job.status = "buffered"
     path = store.save(job)
     append_audit("intake.buffered", {"job_id": job.job_id, "group_key": group_key, "idempotency": idempotency}, store=store)
-    return {"ok": True, "job": compact_job(job), "path": str(path)}
+    return {
+        "ok": True,
+        "job_id": job.job_id,
+        "status": job.status,
+        "intake_state": "buffered",
+        "group_key": group_key,
+        "job": compact_job(job),
+        "path": str(path),
+    }
 
 
 def intake_status(limit: int = 100, compact: bool = True) -> dict[str, Any]:
