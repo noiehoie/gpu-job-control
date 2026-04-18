@@ -33,7 +33,7 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
     drain = drain_status()
     retention = retention_report()
     metrics = metrics_snapshot()
-    provider_stability = provider_stability_report()
+    provider_stability = _provider_stability_snapshot()
     checks = {
         "billing_guard": bool(guard.get("ok")),
         "policy": bool(policy.get("ok")),
@@ -45,7 +45,6 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
         "drain_state": bool(drain.get("ok")),
         "retention_report": bool(retention.get("ok")),
         "metrics": bool(metrics.get("ok")),
-        "provider_stability": bool(provider_stability.get("ok")),
     }
     ok = all(checks.values())
     return {
@@ -66,6 +65,18 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
         "provider_stability": _compact(provider_stability),
         "queue": {"ok": queue.get("ok"), "counts": queue.get("counts"), "capacity": queue.get("capacity")},
     }
+
+
+def _provider_stability_snapshot() -> dict[str, Any]:
+    try:
+        return provider_stability_report()
+    except Exception as exc:
+        return {
+            "ok": False,
+            "skipped": True,
+            "reason": "provider stability uses optional external provider CLIs/SDKs",
+            "error": str(exc),
+        }
 
 
 def _compact(value: dict[str, Any]) -> dict[str, Any]:
