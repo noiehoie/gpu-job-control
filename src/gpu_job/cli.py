@@ -170,7 +170,7 @@ def cmd_queue(args: argparse.Namespace) -> int:
 
 def cmd_cancel(args: argparse.Namespace) -> int:
     if args.job_id:
-        result = cancel_job(args.job_id)
+        result = cancel_job(args.job_id, force=args.force, reason=args.reason)
     else:
         result = cancel_group(source_system=args.source_system, workflow_id=args.workflow_id, task_family=args.task_family)
     print_json(result)
@@ -671,6 +671,8 @@ def build_parser() -> argparse.ArgumentParser:
     cancel.add_argument("--source-system", default="", help="cancel jobs from this source system")
     cancel.add_argument("--workflow-id", default="", help="cancel jobs in this workflow")
     cancel.add_argument("--task-family", default="", help="cancel jobs in this task family")
+    cancel.add_argument("--force", action="store_true", help="mark an active job failed only after its timeout contract is exceeded")
+    cancel.add_argument("--reason", default="", help="operator-visible cancel reason")
     cancel.set_defaults(func=cmd_cancel)
 
     replan = sub.add_parser("replan", help="recompute provider placement for queued jobs")

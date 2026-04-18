@@ -468,7 +468,9 @@ class GPUJobHandler(BaseHTTPRequestHandler):
             if path == "/cancel":
                 job_id = str(payload.get("job_id") or _first(qs, "job_id", ""))
                 if job_id:
-                    _json_response(self, 200, cancel_job(_safe_id(job_id, field="job_id")))
+                    force = bool(payload.get("force", False)) or _truthy(_first(qs, "force", ""))
+                    reason = str(payload.get("reason") or _first(qs, "reason", ""))
+                    _json_response(self, 200, cancel_job(_safe_id(job_id, field="job_id"), force=force, reason=reason))
                 else:
                     _json_response(
                         self,

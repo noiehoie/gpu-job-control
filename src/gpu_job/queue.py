@@ -13,6 +13,7 @@ from .remediation import apply_remediation
 from .runner import submit_job
 from .router import route_job
 from .store import JobStore, StoreLock
+from .timeout import timeout_contract
 from .wal import wal_recovery_status
 
 
@@ -43,13 +44,35 @@ def queue_status(limit: int = 100, compact: bool = False) -> dict[str, Any]:
     }
 
 
-def cancel_job(job_id: str) -> dict[str, Any]:
+def cancel_job(job_id: str, *, force: bool = False, reason: str = "") -> dict[str, Any]:
     store = JobStore()
     job = store.load(job_id)
     if job.status not in {"created", "buffered", "planned", "queued"}:
-        raise ValueError(f"cannot cancel job in status: {job.status}")
+        if not force or job.status not in ACTIVE_STATUSES:
+            raise ValueError(f"cannot cancel job in status: {job.status}")
+        timeout = timeout_contract(job)
+        elapsed = _active_elapsed_seconds(job)
+        limit = int(timeout.get("max_runtime_seconds") or 0)
+        if limit > 0 and elapsed < limit:
+            raise ValueError(f"cannot force-cancel active job before timeout: elapsed={elapsed}s limit={limit}s")
+        old_status = job.status
+        job.status = "failed"
+        job.finished_at = now_unix()
+        job.runtime_seconds = elapsed
+        job.exit_code = 124
+        job.error = reason or f"force-cancelled stale {old_status} job after {elapsed}s"
+        job.metadata["force_cancelled"] = {
+            "old_status": old_status,
+            "elapsed_seconds": elapsed,
+            "timeout_contract": timeout,
+            "reason": reason,
+            "cancelled_at": job.finished_at,
+        }
+        store.save(job)
+        return {"ok": True, "forced": True, "job": job.to_dict()}
     job.status = "cancelled"
     job.finished_at = now_unix()
+    job.error = reason or job.error
     store.save(job)
     return {"ok": True, "job": job.to_dict()}
 
@@ -106,21 +129,45 @@ def recover_stale_jobs(policy: dict[str, Any] | None = None) -> list[dict[str, A
     for job in store.list_jobs(limit=1000):
         if job.status not in ACTIVE_STATUSES:
             continue
-        threshold = int(stale_seconds.get(job.status, 0) or 0)
+        timeout = timeout_contract(job, policy=policy)
+        threshold = _effective_stale_threshold(job, stale_seconds, timeout)
         if threshold <= 0:
             continue
-        base = int(job.started_at or job.updated_at or job.created_at)
-        if now - base < threshold:
+        base = _active_base_time(job)
+        elapsed = now - base
+        if elapsed < threshold:
             continue
         old_status = job.status
         job.status = "failed"
         job.finished_at = now
         job.exit_code = 124
+        job.runtime_seconds = max(0, elapsed)
         job.error = f"stale {old_status} job exceeded {threshold}s"
         job.metadata["stale_recovered_at"] = now
+        job.metadata["stale_recovery"] = {
+            "old_status": old_status,
+            "elapsed_seconds": elapsed,
+            "threshold_seconds": threshold,
+            "timeout_contract": timeout,
+        }
         store.save(job)
         recovered.append(job.to_dict())
     return recovered
+
+
+def _active_base_time(job: Job) -> int:
+    return int(job.started_at or job.updated_at or job.created_at)
+
+
+def _active_elapsed_seconds(job: Job) -> int:
+    return max(0, now_unix() - _active_base_time(job))
+
+
+def _effective_stale_threshold(job: Job, stale_seconds: dict[str, Any], timeout: dict[str, Any]) -> int:
+    configured = int(stale_seconds.get(job.status, 0) or 0)
+    timeout_limit = int(timeout.get("max_runtime_seconds") or 0)
+    candidates = [value for value in (configured, timeout_limit) if value > 0]
+    return min(candidates) if candidates else 0
 
 
 def replan_queued_jobs(limit: int = 1000) -> dict[str, Any]:
