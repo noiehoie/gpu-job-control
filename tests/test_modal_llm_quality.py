@@ -90,6 +90,7 @@ class ModalLlmQualityTest(unittest.TestCase):
 
     def test_awq_loader_dependency_is_installed_in_modal_image(self) -> None:
         self.assertIn("torch", MODAL_LLM_PACKAGES)
+        self.assertTrue(any("pcre" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
         self.assertTrue(any("gptqmodel" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
         self.assertTrue(any("--no-build-isolation" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
 
