@@ -1,6 +1,6 @@
-# RunPod Support Question v7: Serverless vLLM Hub Deploy vs GraphQL Diff
+# RunPod Support Question v7.1: Serverless vLLM Hub Deploy vs GraphQL Diff + Worker EXITED on Create Evidence
 
-Updated: 2026-04-18 09:42 JST.
+Updated: 2026-04-18 09:59 JST.
 
 ## Support-Ready Summary
 
@@ -17,8 +17,9 @@ Pods, Pod HTTP proxy execution, Pod `llm_heavy` generation, and Pod Network Volu
 |---|---|---|---|
 | A: provisioning / placement / worker init | `throttled=1`, `initializing=0`, `ready=0`, `running=0`, `jobs.inQueue=1`, `/openai/v1/models` timeout | `vllm-886lfe61fzhhfg` / `n4gi1ni6kw`; retained endpoint `vllm-623t63akmshaoi` / `7nwbqj31ti` | P0 |
 | B: dispatch / queue | worker reached `ready=1` or `running=1`, but job status stayed `IN_QUEUE` | earlier `Qwen/Qwen2.5-0.5B-Instruct` attempts | P1 / secondary |
+| C: worker rents then exits immediately on create | endpoint creation caused a worker to be rented briefly even with `workersMin=0`; worker then showed `desiredStatus=EXITED` | endpoint `vllm-l4dvjioyy54cgq`, template `n4gi1ni6kw`, worker `oi8f9higbegvwo` | P0 |
 
-Please prioritize **Case A** first. Case B may be related, but it can be treated as secondary unless internal logs show the same root cause.
+Please prioritize **Case A** first. Case C is new evidence that may help classify scale-to-zero semantics plus worker boot failure separately from pure throttling. Case B may be related, but it can be treated as secondary unless internal logs show the same root cause.
 
 ## Investigation Keys
 
@@ -33,7 +34,100 @@ Please prioritize **Case A** first. Case B may be related, but it can be treated
 | Retained template | `7nwbqj31ti` |
 | Hub-derived ADA_24 retest | endpoint `vllm-886lfe61fzhhfg`, template `n4gi1ni6kw` |
 | Hub-derived AMPERE_80 retest | endpoint `vllm-4z0vha0ofxeupm`, template `0o8jdbjtw1` |
+| 80GB GPU-name prioritized canary, Case C | endpoint `vllm-l4dvjioyy54cgq`, template `n4gi1ni6kw`, worker `oi8f9higbegvwo` |
 | CLI version tested | `runpodctl 2.1.9-673143d` |
+
+## New Evidence: Case C Worker Was Rented Immediately, Then EXITED
+
+We created a new endpoint using the Hub image template `n4gi1ni6kw` with `containerDiskInGb=150` and `MODEL_NAME=facebook/opt-125m`.
+
+In this `runpodctl` / REST-based creation path, GPU selection accepted concrete GPU type names rather than GraphQL pool IDs. We prioritized 80GB-class GPU names:
+
+- `NVIDIA H100 80GB HBM3`
+- `NVIDIA A100-SXM4-80GB`
+- `NVIDIA A100 80GB PCIe`
+
+Endpoint creation succeeded:
+
+```text
+endpointId=vllm-l4dvjioyy54cgq
+templateId=n4gi1ni6kw
+workersMin=0
+workersMax=1
+idleTimeout=120
+scalerType=QUEUE_DELAY
+scalerValue=15
+```
+
+Immediately after creation, the endpoint showed a worker object that had been rented briefly:
+
+```text
+workerId=oi8f9higbegvwo
+desiredStatus=EXITED
+costPerHr=2.99
+lastStartedAt=2026-04-18 00:51:29.042 +0000 UTC
+lastStatusChange=Rented by User: Sat Apr 18 2026 00:51:29 GMT+0000
+imageName=registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d
+memoryInGb=251
+vcpuCount=28
+```
+
+The worker environment contained RunPod-injected internal variables. Secret values were redacted before saving, but these keys were present:
+
+```text
+RUNPOD_AI_API_ID
+RUNPOD_AI_API_KEY
+RUNPOD_DEBUG_LEVEL
+RUNPOD_ENDPOINT_ID
+RUNPOD_ENDPOINT_SECRET
+RUNPOD_GPU_SIZE
+RUNPOD_PING_INTERVAL
+RUNPOD_WEBHOOK_GET_JOB
+RUNPOD_WEBHOOK_PING
+RUNPOD_WEBHOOK_POST_OUTPUT
+RUNPOD_WEBHOOK_POST_STREAM
+```
+
+`RUNPOD_GPU_SIZE` contained pool-like selection information:
+
+```text
+ADA_80_PRO,-NVIDIA H100 PCIe,-NVIDIA H100 NVL,AMPERE_80
+```
+
+For safety, we updated the endpoint to `workersMin=0` and `workersMax=0`, then deleted endpoint `vllm-l4dvjioyy54cgq`. Template `n4gi1ni6kw` was intentionally retained.
+
+Delete result:
+
+```json
+{
+  "deleted": true,
+  "id": "vllm-l4dvjioyy54cgq"
+}
+```
+
+Post-delete endpoint list contained only retained endpoint `vllm-623t63akmshaoi`. Post-delete guard confirmed no RunPod billable compute resources:
+
+```text
+runpod.billable_resources=[]
+runpod.estimated_hourly_usd=0
+```
+
+Remaining endpoint health from guard:
+
+```text
+endpoint=vllm-623t63akmshaoi
+jobs.completed=0
+jobs.failed=0
+jobs.inProgress=0
+jobs.inQueue=1
+jobs.retried=0
+workers.idle=0
+workers.initializing=0
+workers.ready=0
+workers.running=0
+workers.throttled=0
+workers.unhealthy=0
+```
 
 ## Core Questions For Support
 
@@ -42,11 +136,16 @@ Please prioritize **Case A** first. Case B may be related, but it can be treated
 3. If GraphQL is the supported direct API path, can Support provide the exact resolved Serverless template and endpoint fields that Console/Hub deploy creates for Hub ID `cm8h09d9n000008jvh2rqdsmb`, so we can diff them field-by-field against our GraphQL-created endpoint?
 4. For the official Hub vLLM release, what are the minimum and recommended values for `imageName`, `containerDiskInGb`, GPU pool, `ports`, `dockerArgs` or start command, readiness/health behavior, and OpenAI routing mode?
 5. In Case A, why does endpoint health show `throttled=1` and `jobs.inQueue=1` while `initializing=0`, `ready=0`, `running=0`, and `/openai/v1/models` never becomes reachable?
-6. Does `workersStandby` represent any warm or billable capacity when `workersMin=0`, or is it only an observed scaler state?
-7. Is `workersMax=0` invalid for endpoint creation and treated as unset/default `3`? We now use `workersMin=0, workersMax=1` for canary creation and reserve `workersMax=0` only for a cleanup/quiesce attempt before deletion. Please confirm the intended spec.
-8. Do `flashBootType=FLASHBOOT` and `ports=8000/http` change worker scheduling, image pull, readiness, or OpenAI gateway routing behavior for the official vLLM Serverless worker?
-9. What is the exact expected native `/run` or `/runsync` input schema for Hub vLLM release `v2.14.0`? The public quickstart shows `{"input": {"prompt": "Hello World"}}`; is that still correct?
-10. Is there any public API to fetch scheduler/router/worker-init logs for these endpoint IDs, or must Support inspect internal logs?
+6. In Case C, please inspect internal worker-init logs for endpoint `vllm-l4dvjioyy54cgq` and worker `oi8f9higbegvwo`. Did the worker exit because of image pull, boot/entrypoint crash, readiness failure, OpenAI routing attachment failure, or another reason?
+7. Is it expected that a worker can be rented at endpoint creation time even when `workersMin=0`? If yes, under what conditions: validation, prewarm, health check, or initial scaler behavior?
+8. Does `workersStandby` represent any warm or billable capacity when `workersMin=0`, or is it only an observed scaler state?
+9. Is `workersMax=0` invalid for endpoint creation and treated as unset/default `3`? We now use `workersMin=0, workersMax=1` for canary creation and reserve `workersMax=0` only for a cleanup/quiesce attempt before deletion. Please confirm the intended spec.
+
+## Secondary Questions
+
+1. Do `flashBootType=FLASHBOOT` and `ports=8000/http` change worker scheduling, image pull, readiness, or OpenAI gateway routing behavior for the official vLLM Serverless worker?
+2. What is the exact expected native `/run` or `/runsync` input schema for Hub vLLM release `v2.14.0`? The public quickstart shows `{"input": {"prompt": "Hello World"}}`; is that still correct?
+3. Is there any public API to fetch scheduler/router/worker-init logs for these endpoint IDs, or must Support inspect internal logs?
 
 ## CLI Surface Mismatch Evidence
 
