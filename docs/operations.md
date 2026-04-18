@@ -57,6 +57,69 @@ GPU_JOB_CAPABILITIES_CONFIG=/path/to/model-capabilities.json
 
 The loader also checks `$XDG_CONFIG_HOME/gpu-job-control/` before falling back to repository defaults.
 
+## Git-Based Operational Sync
+
+Use GitHub or another private Git remote as the canonical source, and run production from a normal clone. Avoid maintaining a hand-copied deployment directory.
+
+Recommended layout:
+
+```text
+canonical source:  private Git remote
+operational clone: /home/admin/gpu-job-control
+runtime config:    $XDG_CONFIG_HOME/gpu-job-control
+runtime data:      $XDG_DATA_HOME/gpu-job-control
+```
+
+Environment-specific policy, provider budgets, approved persistent volumes, and tokens belong in XDG config or a host-local secret manager, not in the repository. For example:
+
+```text
+GPU_JOB_EXECUTION_POLICY=$XDG_CONFIG_HOME/gpu-job-control/execution-policy.json
+```
+
+Routine update:
+
+```bash
+cd /home/admin/gpu-job-control
+git status --short
+git pull --ff-only
+uv sync --extra providers
+gpu-job doctor
+gpu-job selftest
+gpu-job guard
+sudo systemctl restart gpu-job-api.service gpu-job-worker.service
+curl -sS -H "Authorization: Bearer $GPU_JOB_API_TOKEN" \
+  http://127.0.0.1:8765/guard
+```
+
+Before replacing an existing non-Git deployment, stage the migration as a canary:
+
+```bash
+cd /home/admin
+git clone <private-repo-url> gpu-job-control.gitcheck
+cd gpu-job-control.gitcheck
+uv sync --extra providers
+gpu-job doctor
+gpu-job selftest
+gpu-job guard
+```
+
+Only switch the service directory after the canary clone passes guard with no active or queued work. Preserve the old deployment instead of deleting it:
+
+```bash
+sudo systemctl stop gpu-job-worker.service gpu-job-api.service
+mv /home/admin/gpu-job-control /home/admin/gpu-job-control.manual-$(date +%Y%m%d-%H%M%S)
+mv /home/admin/gpu-job-control.gitcheck /home/admin/gpu-job-control
+rm -rf /home/admin/gpu-job-control/.venv
+cd /home/admin/gpu-job-control
+uv sync --extra providers
+sudo systemctl start gpu-job-api.service gpu-job-worker.service
+gpu-job doctor
+gpu-job selftest
+gpu-job guard
+```
+
+If the clone was moved after `uv sync`, rebuild `.venv`. Console-script shebangs inside `.venv/bin` contain the original absolute path and can break after a directory rename.
+
 ## API
 
 The built-in API is intended as a localhost or private-network sidecar. It uses the Python standard library HTTP server to keep the control-plane core dependency-free; put it behind a production reverse proxy if exposing it beyond a trusted host boundary.
