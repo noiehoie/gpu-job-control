@@ -18,6 +18,9 @@ class _FakeImage:
     def pip_install(self, *packages: str) -> "_FakeImage":
         return self
 
+    def run_commands(self, *commands: str) -> "_FakeImage":
+        return self
+
 
 class _FakeApp:
     def __init__(self, name: str) -> None:
@@ -40,7 +43,14 @@ if "modal" not in sys.modules:
     fake_modal = types.SimpleNamespace(Image=_FakeImage, App=_FakeApp)
     sys.modules["modal"] = fake_modal
 
-from gpu_job.modal_llm import CANARY_MODEL, DEFAULT_HEAVY_MODEL, MODAL_LLM_PACKAGES, _model_context_limit, _model_name
+from gpu_job.modal_llm import (
+    CANARY_MODEL,
+    DEFAULT_HEAVY_MODEL,
+    MODAL_LLM_PACKAGES,
+    MODAL_LLM_POST_INSTALL_COMMANDS,
+    _model_context_limit,
+    _model_name,
+)
 
 
 class ModalLlmQualityTest(unittest.TestCase):
@@ -79,7 +89,9 @@ class ModalLlmQualityTest(unittest.TestCase):
         self.assertEqual(_model_context_limit(Model()), 32768)
 
     def test_awq_loader_dependency_is_installed_in_modal_image(self) -> None:
-        self.assertIn("gptqmodel", MODAL_LLM_PACKAGES)
+        self.assertIn("torch", MODAL_LLM_PACKAGES)
+        self.assertTrue(any("gptqmodel" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
+        self.assertTrue(any("--no-build-isolation" in command for command in MODAL_LLM_POST_INSTALL_COMMANDS))
 
 
 class VerifyPayloadTest(unittest.TestCase):
