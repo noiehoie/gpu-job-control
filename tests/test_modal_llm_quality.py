@@ -71,6 +71,7 @@ from gpu_job.modal_llm import (
     _known_context_limit,
     _model_context_limit,
     _model_name,
+    _prompt,
 )
 
 
@@ -131,6 +132,36 @@ class ModalLlmQualityTest(unittest.TestCase):
         self.assertEqual(MODAL_LLM_CACHE_VOLUME_NAME, "gpu-job-modal-llm-cache")
         self.assertEqual(MODAL_LLM_CACHE_MOUNT, "/cache")
         self.assertEqual(MODAL_LLM_HF_HOME, "/cache/huggingface")
+
+    def test_prompt_includes_workflow_chunk_items(self) -> None:
+        job = {
+            "input_uri": "workflow://topic-ranking/chunks/0",
+            "metadata": {
+                "input": {
+                    "prompt": "Rank these articles.",
+                    "items": [{"article_id": "a1", "title": "Alpha"}],
+                }
+            },
+        }
+
+        prompt = _prompt(job)
+
+        self.assertIn("Rank these articles.", prompt)
+        self.assertIn("INPUT_JSON", prompt)
+        self.assertIn("article_id", prompt)
+        self.assertIn("Alpha", prompt)
+
+    def test_prompt_uses_items_without_prompt(self) -> None:
+        job = {
+            "input_uri": "workflow://topic-ranking/chunks/0",
+            "metadata": {"input": {"items": [{"article_id": "a1", "title": "Alpha"}]}},
+        }
+
+        prompt = _prompt(job)
+
+        self.assertIn("items", prompt)
+        self.assertIn("article_id", prompt)
+        self.assertNotIn("workflow://", prompt)
 
 
 class VerifyPayloadTest(unittest.TestCase):

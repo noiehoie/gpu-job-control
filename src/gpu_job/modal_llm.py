@@ -55,10 +55,22 @@ def _prompt(job: dict) -> str:
     payload = payload if isinstance(payload, dict) else {}
     prompt = str(payload.get("prompt") or "")
     system_prompt = str(payload.get("system_prompt") or "")
+    items = payload.get("items")
+    items_text = ""
+    if isinstance(items, list):
+        items_text = json.dumps({"items": items}, ensure_ascii=False, sort_keys=True)
     if system_prompt:
+        if prompt and items_text:
+            return f"{system_prompt}\n\n{prompt}\n\nINPUT_JSON:\n{items_text}"
+        if items_text:
+            return f"{system_prompt}\n\nINPUT_JSON:\n{items_text}"
         return f"{system_prompt}\n\n{prompt}"
     if prompt:
+        if items_text:
+            return f"{prompt}\n\nINPUT_JSON:\n{items_text}"
         return prompt
+    if items_text:
+        return items_text
     input_uri = str(job.get("input_uri") or "")
     return input_uri.removeprefix("text://")
 
