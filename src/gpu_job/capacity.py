@@ -142,7 +142,7 @@ def reserve_direct_execution_slot(job: Job, provider: str) -> dict[str, Any]:
             }
         job.provider = provider
         job.status = "starting"
-        job.started_at = job.started_at or now_unix()
+        job.metadata["startup_started_at"] = job.metadata.get("startup_started_at") or now_unix()
         job.metadata["selected_provider"] = provider
         store.save(job)
         return {

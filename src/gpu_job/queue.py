@@ -157,6 +157,10 @@ def recover_stale_jobs(policy: dict[str, Any] | None = None) -> list[dict[str, A
 
 
 def _active_base_time(job: Job) -> int:
+    if job.status == "starting":
+        startup_started = job.metadata.get("startup_started_at")
+        if startup_started is not None:
+            return int(startup_started)
     return int(job.started_at or job.updated_at or job.created_at)
 
 

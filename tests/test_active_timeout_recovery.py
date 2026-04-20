@@ -28,6 +28,29 @@ def running_job(*, started_delta: int = 600, max_runtime_minutes: float = 5) -> 
     )
 
 
+def starting_job(*, startup_delta: int = 600, stale_seconds: int = 300) -> Job:
+    now = now_unix()
+    return Job(
+        job_id="active-timeout-test",
+        job_type="asr",
+        input_uri="text://audio",
+        output_uri="local://out",
+        worker_image="auto",
+        gpu_profile="asr_diarization",
+        provider="vast",
+        status="starting",
+        limits={"max_runtime_minutes": 60},
+        created_at=now - 10,
+        updated_at=now - 10,
+        started_at=None,
+        metadata={
+            "selected_provider": "vast",
+            "startup_started_at": now - startup_delta,
+            "expected_startup_stale_seconds": stale_seconds,
+        },
+    )
+
+
 class ActiveTimeoutRecoveryTest(unittest.TestCase):
     def test_recover_stale_jobs_uses_job_timeout_contract(self) -> None:
         old_data_home = os.environ.get("XDG_DATA_HOME")
@@ -75,6 +98,26 @@ class ActiveTimeoutRecoveryTest(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "before timeout"):
                 cancel_job("active-timeout-test", force=True)
+        if old_data_home is None:
+            os.environ.pop("XDG_DATA_HOME", None)
+        else:
+            os.environ["XDG_DATA_HOME"] = old_data_home
+
+    def test_recover_starting_job_uses_startup_clock_not_runtime_clock(self) -> None:
+        old_data_home = os.environ.get("XDG_DATA_HOME")
+        with TemporaryDirectory() as tmp:
+            os.environ["XDG_DATA_HOME"] = tmp
+            store = JobStore()
+            store.save(starting_job(startup_delta=600))
+
+            recovered = recover_stale_jobs({"stale_seconds": {"starting": 300, "running": 14400}})
+
+            self.assertEqual(len(recovered), 1)
+            self.assertEqual(recovered[0]["status"], "failed")
+            self.assertIn("stale starting job exceeded 300s", recovered[0]["error"])
+            saved = store.load("active-timeout-test")
+            self.assertIsNone(saved.started_at)
+            self.assertGreaterEqual(saved.metadata["stale_recovery"]["elapsed_seconds"], 600)
         if old_data_home is None:
             os.environ.pop("XDG_DATA_HOME", None)
         else:

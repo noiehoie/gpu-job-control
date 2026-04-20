@@ -218,8 +218,9 @@ class VastProvider(Provider):
         artifact_dir = store.artifact_dir(job.job_id)
         artifact_dir.mkdir(parents=True, exist_ok=True)
         start = now_unix()
-        job.started_at = start
-        job.status = "running"
+        job.started_at = None
+        job.status = "starting"
+        job.metadata["startup_started_at"] = start
         store.save(job)
         instance_id = ""
         created_ids: set[str] = set()
@@ -332,6 +333,10 @@ class VastProvider(Provider):
 
             logs_text = ""
             instant_phase(job, "starting_worker", provider=self.name, status="ok")
+            job.status = "running"
+            job.started_at = now_unix()
+            job.metadata["worker_started_at"] = job.started_at
+            store.save(job)
             enter_phase(job, "running_worker", provider=self.name)
             running_open = True
             store.save(job)
@@ -459,7 +464,8 @@ class VastProvider(Provider):
             )
             verify = verify_artifacts(artifact_dir)
             job.finished_at = now_unix()
-            job.runtime_seconds = max(0, job.finished_at - start)
+            job.metadata["total_elapsed_seconds"] = max(0, job.finished_at - start)
+            job.runtime_seconds = max(0, job.finished_at - int(job.started_at or start))
             job.artifact_count = verify["artifact_count"]
             job.artifact_bytes = verify["artifact_bytes"]
             job.exit_code = 0 if not job.error and verify["ok"] else 1
@@ -478,8 +484,9 @@ class VastProvider(Provider):
         artifact_dir = store.artifact_dir(job.job_id)
         artifact_dir.mkdir(parents=True, exist_ok=True)
         start = now_unix()
-        job.started_at = start
-        job.status = "running"
+        job.started_at = None
+        job.status = "starting"
+        job.metadata["startup_started_at"] = start
         store.save(job)
         label = f"gpu-job:{job.job_id}"
         instance_id = ""
@@ -715,6 +722,10 @@ class VastProvider(Provider):
                 + (f"--speaker-model {shlex.quote(speaker_model)} " if diarize else "")
             )
             instant_phase(job, "starting_worker", provider=self.name, status="ok")
+            job.status = "running"
+            job.started_at = now_unix()
+            job.metadata["worker_started_at"] = job.started_at
+            store.save(job)
             enter_phase(job, "running_worker", provider=self.name)
             store.save(job)
             remote = run([*ssh_parts, remote_cmd], capture_output=True, text=True, timeout=max_runtime)
@@ -789,7 +800,8 @@ class VastProvider(Provider):
             )
             verify = verify_artifacts(artifact_dir, require_gpu_utilization=True)
             job.finished_at = now_unix()
-            job.runtime_seconds = max(0, job.finished_at - start)
+            job.metadata["total_elapsed_seconds"] = max(0, job.finished_at - start)
+            job.runtime_seconds = max(0, job.finished_at - int(job.started_at or start))
             hourly_usd = float((job.metadata.get("vast_offer") or {}).get("dph_total") or 0)
             job.metadata["vast_runtime_cost"] = {
                 "estimated_hourly_usd": hourly_usd,
