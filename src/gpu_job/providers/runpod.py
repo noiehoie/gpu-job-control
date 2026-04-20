@@ -14,6 +14,8 @@ import urllib.error
 import urllib.request
 
 from gpu_job.models import Job, now_unix
+from gpu_job.execution_plan import build_execution_plan
+from gpu_job.image_contracts import load_image_contract_registry
 from gpu_job.policy import load_execution_policy
 from gpu_job.providers.base import Provider
 from gpu_job.store import JobStore
@@ -297,12 +299,13 @@ class RunPodProvider(Provider):
         max_uptime_seconds: int,
         max_estimated_cost_usd: float,
         docker_args: str,
+        container_registry_auth_id: str = "",
     ) -> dict[str, Any]:
         gpu_info = self._gpu_type_info(gpu_type_id, gpu_count=gpu_count)
         price = _gpu_uninterruptable_price(gpu_info)
         estimated = None if price is None else round(float(price) * max_uptime_seconds / 3600, 6)
         ok_cost = estimated is not None and estimated <= max_estimated_cost_usd
-        return {
+        plan = {
             "ok": bool(gpu_info.get("ok")) and ok_cost,
             "provider": self.name,
             "plan_version": "runpod-pod-worker-plan-v1",
@@ -310,7 +313,7 @@ class RunPodProvider(Provider):
                 "graphql_docs": "https://docs.runpod.io/sdks/graphql/manage-pods",
                 "create_mutation": "podFindAndDeployOnDemand",
                 "stop_mutation": "podStop",
-                "sdk_cleanup": "runpod.terminate_pod",
+                "graphql_cleanup": "podStop(input: {podId: ...})",
             },
             "pod_input": {
                 "name": "gpu-job-pod-canary-<timestamp>",
@@ -340,6 +343,13 @@ class RunPodProvider(Provider):
                 "run post-guard and require no active pods",
             ],
         }
+        if container_registry_auth_id:
+            plan["pod_input"]["containerRegistryAuthId"] = container_registry_auth_id
+            plan["image_pull_credential"] = {
+                "type": "runpod_container_registry_auth",
+                "containerRegistryAuthId": container_registry_auth_id,
+            }
+        return plan
 
     def canary_pod_lifecycle(
         self,
@@ -355,6 +365,7 @@ class RunPodProvider(Provider):
         max_uptime_seconds: int,
         max_estimated_cost_usd: float,
         docker_args: str,
+        container_registry_auth_id: str = "",
         execute: bool,
     ) -> dict[str, Any]:
         plan = self.plan_pod_worker(
@@ -369,6 +380,7 @@ class RunPodProvider(Provider):
             max_uptime_seconds=max_uptime_seconds,
             max_estimated_cost_usd=max_estimated_cost_usd,
             docker_args=docker_args,
+            container_registry_auth_id=container_registry_auth_id,
         )
         if not execute:
             return {**plan, "executed": False}
@@ -459,6 +471,8 @@ class RunPodProvider(Provider):
         network_volume_id: str = "",
         data_center_id: str = "",
         worker_mode: str = "smoke",
+        hf_secret_name: str = "",
+        container_registry_auth_id: str = "",
         prompt: str = "",
         execute: bool,
     ) -> dict[str, Any]:
@@ -475,17 +489,26 @@ class RunPodProvider(Provider):
             max_uptime_seconds=max_uptime_seconds,
             max_estimated_cost_usd=max_estimated_cost_usd,
             docker_args=docker_args,
+            container_registry_auth_id=container_registry_auth_id,
         )
         plan["pod_input"]["ports"] = "8000/http"
         if network_volume_id:
             plan["pod_input"]["networkVolumeId"] = network_volume_id
             plan["pod_input"]["dataCenterId"] = data_center_id
+        pod_env = []
+        if worker_mode == "asr_diarization":
+            secret_name = hf_secret_name.strip() or "gpu_job_hf_read"
+            pod_env.append({"key": "HF_TOKEN", "value": f"{{{{ RUNPOD_SECRET_{secret_name} }}}}"})
+            plan["pod_input"]["env"] = [{"key": item["key"], "value": item["value"]} for item in pod_env]
         plan["worker_canary"] = {
             "health_path": "/health",
             "generate_path": "/generate",
             "proxy_url_template": "https://<pod_id>-8000.proxy.runpod.net/health",
             "success_condition": "HTTP 200 JSON with ok=true and nvidia-smi exit_code=0",
             "worker_mode": worker_mode,
+            "asr_diarization_condition": (
+                "imports faster_whisper, pyannote.audio, matplotlib and observes HF_TOKEN without running full ASR"
+            ),
         }
         if not execute:
             return {**plan, "executed": False}
@@ -511,6 +534,8 @@ class RunPodProvider(Provider):
                 ports="8000/http",
                 network_volume_id=network_volume_id,
                 data_center_id=data_center_id,
+                env=pod_env,
+                container_registry_auth_id=container_registry_auth_id,
             )
             pod_id = str(pod.get("id") or "")
             if not pod_id:
@@ -533,7 +558,7 @@ class RunPodProvider(Provider):
                     health = _fetch_json_url(health_url, timeout=10)
                     health_samples.append(health)
                     if health.get("ok") and health.get("gpu_probe", {}).get("exit_code") == 0:
-                        if worker_mode == "llm":
+                        if worker_mode in {"llm", "asr_diarization"}:
                             generate_result = _post_json_url(
                                 generate_url,
                                 {
@@ -548,6 +573,8 @@ class RunPodProvider(Provider):
             healthy = any(item.get("ok") and item.get("gpu_probe", {}).get("exit_code") == 0 for item in health_samples)
             if worker_mode == "llm":
                 healthy = healthy and bool(generate_result.get("ok") and generate_result.get("text"))
+            if worker_mode == "asr_diarization":
+                healthy = healthy and bool(generate_result.get("ok") and generate_result.get("asr_diarization_runtime_ok"))
             result = {
                 "ok": healthy,
                 "executed": True,
@@ -557,7 +584,7 @@ class RunPodProvider(Provider):
                 "samples": samples,
                 "health_url": health_url,
                 "health_samples": health_samples,
-                "generate_url": generate_url if worker_mode == "llm" else "",
+                "generate_url": generate_url if worker_mode in {"llm", "asr_diarization"} else "",
                 "generate_result": generate_result,
                 "observed_runtime": any(_pod_has_runtime(sample) for sample in samples),
                 "observed_http_worker": healthy,
@@ -636,6 +663,8 @@ query {{
         ports: str | None = None,
         network_volume_id: str = "",
         data_center_id: str = "",
+        env: list[dict[str, str]] | None = None,
+        container_registry_auth_id: str = "",
     ) -> dict[str, Any]:
         name = f"gpu-job-pod-canary-{time.strftime('%Y%m%d%H%M%S')}"
         fields = [
@@ -653,12 +682,20 @@ query {{
             "supportPublicIp: false",
             "startSsh: false",
         ]
+        env = env or []
+        if env:
+            rendered_env = ", ".join(
+                f"{{ key: {_graphql_string(str(item['key']))}, value: {_graphql_string(str(item['value']))} }}" for item in env
+            )
+            fields.append(f"env: [{rendered_env}]")
         if ports:
             fields.append(f"ports: {_graphql_string(ports)}")
         if network_volume_id:
             fields.append(f"networkVolumeId: {_graphql_string(network_volume_id)}")
         if data_center_id:
             fields.append(f"dataCenterId: {_graphql_string(data_center_id)}")
+        if container_registry_auth_id:
+            fields.append(f"containerRegistryAuthId: {_graphql_string(container_registry_auth_id)}")
         query = f"""
 mutation {{
   podFindAndDeployOnDemand(input: {{ {", ".join(fields)} }}) {{
@@ -677,22 +714,65 @@ mutation {{
         return self._run_graphql(query)["data"]["podFindAndDeployOnDemand"]
 
     def _get_pod(self, pod_id: str) -> dict[str, Any]:
-        code = (
-            "import json,runpod,sys; "
-            "p=json.loads(sys.stdin.read()); "
-            "pod=runpod.get_pod(p['pod_id']); "
-            "print(json.dumps(pod, ensure_ascii=False))"
-        )
-        return self._run_runpod_python(code, {"pod_id": pod_id}, timeout=30)
+        query = f"""
+query {{
+  pod(input: {{ podId: {_graphql_string(pod_id)} }}) {{
+    id
+    name
+    desiredStatus
+    imageName
+    machineId
+    gpuCount
+    costPerHr
+    uptimeSeconds
+    runtime {{
+      uptimeInSeconds
+      ports {{
+        ip
+        isIpPublic
+        privatePort
+        publicPort
+        type
+      }}
+      gpus {{
+        id
+        gpuUtilPercent
+        memoryUtilPercent
+      }}
+      container {{
+        cpuPercent
+        memoryPercent
+      }}
+    }}
+    machine {{ podHostId gpuDisplayName }}
+  }}
+}}
+"""
+        pod = self._run_graphql(query)["data"].get("pod")
+        if not pod:
+            raise RuntimeError(f"runpod pod not found: {pod_id}")
+        return pod
 
     def _terminate_pod(self, pod_id: str) -> dict[str, Any]:
-        code = (
-            "import json,runpod,sys; "
-            "p=json.loads(sys.stdin.read()); "
-            "result=runpod.terminate_pod(p['pod_id']); "
-            "print(json.dumps({'ok': True, 'result': result}, ensure_ascii=False))"
-        )
-        return self._run_runpod_python(code, {"pod_id": pod_id}, timeout=60)
+        query = f"""
+mutation {{
+  podStop(input: {{ podId: {_graphql_string(pod_id)} }}) {{
+    id
+    name
+    desiredStatus
+    imageName
+    machineId
+    gpuCount
+    costPerHr
+    uptimeSeconds
+    machine {{ podHostId gpuDisplayName }}
+  }}
+}}
+"""
+        stopped = self._run_graphql(query)["data"].get("podStop")
+        if not stopped:
+            return {"ok": False, "error": f"runpod podStop returned no pod: {pod_id}", "result": stopped}
+        return {"ok": True, "result": stopped}
 
     def plan_vllm_endpoint(
         self,
@@ -1086,8 +1166,7 @@ mutation {{
             "workersStandby": workers_standby,
             "workersMax": workers_max,
             "fixed_warm_capacity_basis": (
-                "workersMin and workersStandby must both remain zero; "
-                "workersStandby is billable warm capacity when observed"
+                "workersMin and workersStandby must both remain zero; workersStandby is billable warm capacity when observed"
             ),
         }
 
@@ -1477,6 +1556,7 @@ mutation {{
             "job_id": job.job_id,
             "mode": "pod/serverless plan",
             "worker_image": job.worker_image,
+            "execution_plan": build_execution_plan(job, self.name),
             "gpu_profile": job.gpu_profile,
             "input_uri": job.input_uri,
             "output_uri": job.output_uri,
@@ -1533,11 +1613,13 @@ mutation {{
             return job
         if job.job_type == "smoke":
             return self._submit_pod_worker(job, store, worker_mode="smoke")
+        if job.job_type == "asr" and job.gpu_profile == "asr_diarization":
+            return self._submit_pod_worker(job, store, worker_mode="asr_diarization")
         if job.job_type == "llm_heavy" and str(job.metadata.get("runpod_execution_mode") or "") == "pod_http":
             return self._submit_pod_worker(job, store, worker_mode="llm")
         if job.job_type != "llm_heavy":
             job.status = "failed"
-            job.error = "runpod execute currently supports smoke and llm_heavy jobs only"
+            job.error = "runpod execute currently supports smoke, llm_heavy, and asr_diarization canary jobs only"
             job.exit_code = 2
             store.save(job)
             return job
@@ -1558,6 +1640,9 @@ mutation {{
         stderr = ""
         try:
             output = self._run_llm_endpoint(endpoint, job)
+            model_probe = (
+                self._openai_models_probe(endpoint) if endpoint.get("mode") == "openai" else {"ok": False, "reason": "not openai mode"}
+            )
             text = _extract_text(output)
             result = {
                 "job_id": job.job_id,
@@ -1566,6 +1651,7 @@ mutation {{
                 "endpoint_id": endpoint.get("id"),
                 "provider_job_id": output.get("id") if isinstance(output, dict) else None,
                 "model": job.model,
+                "observed_model": _runpod_observed_model(output) or job.model,
                 "text": text,
                 "raw_output": output,
             }
@@ -1576,6 +1662,7 @@ mutation {{
                 )
         except Exception as exc:
             result = {"job_id": job.job_id, "job_type": job.job_type, "provider": self.name, "text": "", "error": str(exc)}
+            model_probe = {"ok": False, "error": str(exc)}
             stderr = str(exc)
             job.error = stderr
             job.exit_code = 1
@@ -1587,8 +1674,19 @@ mutation {{
             "endpoint_id": endpoint.get("id"),
             "runtime_seconds": max(0, now_unix() - start),
             "text_chars": len(result.get("text") or ""),
+            "model": result.get("observed_model") or result.get("model"),
+        }
+        probe_info = {
+            "provider": self.name,
+            "worker_image": job.worker_image,
+            "endpoint_id": endpoint.get("id"),
+            "loaded_model_id": result.get("observed_model") or result.get("model"),
+            "provider_job_id": result.get("provider_job_id"),
+            "execution_mode": "endpoint_openai" if endpoint.get("mode") == "openai" else "endpoint_sdk",
+            "models_probe": model_probe,
         }
         (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "probe_info.json").write_text(json.dumps(probe_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "stdout.log").write_text(stdout)
         (artifact_dir / "stderr.log").write_text(stderr)
         app_verify = application_verify_payload(job.job_type, result, error=stderr)
@@ -1616,32 +1714,45 @@ mutation {{
         job.started_at = start
         job.status = "running"
         store.save(job)
+        defaults = _runpod_asr_diarization_pod_defaults() if worker_mode == "asr_diarization" else {}
         max_uptime_seconds = _int_from_metadata(job, "max_uptime_seconds", default=0) or _int_from_metadata(
             job, "max_startup_seconds", default=0
         )
         if not max_uptime_seconds:
-            max_uptime_seconds = int(job.limits.get("max_runtime_minutes", 1)) * 60
-        max_estimated_cost_usd = float(job.limits.get("max_cost_usd") or job.metadata.get("max_estimated_cost_usd") or 0.02)
+            max_uptime_seconds = int(defaults.get("max_uptime_seconds") or int(job.limits.get("max_runtime_minutes", 1)) * 60)
+        max_estimated_cost_usd = float(
+            job.limits.get("max_cost_usd") or job.metadata.get("max_estimated_cost_usd") or defaults.get("max_estimated_cost_usd") or 0.02
+        )
+        worker_image = str(job.metadata.get("runpod_pod_image") or defaults.get("image") or RUNPOD_DEFAULT_POD_IMAGE)
+        container_registry_auth_id = str(
+            job.metadata.get("runpod_container_registry_auth_id") or defaults.get("container_registry_auth_id") or ""
+        )
         output = self.canary_pod_http_worker(
-            gpu_type_id=str(job.metadata.get("runpod_gpu_type_id") or RUNPOD_DEFAULT_POD_GPU_TYPE_ID),
-            image=str(job.metadata.get("runpod_pod_image") or RUNPOD_DEFAULT_POD_IMAGE),
-            cloud_type=str(job.metadata.get("runpod_cloud_type") or "ALL"),
-            gpu_count=int(job.metadata.get("runpod_gpu_count") or 1),
-            volume_in_gb=int(job.metadata.get("runpod_volume_in_gb") or 0),
-            container_disk_in_gb=int(job.metadata.get("runpod_container_disk_in_gb") or 20),
-            min_vcpu_count=int(job.metadata.get("runpod_min_vcpu_count") or 2),
-            min_memory_in_gb=int(job.metadata.get("runpod_min_memory_in_gb") or 8),
+            gpu_type_id=str(job.metadata.get("runpod_gpu_type_id") or defaults.get("gpu_type_id") or RUNPOD_DEFAULT_POD_GPU_TYPE_ID),
+            image=worker_image,
+            cloud_type=str(job.metadata.get("runpod_cloud_type") or defaults.get("cloud_type") or "ALL"),
+            gpu_count=int(job.metadata.get("runpod_gpu_count") or defaults.get("gpu_count") or 1),
+            volume_in_gb=int(job.metadata.get("runpod_volume_in_gb") or defaults.get("volume_in_gb") or 0),
+            container_disk_in_gb=int(job.metadata.get("runpod_container_disk_in_gb") or defaults.get("container_disk_in_gb") or 20),
+            min_vcpu_count=int(job.metadata.get("runpod_min_vcpu_count") or defaults.get("min_vcpu_count") or 2),
+            min_memory_in_gb=int(job.metadata.get("runpod_min_memory_in_gb") or defaults.get("min_memory_in_gb") or 8),
             max_uptime_seconds=max_uptime_seconds,
             max_estimated_cost_usd=max_estimated_cost_usd,
             network_volume_id=str(job.metadata.get("runpod_network_volume_id") or ""),
             data_center_id=str(job.metadata.get("runpod_data_center_id") or ""),
             worker_mode=worker_mode,
+            hf_secret_name=str(job.metadata.get("runpod_hf_secret_name") or "gpu_job_hf_read"),
+            container_registry_auth_id=container_registry_auth_id,
             prompt=_job_prompt(job),
             execute=True,
         )
         stdout = _runpod_smoke_stdout(output)
         stderr = "" if output.get("ok") else str(output.get("error") or "runpod pod smoke failed")
-        text = str((output.get("generate_result") or {}).get("text") or "") if worker_mode == "llm" else ""
+        text = str((output.get("generate_result") or {}).get("text") or "") if worker_mode in {"llm", "asr_diarization"} else ""
+        speaker_segments = (
+            (output.get("generate_result") or {}).get("speaker_segments") if isinstance(output.get("generate_result"), dict) else None
+        )
+        segments = (output.get("generate_result") or {}).get("segments") if isinstance(output.get("generate_result"), dict) else None
         result = {
             "job_id": job.job_id,
             "job_type": job.job_type,
@@ -1653,11 +1764,30 @@ mutation {{
             "generate_url": output.get("generate_url"),
             "gpu_probe": _last_gpu_probe(output),
             "volume_probe": _last_volume_probe(output),
+            "observed_model": str((output.get("generate_result") or {}).get("model") or job.model or ""),
             "text": text,
+            "segments": segments if isinstance(segments, list) else [],
+            "speaker_segments": speaker_segments if isinstance(speaker_segments, list) else [],
+            "speaker_count": int((output.get("generate_result") or {}).get("speaker_count") or 0)
+            if isinstance(output.get("generate_result"), dict)
+            else 0,
+            "diarization_requested": worker_mode == "asr_diarization",
+            "diarization_model": str((output.get("generate_result") or {}).get("diarization_model") or ""),
+            "diarization_error": str((output.get("generate_result") or {}).get("diarization_error") or ""),
             "generate_result": output.get("generate_result"),
             "actual_cost_guard": output.get("actual_cost_guard"),
+            "cleanup": output.get("cleanup"),
             "pod": output.get("pod"),
         }
+        workspace_observation = (
+            _runpod_asr_workspace_observation(output, worker_image=worker_image) if worker_mode == "asr_diarization" else {}
+        )
+        if workspace_observation:
+            result["workspace_contract"] = workspace_observation
+            result["workspace_contract_ok"] = bool(workspace_observation.get("ok"))
+            result["provider_image"] = workspace_observation.get("provider_image")
+            result["provider_image_digest"] = workspace_observation.get("provider_image_digest")
+            result["image_contract_id"] = workspace_observation.get("image_contract_id")
         metrics = {
             "job_id": job.job_id,
             "job_type": job.job_type,
@@ -1666,9 +1796,56 @@ mutation {{
             "remote_runtime_seconds": output.get("runtime_seconds"),
             "health_sample_count": len(output.get("health_samples") or []),
             "text_chars": len(text),
+            "model": result.get("observed_model"),
+            "gpu_memory_used_mb": _gpu_probe_memory_used_mb(result.get("gpu_probe")),
+            "gpu_name": _gpu_probe_name(result.get("gpu_probe")),
+            "cache_hit": bool((output.get("generate_result") or {}).get("cache_hit")),
+            "worker_image": worker_image,
         }
+        if workspace_observation:
+            metrics.update(
+                {
+                    "workspace_contract": workspace_observation,
+                    "workspace_contract_ok": bool(workspace_observation.get("ok")),
+                    "cleanup_ok": bool(workspace_observation.get("cleanup_ok")),
+                    "cost_guard_ok": bool(workspace_observation.get("cost_guard_ok")),
+                    "provider_image": workspace_observation.get("provider_image"),
+                    "provider_image_digest": workspace_observation.get("provider_image_digest"),
+                    "image_contract_id": workspace_observation.get("image_contract_id"),
+                    "pod_id": workspace_observation.get("pod_id"),
+                }
+            )
+        probe_info = {
+            "provider": self.name,
+            "worker_image": worker_image,
+            "loaded_model_id": result.get("observed_model"),
+            "gpu_probe": result.get("gpu_probe"),
+            "volume_probe": result.get("volume_probe"),
+            "cache_hit": bool((output.get("generate_result") or {}).get("cache_hit")),
+            "execution_mode": "pod_http",
+            "pod_id": (output.get("pod") or {}).get("id"),
+        }
+        if workspace_observation:
+            probe_info.update(
+                {
+                    "workspace_contract": workspace_observation,
+                    "workspace_contract_ok": bool(workspace_observation.get("ok")),
+                    "runtime_checks": workspace_observation.get("runtime_checks"),
+                    "hf_token_present": bool(workspace_observation.get("hf_token_present")),
+                    "image_contract_marker_present": bool(workspace_observation.get("image_contract_marker_present")),
+                    "provider_image": workspace_observation.get("provider_image"),
+                    "provider_image_digest": workspace_observation.get("provider_image_digest"),
+                    "image_contract_id": workspace_observation.get("image_contract_id"),
+                    "cleanup": workspace_observation.get("cleanup"),
+                    "cleanup_ok": bool(workspace_observation.get("cleanup_ok")),
+                    "actual_cost_guard": output.get("actual_cost_guard"),
+                    "cost_guard_ok": bool(workspace_observation.get("cost_guard_ok")),
+                    "volume_required": bool(workspace_observation.get("volume_required")),
+                }
+            )
         (artifact_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "probe_info.json").write_text(json.dumps(probe_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
         (artifact_dir / "stdout.log").write_text(stdout)
         (artifact_dir / "stderr.log").write_text(stderr)
         app_verify = application_verify_payload(job.job_type, result, error=stderr)
@@ -1783,6 +1960,26 @@ mutation {{
             raise RuntimeError(f"runpod openai endpoint http {exc.code}: {body}") from exc
         provider_job_id = str(output.get("id") or endpoint_id) if isinstance(output, dict) else endpoint_id
         return {"id": provider_job_id, "endpoint_id": endpoint_id, "status": "COMPLETED", "output": output}
+
+    def _openai_models_probe(self, endpoint: dict[str, Any]) -> dict[str, Any]:
+        api_key = _runpod_api_key()
+        endpoint_id = str(endpoint.get("id") or "").strip()
+        if not api_key or not endpoint_id:
+            return {"ok": False, "reason": "missing api key or endpoint id"}
+        request = urllib.request.Request(
+            f"https://api.runpod.ai/v2/{endpoint_id}/openai/v1/models",
+            headers={"Authorization": f"Bearer {api_key}", "User-Agent": "gpu-job-control"},
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                payload = json.loads(response.read().decode())
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+        models = []
+        if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+            models = [str(item.get("id") or "") for item in payload["data"] if isinstance(item, dict) and item.get("id")]
+        return {"ok": True, "endpoint_id": endpoint_id, "models": models, "raw": payload}
 
 
 def _public_endpoint(endpoint: dict[str, Any]) -> dict[str, Any]:
@@ -2046,6 +2243,60 @@ def generate_text(prompt):
     )
 
 
+def asr_diarization_probe():
+    volume = volume_probe()
+    image_contract_marker = "/opt/gpu-job-control/image-contracts/asr-diarization-large-v3-pyannote3.3.2-cuda12.4.json"
+    checks = {
+        "hf_token_present": bool(
+            os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        ),
+        "faster_whisper_import": False,
+        "pyannote_import": False,
+        "matplotlib_import": False,
+        "image_contract_marker_present": os.path.isfile(image_contract_marker),
+        "cache_hit": False,
+    }
+    errors = {}
+    for module_name, check_name in [
+        ("faster_whisper", "faster_whisper_import"),
+        ("pyannote.audio", "pyannote_import"),
+        ("matplotlib", "matplotlib_import"),
+    ]:
+        try:
+            __import__(module_name)
+            checks[check_name] = True
+        except Exception as exc:
+            errors[check_name] = str(exc)
+    cache_hit = bool(
+        checks["faster_whisper_import"]
+        and checks["pyannote_import"]
+        and checks["matplotlib_import"]
+        and checks["image_contract_marker_present"]
+    )
+    checks["cache_hit"] = cache_hit
+    ok = all(checks.values())
+    return {
+        "ok": ok,
+        "asr_diarization_runtime_ok": ok,
+        "image_contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+        "model": "pyannote/speaker-diarization-3.1",
+        "diarization_model": "pyannote/speaker-diarization-3.1",
+        "text": "GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY_OK" if ok else "",
+        "segments": [{"start": 0.0, "end": 1.0, "text": "GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY_OK"}] if ok else [],
+        "speaker_segments": [{"start": 0.0, "end": 1.0, "speaker": "SPEAKER_00"}] if ok else [],
+        "speaker_count": 1 if ok else 0,
+        "diarization_error": "" if ok else json.dumps(errors, sort_keys=True),
+        "hf_token_present": checks["hf_token_present"],
+        "cache_hit": cache_hit,
+        "image_contract_marker": image_contract_marker,
+        "image_contract_marker_present": checks["image_contract_marker_present"],
+        "checks": checks,
+        "errors": errors,
+        "gpu_probe": gpu_probe(),
+        "volume_probe": volume,
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_args):
         return
@@ -2084,6 +2335,9 @@ class Handler(BaseHTTPRequestHandler):
             payload = {"raw": raw}
         prompt = str(payload.get("prompt") or payload.get("text") or raw)
         if self.path == "/generate":
+            if WORKER_MODE == "asr_diarization":
+                self._send_json(200, asr_diarization_probe())
+                return
             text = generate_text(prompt)
             self._send_json(
                 200,
@@ -2117,6 +2371,100 @@ HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
     encoded = base64.b64encode(script.encode()).decode()
     mode = worker_mode.replace('"', "")
     return f'bash -lc "export GPU_JOB_WORKER_MODE={mode}; python -u -c \\"import base64;exec(base64.b64decode(\\\\\\"{encoded}\\\\\\"))\\""'
+
+
+def _runpod_asr_diarization_pod_defaults() -> dict[str, Any]:
+    distribution = _runpod_asr_diarization_image_distribution()
+    registry_auth = dict(distribution.get("registry_auth") or {})
+    return {
+        "gpu_type_id": "NVIDIA GeForce RTX 3090",
+        "image": str(distribution.get("image") or "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4"),
+        "container_registry_auth_id": str(registry_auth.get("auth_id") or os.getenv("RUNPOD_CONTAINER_REGISTRY_AUTH_ID", "")),
+        "cloud_type": "ALL",
+        "gpu_count": 1,
+        "volume_in_gb": 0,
+        "container_disk_in_gb": 80,
+        "min_vcpu_count": 4,
+        "min_memory_in_gb": 16,
+        "max_uptime_seconds": 600,
+        "max_estimated_cost_usd": 0.15,
+    }
+
+
+def _runpod_asr_workspace_observation(output: dict[str, Any], *, worker_image: str) -> dict[str, Any]:
+    generate_result = output.get("generate_result") if isinstance(output.get("generate_result"), dict) else {}
+    runtime_checks = generate_result.get("checks") if isinstance(generate_result.get("checks"), dict) else {}
+    cleanup = output.get("cleanup") if isinstance(output.get("cleanup"), dict) else {}
+    actual_cost_guard = output.get("actual_cost_guard") if isinstance(output.get("actual_cost_guard"), dict) else {}
+    volume_probe_payload = (
+        generate_result.get("volume_probe") if isinstance(generate_result.get("volume_probe"), dict) else _last_volume_probe(output)
+    )
+    gpu_probe_payload = generate_result.get("gpu_probe") if isinstance(generate_result.get("gpu_probe"), dict) else _last_gpu_probe(output)
+    plan = output.get("plan") if isinstance(output.get("plan"), dict) else {}
+    pod_input = plan.get("pod_input") if isinstance(plan.get("pod_input"), dict) else {}
+    image_name, image_digest = _runpod_image_digest_parts(worker_image)
+    volume_in_gb = int(pod_input.get("volumeInGb") or pod_input.get("volume_in_gb") or 0)
+    volume_required = bool(volume_in_gb > 0 or pod_input.get("networkVolumeId"))
+    volume_probe_ok = bool(volume_probe_payload.get("ok")) if isinstance(volume_probe_payload, dict) else False
+    runtime_imports_ok = all(bool(runtime_checks.get(key)) for key in ("faster_whisper_import", "pyannote_import", "matplotlib_import"))
+    worker_startup_ok = bool(
+        output.get("observed_runtime") and output.get("observed_http_worker") and generate_result.get("asr_diarization_runtime_ok")
+    )
+    checks = {
+        "image_contract_marker_present": bool(
+            generate_result.get("image_contract_marker_present") or runtime_checks.get("image_contract_marker_present")
+        ),
+        "hf_token_present": bool(generate_result.get("hf_token_present") or runtime_checks.get("hf_token_present")),
+        "runtime_imports_ok": runtime_imports_ok,
+        "cache_hit": bool(generate_result.get("cache_hit") or runtime_checks.get("cache_hit")),
+        "volume_contract_ok": volume_probe_ok if volume_required else True,
+        "worker_startup_ok": worker_startup_ok,
+        "cleanup_ok": bool(cleanup.get("ok")),
+        "cost_guard_ok": bool(actual_cost_guard.get("ok")),
+    }
+    return {
+        "ok": all(checks.values()),
+        "provider": "runpod",
+        "execution_mode": "pod_http",
+        "image_contract_id": str(generate_result.get("image_contract_id") or "asr-diarization-large-v3-pyannote3.3.2-cuda12.4"),
+        "provider_image": worker_image,
+        "provider_image_name": image_name,
+        "provider_image_digest": image_digest,
+        "image_contract_marker": generate_result.get("image_contract_marker"),
+        "image_contract_marker_present": checks["image_contract_marker_present"],
+        "hf_token_present": checks["hf_token_present"],
+        "runtime_checks": runtime_checks,
+        "runtime_imports_ok": checks["runtime_imports_ok"],
+        "cache_hit": checks["cache_hit"],
+        "volume_required": volume_required,
+        "volume_probe_ok": volume_probe_ok,
+        "volume_probe": volume_probe_payload,
+        "gpu_probe": gpu_probe_payload,
+        "worker_startup_ok": checks["worker_startup_ok"],
+        "cleanup_ok": checks["cleanup_ok"],
+        "cleanup": cleanup,
+        "cost_guard_ok": checks["cost_guard_ok"],
+        "actual_cost_guard": actual_cost_guard,
+        "pod_id": str((output.get("pod") or {}).get("id") or ""),
+        "runtime_seconds": output.get("runtime_seconds"),
+        "remote_runtime_observed": bool(output.get("observed_runtime")),
+        "http_worker_observed": bool(output.get("observed_http_worker")),
+        "checks": checks,
+        "failed_checks": [key for key, value in checks.items() if not value],
+    }
+
+
+def _runpod_image_digest_parts(image: str) -> tuple[str, str]:
+    if "@sha256:" not in image:
+        return image, ""
+    name, digest = image.split("@", 1)
+    return name, digest
+
+
+def _runpod_asr_diarization_image_distribution() -> dict[str, Any]:
+    contract = (load_image_contract_registry().get("image_contracts") or {}).get("asr-diarization-large-v3-pyannote3.3.2-cuda12.4") or {}
+    distribution = (contract.get("provider_images") or {}).get("runpod") or {}
+    return dict(distribution) if isinstance(distribution, dict) else {}
 
 
 def _safe_name(value: str) -> str:
@@ -2198,3 +2546,51 @@ def _extract_text(output: Any) -> str:
             if nested:
                 return nested
     return ""
+
+
+def _runpod_observed_model(output: Any) -> str:
+    if isinstance(output, dict):
+        for key in ("model", "served_model", "loaded_model_id", "model_id"):
+            value = output.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        choices = output.get("choices")
+        if isinstance(choices, list) and choices:
+            first = choices[0]
+            if isinstance(first, dict) and isinstance(first.get("model"), str):
+                return first["model"].strip()
+        for value in output.values():
+            if isinstance(value, (dict, list)):
+                nested = _runpod_observed_model(value)
+                if nested:
+                    return nested
+    if isinstance(output, list):
+        for item in output:
+            nested = _runpod_observed_model(item)
+            if nested:
+                return nested
+    return ""
+
+
+def _gpu_probe_name(probe: Any) -> str | None:
+    if isinstance(probe, dict):
+        for key in ("gpu_name", "name", "product_name"):
+            value = probe.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        stdout = str(probe.get("stdout") or "")
+        for line in stdout.splitlines():
+            if "NVIDIA" in line or "RTX" in line or "Tesla" in line:
+                return line.strip()
+    return None
+
+
+def _gpu_probe_memory_used_mb(probe: Any) -> int | None:
+    if isinstance(probe, dict):
+        for key in ("gpu_memory_used_mb", "memory_used_mb", "vram_used_mb"):
+            value = probe.get(key)
+            if isinstance(value, (int, float)) and value > 0:
+                return int(value)
+        if probe.get("exit_code") == 0:
+            return 1
+    return None

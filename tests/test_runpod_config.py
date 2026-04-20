@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 import json
 import os
 import unittest
@@ -12,7 +13,9 @@ from gpu_job.providers.runpod import _actual_pod_cost_guard
 from gpu_job.providers.runpod import _pod_http_worker_docker_args
 from gpu_job.providers.runpod import _pod_has_runtime
 from gpu_job.providers.runpod import _openai_chat_payload
+from gpu_job.providers.runpod import _runpod_asr_diarization_pod_defaults
 from gpu_job.providers.runpod import _runpod_api_key
+from gpu_job.store import JobStore
 
 
 class RunPodConfigTest(unittest.TestCase):
@@ -252,6 +255,191 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertIn("bash -lc", args)
         self.assertIn("base64", args)
         self.assertNotIn("'", args)
+
+    def test_pod_http_worker_docker_args_contains_asr_diarization_probe(self) -> None:
+        args = _pod_http_worker_docker_args(worker_mode="asr_diarization")
+
+        self.assertIn("GPU_JOB_WORKER_MODE=asr_diarization", args)
+        self.assertIn("base64", args)
+        self.assertNotIn("'", args)
+
+    def test_runpod_asr_diarization_defaults_use_prebuilt_worker_image(self) -> None:
+        defaults = _runpod_asr_diarization_pod_defaults()
+
+        self.assertTrue(defaults["image"].startswith("ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:"))
+        self.assertIn("@sha256:", defaults["image"])
+        self.assertEqual(defaults["container_registry_auth_id"], "cmo69c98l00iyjj07z22tsrzm")
+        self.assertEqual(defaults["container_disk_in_gb"], 80)
+        self.assertLessEqual(defaults["max_estimated_cost_usd"], 0.15)
+
+    def test_runpod_pod_plan_includes_registry_auth_when_private_image_requires_it(self) -> None:
+        provider = RunPodProvider()
+
+        with patch.object(
+            provider,
+            "_gpu_type_info",
+            return_value={"ok": True, "lowestPrice": {"uninterruptablePrice": 0.5}},
+        ):
+            plan = provider.plan_pod_worker(
+                gpu_type_id="NVIDIA GeForce RTX 3090",
+                image="ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:test",
+                cloud_type="ALL",
+                gpu_count=1,
+                volume_in_gb=0,
+                container_disk_in_gb=80,
+                min_vcpu_count=4,
+                min_memory_in_gb=16,
+                max_uptime_seconds=600,
+                max_estimated_cost_usd=0.15,
+                docker_args="sleep infinity",
+                container_registry_auth_id="registry-auth-id",
+            )
+
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["pod_input"]["containerRegistryAuthId"], "registry-auth-id")
+        self.assertEqual(plan["image_pull_credential"]["type"], "runpod_container_registry_auth")
+
+    def test_get_pod_uses_graphql_without_runpod_sdk(self) -> None:
+        provider = RunPodProvider()
+        graph_result = {
+            "data": {
+                "pod": {
+                    "id": "pod-123",
+                    "desiredStatus": "RUNNING",
+                    "runtime": {"uptimeInSeconds": 0},
+                }
+            }
+        }
+
+        with (
+            patch.object(provider, "_run_graphql", return_value=graph_result) as graphql,
+            patch.object(provider, "_run_runpod_python", side_effect=AssertionError("SDK path must not be used")),
+        ):
+            pod = provider._get_pod("pod-123")
+
+        self.assertEqual(pod["id"], "pod-123")
+        query = graphql.call_args.args[0]
+        self.assertIn("pod(input:", query)
+        self.assertIn('podId: "pod-123"', query)
+        self.assertIn("runtime", query)
+
+    def test_get_pod_rejects_missing_graphql_pod(self) -> None:
+        provider = RunPodProvider()
+
+        with patch.object(provider, "_run_graphql", return_value={"data": {"pod": None}}):
+            with self.assertRaisesRegex(RuntimeError, "runpod pod not found"):
+                provider._get_pod("pod-missing")
+
+    def test_terminate_pod_uses_graphql_without_runpod_sdk(self) -> None:
+        provider = RunPodProvider()
+        graph_result = {
+            "data": {
+                "podStop": {
+                    "id": "pod-123",
+                    "desiredStatus": "EXITED",
+                }
+            }
+        }
+
+        with (
+            patch.object(provider, "_run_graphql", return_value=graph_result) as graphql,
+            patch.object(provider, "_run_runpod_python", side_effect=AssertionError("SDK path must not be used")),
+        ):
+            result = provider._terminate_pod("pod-123")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["result"]["desiredStatus"], "EXITED")
+        query = graphql.call_args.args[0]
+        self.assertIn("podStop(input:", query)
+        self.assertIn('podId: "pod-123"', query)
+
+    def test_terminate_pod_reports_missing_graphql_result(self) -> None:
+        provider = RunPodProvider()
+
+        with patch.object(provider, "_run_graphql", return_value={"data": {"podStop": None}}):
+            result = provider._terminate_pod("pod-missing")
+
+        self.assertFalse(result["ok"])
+        self.assertIn("podStop returned no pod", result["error"])
+
+    def test_submit_asr_diarization_uses_workspace_canary_artifact_contract(self) -> None:
+        provider = RunPodProvider()
+        with TemporaryDirectory() as tmp:
+            store = JobStore(Path(tmp) / "store")
+            job = Job(
+                job_id="runpod-asr-diarization-canary",
+                job_type="asr",
+                input_uri="text://GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY",
+                output_uri="local://out",
+                worker_image="gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+                gpu_profile="asr_diarization",
+                model="large-v3",
+                metadata={"input": {"diarize": True, "language": "ja"}},
+                limits={"max_runtime_minutes": 10, "max_cost_usd": 0.15},
+            )
+            output = {
+                "ok": True,
+                "observed_runtime": True,
+                "observed_http_worker": True,
+                "health_url": "https://pod-8000.proxy.runpod.net/health",
+                "generate_url": "https://pod-8000.proxy.runpod.net/generate",
+                "runtime_seconds": 12.3,
+                "health_samples": [{"ok": True, "gpu_probe": {"exit_code": 0}}],
+                "generate_result": {
+                    "ok": True,
+                    "asr_diarization_runtime_ok": True,
+                    "model": "pyannote/speaker-diarization-3.1",
+                    "diarization_model": "pyannote/speaker-diarization-3.1",
+                    "text": "GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY_OK",
+                    "segments": [{"start": 0.0, "end": 1.0, "text": "GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY_OK"}],
+                    "speaker_segments": [{"start": 0.0, "end": 1.0, "speaker": "SPEAKER_00"}],
+                    "speaker_count": 1,
+                    "diarization_error": "",
+                    "cache_hit": True,
+                    "hf_token_present": True,
+                    "image_contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+                    "image_contract_marker": "/opt/gpu-job-control/image-contracts/asr-diarization-large-v3-pyannote3.3.2-cuda12.4.json",
+                    "image_contract_marker_present": True,
+                    "checks": {
+                        "hf_token_present": True,
+                        "faster_whisper_import": True,
+                        "pyannote_import": True,
+                        "matplotlib_import": True,
+                        "image_contract_marker_present": True,
+                        "cache_hit": True,
+                    },
+                    "gpu_probe": {"exit_code": 0, "stdout": "NVIDIA GeForce RTX 3090, 24576 MiB"},
+                    "volume_probe": {"ok": True},
+                },
+                "actual_cost_guard": {"ok": True, "estimated_cost_usd": 0.01},
+                "cleanup": {"ok": True, "terminated": True},
+                "pod": {"id": "pod-asr"},
+            }
+
+            with patch.object(provider, "canary_pod_http_worker", return_value=output) as canary:
+                result = provider.submit(job, store, execute=True)
+
+            self.assertEqual(result.status, "succeeded")
+            kwargs = canary.call_args.kwargs
+            self.assertEqual(kwargs["worker_mode"], "asr_diarization")
+            self.assertTrue(kwargs["image"].startswith("ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:"))
+            self.assertEqual(kwargs["container_registry_auth_id"], "cmo69c98l00iyjj07z22tsrzm")
+            self.assertEqual(kwargs["hf_secret_name"], "gpu_job_hf_read")
+            artifact_dir = store.artifact_dir(job.job_id)
+            result_payload = json.loads((artifact_dir / "result.json").read_text())
+            metrics_payload = json.loads((artifact_dir / "metrics.json").read_text())
+            probe_payload = json.loads((artifact_dir / "probe_info.json").read_text())
+            self.assertEqual(result_payload["speaker_count"], 1)
+            self.assertEqual(result_payload["speaker_segments"][0]["speaker"], "SPEAKER_00")
+            self.assertTrue(result_payload["diarization_requested"])
+            self.assertTrue(metrics_payload["cache_hit"])
+            self.assertTrue(probe_payload["cache_hit"])
+            self.assertTrue(result_payload["workspace_contract_ok"])
+            self.assertTrue(metrics_payload["workspace_contract_ok"])
+            self.assertTrue(probe_payload["workspace_contract_ok"])
+            self.assertTrue(probe_payload["hf_token_present"])
+            self.assertTrue(probe_payload["image_contract_marker_present"])
+            self.assertTrue(probe_payload["cleanup_ok"])
 
     def test_actual_pod_cost_guard_uses_allocated_cost(self) -> None:
         self.assertTrue(_actual_pod_cost_guard({"costPerHr": 0.46}, max_uptime_seconds=60, max_estimated_cost_usd=0.02)["ok"])
