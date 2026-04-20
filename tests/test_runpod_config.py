@@ -272,6 +272,55 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertEqual(defaults["container_disk_in_gb"], 80)
         self.assertLessEqual(defaults["max_estimated_cost_usd"], 0.15)
 
+    def test_runpod_asr_serverless_plan_uses_prebuilt_image_and_scale_to_zero(self) -> None:
+        provider = RunPodProvider()
+
+        plan = provider.plan_asr_endpoint(
+            gpu_ids="ADA_24",
+            network_volume_id="vol-runpod-asr",
+            locations="US",
+            hf_secret_name="gpu_job_hf_read",
+            idle_timeout=90,
+            workers_max=1,
+            scaler_value=4,
+            flashboot=True,
+        )
+
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["plan_version"], "runpod-asr-endpoint-plan-v1")
+        self.assertEqual(plan["safety_invariants"]["workers_min"], 0)
+        self.assertEqual(plan["safety_invariants"]["workers_standby"], 0)
+        self.assertEqual(plan["safety_invariants"]["workers_max"], 1)
+        self.assertEqual(plan["safety_invariants"]["production_dispatch"], "blocked_until_contract_probe_passes")
+        self.assertEqual(plan["endpoint"]["workersMin"], 0)
+        self.assertEqual(plan["endpoint"]["workersMax"], 1)
+        self.assertEqual(plan["endpoint"]["networkVolumeId"], "vol-runpod-asr")
+        self.assertEqual(plan["endpoint"]["flashBootType"], "FLASHBOOT")
+        self.assertEqual(plan["template"]["ports"], "8000/http")
+        self.assertTrue(plan["template"]["imageName"].startswith("ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:"))
+        env = {item["key"]: item["value"] for item in plan["template"]["env"]}
+        self.assertEqual(env["GPU_JOB_WORKER_MODE"], "asr_diarization")
+        self.assertEqual(env["HF_TOKEN"], "{{ RUNPOD_SECRET_gpu_job_hf_read }}")
+        self.assertIn("provider_residue", plan["workspace_observation_contract"]["required_categories"])
+        self.assertIn("cleanup_result", plan["workspace_observation_contract"]["required_categories"])
+
+    def test_runpod_asr_serverless_plan_rejects_unbounded_creation_shape(self) -> None:
+        provider = RunPodProvider()
+
+        plan = provider.plan_asr_endpoint(gpu_ids="ADA_24", workers_max=0)
+
+        self.assertFalse(plan["ok"])
+        self.assertEqual(plan["error"], "invalid_workers_max")
+
+    def test_runpod_asr_serverless_plan_rejects_concrete_gpu_name(self) -> None:
+        provider = RunPodProvider()
+
+        plan = provider.plan_asr_endpoint(gpu_ids="NVIDIA L4")
+
+        self.assertFalse(plan["ok"])
+        self.assertEqual(plan["error"], "invalid_runpod_gpu_ids")
+        self.assertEqual(plan["gpu_selection"]["invalid_pool_ids"], ["NVIDIA L4"])
+
     def test_runpod_pod_plan_includes_registry_auth_when_private_image_requires_it(self) -> None:
         provider = RunPodProvider()
 

@@ -867,6 +867,126 @@ mutation {{
             ],
         }
 
+    def plan_asr_endpoint(
+        self,
+        *,
+        image: str = "",
+        container_disk_in_gb: int = 80,
+        gpu_ids: str = "ADA_24",
+        network_volume_id: str = "",
+        locations: str = "",
+        hf_secret_name: str = "gpu_job_hf_read",
+        idle_timeout: int = 60,
+        workers_max: int = 1,
+        scaler_value: int = 4,
+        flashboot: bool = True,
+        model: str = "large-v3",
+        speaker_model: str = "pyannote/speaker-diarization-3.1",
+    ) -> dict[str, Any]:
+        if workers_max < 1:
+            return {
+                "ok": False,
+                "provider": self.name,
+                "plan_version": "runpod-asr-endpoint-plan-v1",
+                "error": "invalid_workers_max",
+                "reason": "RunPod scale-to-zero creation uses workersMin=0 with workersMax>=1; workersMax=0 is delete/quiesce-only.",
+                "workers_max": workers_max,
+            }
+        gpu_selection = _validate_runpod_gpu_ids(gpu_ids)
+        if not gpu_selection["ok"]:
+            return {
+                "ok": False,
+                "provider": self.name,
+                "plan_version": "runpod-asr-endpoint-plan-v1",
+                "error": "invalid_runpod_gpu_ids",
+                "gpu_selection": gpu_selection,
+            }
+        distribution = _runpod_asr_diarization_image_distribution()
+        resolved_image = image or str(distribution.get("image") or "")
+        if not resolved_image:
+            return {
+                "ok": False,
+                "provider": self.name,
+                "plan_version": "runpod-asr-endpoint-plan-v1",
+                "error": "missing_provider_image",
+                "reason": "RunPod serverless ASR requires a verified provider image in the image contract registry.",
+            }
+        template = self._asr_template_input(
+            image=resolved_image,
+            container_disk_in_gb=container_disk_in_gb,
+            hf_secret_name=hf_secret_name,
+            model=model,
+            speaker_model=speaker_model,
+        )
+        endpoint = self._asr_endpoint_input(
+            gpu_ids=gpu_ids,
+            network_volume_id=network_volume_id,
+            locations=locations,
+            template_id="<created-template-id>",
+            idle_timeout=idle_timeout,
+            workers_max=workers_max,
+            scaler_value=scaler_value,
+            flashboot=flashboot,
+        )
+        return {
+            "ok": True,
+            "provider": self.name,
+            "plan_version": "runpod-asr-endpoint-plan-v1",
+            "execute_required": "future admin-only promote-asr-endpoint --execute",
+            "official_basis": {
+                "endpoint_settings": "https://docs.runpod.io/serverless/endpoints/endpoint-configurations",
+                "network_volumes": "https://docs.runpod.io/storage/network-volumes",
+            },
+            "gpu_selection": gpu_selection,
+            "image_contract": {
+                "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+                "provider_image": resolved_image,
+                "provider_image_status": distribution.get("status") or "",
+                "registry_auth": distribution.get("registry_auth") or {},
+            },
+            "safety_invariants": {
+                "workers_min": 0,
+                "workers_standby": 0,
+                "workers_max": workers_max,
+                "idle_timeout_seconds": idle_timeout,
+                "requires_clean_pre_guard": True,
+                "requires_clean_post_guard": True,
+                "requires_hf_secret_ref": bool(hf_secret_name),
+                "requires_workspace_observation_parity": True,
+                "production_dispatch": "blocked_until_contract_probe_passes",
+            },
+            "template": template,
+            "endpoint": endpoint,
+            "workspace_observation_contract": {
+                "coverage_version": "gpu-job-workspace-observation-coverage-v1",
+                "required_categories": [
+                    "provider_resource_identity",
+                    "image_contract",
+                    "secret_availability",
+                    "workspace_cache",
+                    "startup_phases",
+                    "queue_or_reservation",
+                    "model_load",
+                    "gpu_execution",
+                    "artifact_contract",
+                    "cost_guard",
+                    "cleanup_result",
+                    "provider_residue",
+                ],
+            },
+            "canary_sequence": [
+                "clean pre-guard; fail if active pods or warm serverless capacity exist",
+                "create serverless template from verified ASR diarization image",
+                "create endpoint with workersMin=0, workersStandby=0, workersMax=1",
+                "submit ASR diarization workspace canary payload",
+                "poll queue/startup/model-load/execution phases separately",
+                "verify result.json, metrics.json, verify.json, stdout.log, stderr.log",
+                "quiesce/delete endpoint and template",
+                "clean post-guard; fail on warm capacity or resource residue",
+                "parse contract probe and require all workspace observation categories",
+            ],
+        }
+
     def promote_vllm_endpoint(
         self,
         *,
@@ -1026,6 +1146,62 @@ mutation {{
             "ports": "8000/http",
             "env": env,
         }
+
+    def _asr_template_input(
+        self,
+        *,
+        image: str,
+        container_disk_in_gb: int,
+        hf_secret_name: str,
+        model: str,
+        speaker_model: str,
+    ) -> dict[str, Any]:
+        env = [
+            {"key": "GPU_JOB_WORKER_MODE", "value": "asr_diarization"},
+            {"key": "GPU_JOB_ASR_MODEL", "value": model},
+            {"key": "GPU_JOB_SPEAKER_MODEL", "value": speaker_model},
+        ]
+        if hf_secret_name:
+            env.append({"key": "HF_TOKEN", "value": f"{{{{ RUNPOD_SECRET_{hf_secret_name} }}}}"})
+        return {
+            "name": "gpu-job-asr-diarization",
+            "imageName": image,
+            "isServerless": True,
+            "containerDiskInGb": container_disk_in_gb,
+            "volumeInGb": 0,
+            "dockerArgs": "",
+            "ports": "8000/http",
+            "env": env,
+        }
+
+    def _asr_endpoint_input(
+        self,
+        *,
+        gpu_ids: str,
+        network_volume_id: str,
+        locations: str,
+        template_id: str,
+        idle_timeout: int,
+        workers_max: int,
+        scaler_value: int,
+        flashboot: bool,
+    ) -> dict[str, Any]:
+        endpoint: dict[str, Any] = {
+            "name": f"gpu-job-asr-diarization-{time.strftime('%Y%m%d%H%M%S')}",
+            "gpuIds": gpu_ids,
+            "gpuCount": 1,
+            "locations": locations.strip(),
+            "templateId": template_id,
+            "workersMin": 0,
+            "workersMax": workers_max,
+            "idleTimeout": idle_timeout,
+            "scalerType": "QUEUE_DELAY",
+            "scalerValue": scaler_value,
+            "networkVolumeId": network_volume_id.strip(),
+        }
+        if flashboot:
+            endpoint["flashBootType"] = "FLASHBOOT"
+        return endpoint
 
     def _vllm_endpoint_input(
         self,
@@ -1508,6 +1684,7 @@ mutation {{
         llm_endpoint = self._llm_endpoint(endpoints)
         serverless_plan = {
             "mode": "serverless plan",
+            "endpoint_snapshot_source": "runpod_api_snapshot",
             "create_endpoint_function": "runpod.create_endpoint",
             "worker_contract": {
                 "dockerfile": "docker/asr-worker.Dockerfile",
@@ -1550,6 +1727,7 @@ mutation {{
                 for endpoint in endpoints
             ],
             "selected_llm_endpoint": _public_endpoint(llm_endpoint) if llm_endpoint else None,
+            "asr_diarization_endpoint_plan": self.plan_asr_endpoint(),
         }
         return {
             "provider": self.name,
