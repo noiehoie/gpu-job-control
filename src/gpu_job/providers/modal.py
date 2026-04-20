@@ -6,6 +6,7 @@ from subprocess import run
 from typing import Any
 
 from gpu_job.models import Job, now_unix
+from gpu_job.execution_plan import build_execution_plan
 from gpu_job.providers.base import Provider
 from gpu_job.store import JobStore
 from gpu_job.verify import verify_artifacts
@@ -121,12 +122,14 @@ class ModalProvider(Provider):
             "job_id": job.job_id,
             "mode": "function plan",
             "worker_image": job.worker_image,
+            "execution_plan": build_execution_plan(job, self.name),
             "gpu_profile": job.gpu_profile,
             "input_uri": job.input_uri,
             "output_uri": job.output_uri,
             "notes": [
                 "Modal runs GPU jobs as functions rather than SSH instances.",
-                "Execute supports GPU smoke, ASR canaries, llm_heavy canaries, and VLM/OCR canaries and writes the standard artifact contract.",
+                "Execute supports GPU smoke, ASR canaries, llm_heavy canaries, and VLM/OCR canaries.",
+                "Execute writes the standard artifact contract.",
                 "Worker must write result.json, metrics.json, verify.json, stdout.log, stderr.log.",
             ],
         }
@@ -138,7 +141,7 @@ class ModalProvider(Provider):
             return [
                 binary,
                 "run",
-                str(script),
+                f"{script}::main",
                 "--job-id",
                 job.job_id,
                 "--artifact-dir",
@@ -148,10 +151,22 @@ class ModalProvider(Provider):
             ]
         if job.job_type == "asr":
             script = package_dir / "modal_asr.py"
-            return [
+            contract_probe = job.metadata.get("contract_probe") if isinstance(job.metadata.get("contract_probe"), dict) else {}
+            if contract_probe.get("probe_name") == "modal.asr_diarization.pyannote":
+                return [
+                    binary,
+                    "run",
+                    f"{script}::canary",
+                    "--artifact-dir",
+                    str(artifact_dir),
+                    "--speaker-model",
+                    job.model or "pyannote/speaker-diarization-3.1",
+                ]
+            input_payload = job.metadata.get("input") if isinstance(job.metadata.get("input"), dict) else {}
+            command = [
                 binary,
                 "run",
-                str(script),
+                f"{script}::main",
                 "--job-id",
                 job.job_id,
                 "--artifact-dir",
@@ -162,14 +177,20 @@ class ModalProvider(Provider):
                 job.input_uri,
                 "--model-name",
                 job.model or "large-v3",
+                "--language",
+                str(input_payload.get("language") or "ja"),
             ]
+            if bool(input_payload.get("diarize") or input_payload.get("speaker_diarization")):
+                command.append("--diarize")
+                command.extend(["--speaker-model", str(input_payload.get("speaker_model") or "pyannote/speaker-diarization-3.1")])
+            return command
         if job.job_type == "llm_heavy":
             script = package_dir / "modal_llm.py"
             job_json = JobStore().job_path(job.job_id)
             return [
                 binary,
                 "run",
-                str(script),
+                f"{script}::main",
                 "--job-json",
                 str(job_json),
                 "--artifact-dir",
@@ -181,7 +202,7 @@ class ModalProvider(Provider):
             return [
                 binary,
                 "run",
-                str(script),
+                f"{script}::main",
                 "--job-json",
                 str(job_json),
                 "--artifact-dir",

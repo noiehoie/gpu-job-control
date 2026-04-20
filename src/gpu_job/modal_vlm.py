@@ -113,6 +113,14 @@ def run_vlm(job: dict) -> dict:
     generated = model.generate(**inputs, max_new_tokens=max_tokens, do_sample=False)
     new_tokens = generated[:, inputs["input_ids"].shape[1] :]
     text = processor.batch_decode(new_tokens, skip_special_tokens=True)[0].strip()
+    gpu_name = ""
+    gpu_memory_used_mb = 0
+    try:
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory_used_mb = int(torch.cuda.max_memory_allocated() / (1024 * 1024))
+    except Exception:
+        pass
     return {
         "job_id": job.get("job_id"),
         "job_type": job.get("job_type"),
@@ -122,6 +130,14 @@ def run_vlm(job: dict) -> dict:
         "input_tokens": int(inputs["input_ids"].shape[1]),
         "output_chars": len(text),
         "runtime_seconds": round(time.time() - started, 3),
+        "probe_info": {
+            "provider": "modal",
+            "worker_image": "gpu-job-modal-vlm",
+            "loaded_model_id": model_name,
+            "gpu_name": gpu_name or None,
+            "gpu_count": 1 if gpu_name else None,
+            "gpu_memory_used_mb": gpu_memory_used_mb or None,
+        },
     }
 
 
@@ -149,7 +165,19 @@ def main(job_json: str, artifact_dir: str):
         "remote_runtime_seconds": result.get("runtime_seconds"),
         "input_tokens": result.get("input_tokens"),
         "output_chars": result.get("output_chars"),
+        "gpu_memory_used_mb": (result.get("probe_info") or {}).get("gpu_memory_used_mb"),
+        "gpu_name": (result.get("probe_info") or {}).get("gpu_name"),
     }
+    probe_info = (
+        result.get("probe_info")
+        if isinstance(result.get("probe_info"), dict)
+        else {
+            "provider": "modal",
+            "worker_image": "gpu-job-modal-vlm",
+            "loaded_model_id": result.get("model"),
+            "error": result.get("error"),
+        }
+    )
     verify = {
         "ok": ok,
         "required": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
@@ -159,5 +187,6 @@ def main(job_json: str, artifact_dir: str):
     (out / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     (out / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     (out / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    (out / "probe_info.json").write_text(json.dumps(probe_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     (out / "stdout.log").write_text(stdout)
     (out / "stderr.log").write_text(stderr)

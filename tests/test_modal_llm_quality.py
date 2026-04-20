@@ -59,7 +59,7 @@ if "modal" not in sys.modules:
     fake_modal = types.SimpleNamespace(Image=_FakeImage, App=_FakeApp, Volume=_FakeVolume)
     sys.modules["modal"] = fake_modal
 
-from gpu_job.modal_llm import (
+from gpu_job.modal_llm import (  # noqa: E402
     CANARY_MODEL,
     DEFAULT_HEAVY_MODEL,
     MODAL_LLM_CACHE_MOUNT,
@@ -101,13 +101,22 @@ class ModalLlmQualityTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             _model_name(job)
 
-    def test_non_quality_empty_model_uses_canary_model(self) -> None:
+    def test_empty_model_uses_heavy_model_without_canary_fallback(self) -> None:
         job = {"job_type": "llm_heavy", "metadata": {"routing": {"quality_requires_gpu": False}}}
-        self.assertEqual(_model_name(job), CANARY_MODEL)
+        self.assertEqual(_model_name(job), DEFAULT_HEAVY_MODEL)
 
     def test_quality_empty_model_uses_heavy_model(self) -> None:
         job = {"job_type": "llm_heavy", "metadata": {"routing": {"quality_requires_gpu": True}}}
         self.assertEqual(_model_name(job), DEFAULT_HEAVY_MODEL)
+
+    def test_unknown_model_rejects_instead_of_canary_fallback(self) -> None:
+        job = {
+            "job_type": "llm_heavy",
+            "model": "unknown-small-model",
+            "metadata": {"routing": {"quality_requires_gpu": False}},
+        }
+        with self.assertRaises(ValueError):
+            _model_name(job)
 
     def test_context_limit_reads_common_config_fields(self) -> None:
         class Config:
@@ -135,7 +144,7 @@ class ModalLlmQualityTest(unittest.TestCase):
 
     def test_prompt_includes_workflow_chunk_items(self) -> None:
         job = {
-            "input_uri": "workflow://topic-ranking/chunks/0",
+            "input_uri": "workflow://generic-map-reduce/chunks/0",
             "metadata": {
                 "input": {
                     "prompt": "Rank these articles.",
@@ -153,7 +162,7 @@ class ModalLlmQualityTest(unittest.TestCase):
 
     def test_prompt_uses_items_without_prompt(self) -> None:
         job = {
-            "input_uri": "workflow://topic-ranking/chunks/0",
+            "input_uri": "workflow://generic-map-reduce/chunks/0",
             "metadata": {"input": {"items": [{"article_id": "a1", "title": "Alpha"}]}},
         }
 
@@ -208,6 +217,37 @@ class VerifyPayloadTest(unittest.TestCase):
             with_manifest = verify_artifacts(path, require_manifest=True)
             self.assertTrue(with_manifest["ok"])
             self.assertTrue(with_manifest["manifest"]["manifest_present"])
+
+    def test_verify_artifacts_rejects_gpu_bound_without_gpu_metrics(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            (path / "result.json").write_text(json.dumps({"text": "ok"}) + "\n")
+            (path / "metrics.json").write_text(json.dumps({"provider": "modal", "runtime_seconds": 1}) + "\n")
+            (path / "verify.json").write_text(json.dumps({"ok": True, "checks": {"text_nonempty": True}}) + "\n")
+            (path / "stdout.log").write_text("")
+            (path / "stderr.log").write_text("")
+            write_manifest(path)
+
+            result = verify_artifacts(path, require_manifest=True, require_gpu_utilization=True)
+
+            self.assertFalse(result["ok"])
+            self.assertFalse(result["hardware_verify"]["ok"])
+            self.assertEqual(result["hardware_verify"]["reason"], "gpu utilization evidence missing")
+
+    def test_verify_artifacts_accepts_gpu_bound_with_gpu_metrics(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            (path / "result.json").write_text(json.dumps({"text": "ok"}) + "\n")
+            (path / "metrics.json").write_text(json.dumps({"provider": "modal", "gpu_samples": [{"gpu_utilization_percent": 7.5}]}) + "\n")
+            (path / "verify.json").write_text(json.dumps({"ok": True, "checks": {"text_nonempty": True}}) + "\n")
+            (path / "stdout.log").write_text("")
+            (path / "stderr.log").write_text("")
+            write_manifest(path)
+
+            result = verify_artifacts(path, require_manifest=True, require_gpu_utilization=True)
+
+            self.assertTrue(result["ok"])
+            self.assertTrue(result["hardware_verify"]["ok"])
 
 
 if __name__ == "__main__":
