@@ -944,6 +944,14 @@ mutation {{
                 "provider_image_status": distribution.get("status") or "",
                 "registry_auth": distribution.get("registry_auth") or {},
             },
+            "serverless_handler_contract": {
+                "status": "unverified",
+                "reason": (
+                    "current ASR diarization provider image is a command/HTTP worker image; "
+                    "RunPod serverless handler entrypoint must be contract-probed before production dispatch"
+                ),
+                "required_before_execute": True,
+            },
             "safety_invariants": {
                 "workers_min": 0,
                 "workers_standby": 0,
@@ -953,7 +961,7 @@ mutation {{
                 "requires_clean_post_guard": True,
                 "requires_hf_secret_ref": bool(hf_secret_name),
                 "requires_workspace_observation_parity": True,
-                "production_dispatch": "blocked_until_contract_probe_passes",
+                "production_dispatch": "blocked_until_serverless_handler_and_workspace_contract_probe_pass",
             },
             "template": template,
             "endpoint": endpoint,
@@ -985,6 +993,60 @@ mutation {{
                 "clean post-guard; fail on warm capacity or resource residue",
                 "parse contract probe and require all workspace observation categories",
             ],
+        }
+
+    def promote_asr_endpoint(
+        self,
+        *,
+        image: str = "",
+        container_disk_in_gb: int = 80,
+        gpu_ids: str = "ADA_24",
+        network_volume_id: str = "",
+        locations: str = "",
+        hf_secret_name: str = "gpu_job_hf_read",
+        idle_timeout: int = 60,
+        workers_max: int = 1,
+        scaler_value: int = 4,
+        flashboot: bool = True,
+        model: str = "large-v3",
+        speaker_model: str = "pyannote/speaker-diarization-3.1",
+        execute: bool = False,
+        allow_unverified_serverless_handler: bool = False,
+    ) -> dict[str, Any]:
+        plan = self.plan_asr_endpoint(
+            image=image,
+            container_disk_in_gb=container_disk_in_gb,
+            gpu_ids=gpu_ids,
+            network_volume_id=network_volume_id,
+            locations=locations,
+            hf_secret_name=hf_secret_name,
+            idle_timeout=idle_timeout,
+            workers_max=workers_max,
+            scaler_value=scaler_value,
+            flashboot=flashboot,
+            model=model,
+            speaker_model=speaker_model,
+        )
+        if not execute:
+            return {**plan, "executed": False}
+        if not plan.get("ok"):
+            return {**plan, "executed": False}
+        handler_contract = plan.get("serverless_handler_contract") if isinstance(plan.get("serverless_handler_contract"), dict) else {}
+        if handler_contract.get("status") != "verified" and not allow_unverified_serverless_handler:
+            return {
+                **plan,
+                "ok": False,
+                "executed": False,
+                "error": "runpod_asr_serverless_handler_contract_unverified",
+                "reason": handler_contract.get("reason") or "serverless handler contract must be verified before GPU allocation",
+                "next_action": "build/probe a RunPod serverless ASR handler image, then rerun promote-asr-endpoint --execute",
+            }
+        return {
+            **plan,
+            "ok": False,
+            "executed": False,
+            "error": "runpod_asr_serverless_execute_not_enabled",
+            "reason": "ASR serverless live allocation remains blocked until a verified handler image contract is registered.",
         }
 
     def promote_vllm_endpoint(

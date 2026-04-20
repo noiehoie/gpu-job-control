@@ -291,7 +291,11 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertEqual(plan["safety_invariants"]["workers_min"], 0)
         self.assertEqual(plan["safety_invariants"]["workers_standby"], 0)
         self.assertEqual(plan["safety_invariants"]["workers_max"], 1)
-        self.assertEqual(plan["safety_invariants"]["production_dispatch"], "blocked_until_contract_probe_passes")
+        self.assertEqual(
+            plan["safety_invariants"]["production_dispatch"],
+            "blocked_until_serverless_handler_and_workspace_contract_probe_pass",
+        )
+        self.assertEqual(plan["serverless_handler_contract"]["status"], "unverified")
         self.assertEqual(plan["endpoint"]["workersMin"], 0)
         self.assertEqual(plan["endpoint"]["workersMax"], 1)
         self.assertEqual(plan["endpoint"]["networkVolumeId"], "vol-runpod-asr")
@@ -320,6 +324,16 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertFalse(plan["ok"])
         self.assertEqual(plan["error"], "invalid_runpod_gpu_ids")
         self.assertEqual(plan["gpu_selection"]["invalid_pool_ids"], ["NVIDIA L4"])
+
+    def test_runpod_asr_serverless_promotion_blocks_before_gpu_allocation_until_handler_verified(self) -> None:
+        provider = RunPodProvider()
+
+        with patch.object(provider, "_run_graphql", side_effect=AssertionError("must not allocate GPU")):
+            result = provider.promote_asr_endpoint(execute=True)
+
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["executed"])
+        self.assertEqual(result["error"], "runpod_asr_serverless_handler_contract_unverified")
 
     def test_runpod_pod_plan_includes_registry_auth_when_private_image_requires_it(self) -> None:
         provider = RunPodProvider()
