@@ -7,7 +7,7 @@ import json
 
 from .execution_plan import build_execution_plan
 from .models import Job, app_data_dir, now_unix
-from .provider_catalog import provider_capability
+from .provider_catalog import load_provider_catalog, provider_capability
 from .provider_contract_probe import recent_contract_probe_summary
 from .requirements import load_requirement_registry
 
@@ -114,7 +114,11 @@ def provider_workspace_plan(job: Job, provider: str) -> dict[str, Any]:
     base = dict(PROVIDER_WORKSPACES.get(provider) or PROVIDER_WORKSPACES["local"])
     image_contract = dict(execution_plan.get("image_contract") or {})
     required_backends = list(execution_plan.get("required_backends") or [])
-    capability = provider_capability(provider)
+    try:
+        catalog = load_provider_catalog()
+    except Exception:
+        catalog = {}
+    capability = provider_capability(provider, catalog if catalog else None)
     runtime = _provider_runtime(provider, job.gpu_profile)
     contract_probe = str(runtime.get("contract_probe") or "")
     is_contract_probe_job = _is_matching_contract_probe_job(job, contract_probe)
@@ -146,6 +150,8 @@ def provider_workspace_plan(job: Job, provider: str) -> dict[str, Any]:
         "job_id": job.job_id,
         "job_type": job.job_type,
         "gpu_profile": job.gpu_profile,
+        "catalog_version": catalog.get("catalog_version") if isinstance(catalog, dict) else "",
+        "catalog_snapshot_id": catalog.get("catalog_snapshot_id") if isinstance(catalog, dict) else "",
         "workspace": base,
         "execution_plan": execution_plan,
         "image_contract": image_contract,

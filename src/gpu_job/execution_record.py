@@ -7,6 +7,7 @@ import json
 
 from .execution_plan import build_execution_plan
 from .models import Job, now_unix
+from .plan_quote import build_plan_quote
 from .store import JobStore
 from .timing import public_timing
 
@@ -124,7 +125,59 @@ def _plan_quote_from_job(job: Job) -> dict[str, Any]:
     child_quote = job.metadata.get("plan_quote") if isinstance(job.metadata.get("plan_quote"), dict) else {}
     if workflow_quote and job.job_type != "cpu_workflow_helper":
         return workflow_quote
-    return child_quote or workflow_quote
+    if child_quote or workflow_quote:
+        return child_quote or workflow_quote
+    workspace_plan = job.metadata.get("workspace_plan") if isinstance(job.metadata.get("workspace_plan"), dict) else {}
+    if not workspace_plan:
+        return {}
+    provider = str(workspace_plan.get("provider") or job.provider or "")
+    capability = workspace_plan.get("provider_capability") if isinstance(workspace_plan.get("provider_capability"), dict) else {}
+    runtime = workspace_plan.get("provider_runtime") if isinstance(workspace_plan.get("provider_runtime"), dict) else {}
+    required_actions = workspace_plan.get("required_actions") if isinstance(workspace_plan.get("required_actions"), list) else []
+    decision = "requires_action" if workspace_plan.get("decision") == "requires_action" else "auto_execute"
+    selected = {
+        "provider": provider,
+        "gpu_profile": job.gpu_profile,
+        "workspace_plan_id": workspace_plan.get("workspace_plan_id") or "",
+        "workspace_registry_version": workspace_plan.get("workspace_registry_version") or "",
+        "catalog_capability": capability,
+        "provider_runtime": runtime,
+        "estimated_total_seconds_p50": capability.get("estimated_startup_seconds"),
+        "estimated_total_seconds_p95": capability.get("estimated_startup_seconds"),
+        "estimated_total_cost_usd_p50": None,
+        "estimated_total_cost_usd_p95": None,
+    }
+    return build_plan_quote(
+        {
+            "contract_version": "gpu-job-execution-record-derived-quote-v1",
+            "request": {
+                "job_id": job.job_id,
+                "job_type": job.job_type,
+                "gpu_profile": job.gpu_profile,
+                "model": job.model,
+            },
+            "catalog_version": workspace_plan.get("catalog_version") or "",
+            "catalog_snapshot_id": workspace_plan.get("catalog_snapshot_id") or "",
+            "gpu_profile": job.gpu_profile,
+            "selected_option": selected,
+            "options": [selected],
+            "refusals": [],
+            "estimate": {
+                "source": "workspace_plan",
+                "workspace_plan_id": workspace_plan.get("workspace_plan_id") or "",
+            },
+            "approval": {
+                "decision": decision,
+                "reason": "derived from provider workspace plan at execution-record time",
+            },
+            "can_run_now": decision != "requires_action",
+            "action_requirements": {
+                "decision": workspace_plan.get("decision") or "",
+                "required_actions": required_actions,
+            },
+            "created_at": job.created_at,
+        }
+    )
 
 
 def _cost_payload(job: Job) -> dict[str, Any]:
