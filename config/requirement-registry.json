@@ -1,0 +1,175 @@
+{
+  "registry_version": "gpu-job-requirement-registry-v1",
+  "capabilities": {
+    "transcription": {
+      "description": "Speech-to-text transcription"
+    },
+    "speaker_diarization": {
+      "description": "Assign speaker labels to transcript time ranges"
+    }
+  },
+  "backends": {
+    "faster_whisper": {
+      "provides": ["transcription"],
+      "requires": [
+        {
+          "type": "worker_dependency",
+          "id": "faster-whisper",
+          "status": "assumed_by_asr_worker_contract"
+        }
+      ],
+      "supported_models": ["large-v3", "whisper-large-v3"]
+    },
+    "pyannote": {
+      "provides": ["speaker_diarization"],
+      "requires": [
+        {
+          "type": "secret",
+          "id": "hf_token",
+          "env": "HF_TOKEN",
+          "reason_code": "gated_huggingface_model",
+          "human_message": "pyannote speaker diarization requires a Hugging Face token accepted for the selected pyannote model"
+        },
+        {
+          "type": "worker_dependency",
+          "id": "pyannote.audio",
+          "version_constraint": ">=3.3,<4",
+          "status": "requires_verified_worker_image",
+          "reason_code": "python_package_required"
+        },
+        {
+          "type": "worker_dependency",
+          "id": "matplotlib",
+          "version_constraint": ">=3.10,<4",
+          "status": "requires_verified_worker_image",
+          "reason_code": "pyannote_lazy_import_dependency"
+        }
+      ],
+      "supported_models": ["pyannote/speaker-diarization-3.1"]
+    }
+  },
+  "provider_runtimes": {
+    "modal:asr_fast": {
+      "provider": "modal",
+      "gpu_profile": "asr_fast",
+      "expected_gpu": "T4",
+      "supports_backends": ["faster_whisper"],
+      "worker_image": "gpu-job/asr-worker:large-v3-cuda12.4",
+      "image_contract_id": "asr-fast-large-v3-cuda12.4"
+    },
+    "modal:asr_diarization": {
+      "provider": "modal",
+      "gpu_profile": "asr_diarization",
+      "expected_gpu": "A10G",
+      "supports_backends": ["faster_whisper", "pyannote"],
+      "worker_image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+      "image_contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+      "contract_probe": "modal.asr_diarization.pyannote",
+      "provider_secret_bindings": [
+        {
+          "type": "provider_secret_binding",
+          "secret_ref": "hf_token",
+          "provider_secret_name": "hf-token",
+          "env": "HF_TOKEN"
+        }
+      ]
+    },
+    "runpod:asr_fast": {
+      "provider": "runpod",
+      "gpu_profile": "asr_fast",
+      "expected_gpu": "provider_selected_gpu",
+      "supports_backends": ["faster_whisper"],
+      "worker_image": "gpu-job/asr-worker:large-v3-cuda12.4",
+      "image_contract_id": "asr-fast-large-v3-cuda12.4"
+    },
+    "runpod:asr_diarization": {
+      "provider": "runpod",
+      "gpu_profile": "asr_diarization",
+      "expected_gpu": "provider_selected_gpu",
+      "supports_backends": ["faster_whisper", "pyannote"],
+      "worker_image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+      "image_contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+      "contract_probe": "runpod.asr_diarization.pyannote",
+      "provider_secret_bindings": [
+        {
+          "type": "provider_secret_binding",
+          "secret_ref": "hf_token",
+          "provider_secret_name": "HF_TOKEN",
+          "env": "HF_TOKEN"
+        }
+      ]
+    },
+    "vast:asr_fast": {
+      "provider": "vast",
+      "gpu_profile": "asr_fast",
+      "expected_gpu": "provider_selected_gpu",
+      "supports_backends": ["faster_whisper"],
+      "worker_image": "gpu-job/asr-worker:large-v3-cuda12.4",
+      "image_contract_id": "asr-fast-large-v3-cuda12.4"
+    },
+    "vast:asr_diarization": {
+      "provider": "vast",
+      "gpu_profile": "asr_diarization",
+      "expected_gpu": "provider_selected_gpu",
+      "supports_backends": ["faster_whisper", "pyannote"],
+      "worker_image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+      "image_contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+      "contract_probe": "vast.asr_diarization.pyannote",
+      "provider_secret_bindings": [
+        {
+          "type": "provider_secret_binding",
+          "secret_ref": "hf_token",
+          "provider_secret_name": "HF_TOKEN",
+          "env": "HF_TOKEN"
+        }
+      ]
+    }
+  },
+  "workload_rules": [
+    {
+      "rule_id": "transcription_whisper",
+      "workload_kind": "transcription.whisper",
+      "requires_capabilities": ["transcription"],
+      "default_backends": {
+        "transcription": "faster_whisper"
+      },
+      "default_gpu_profile": "asr_fast",
+      "alternatives": [
+        {
+          "option_id": "reject",
+          "can_run_now": true
+        }
+      ]
+    },
+    {
+      "rule_id": "transcription_whisper_speaker_diarization",
+      "workload_kind": "transcription.whisper",
+      "when": {
+        "speaker_diarization": true
+      },
+      "requires_capabilities": ["transcription", "speaker_diarization"],
+      "default_backends": {
+        "transcription": "faster_whisper",
+        "speaker_diarization": "pyannote"
+      },
+      "default_gpu_profile": "asr_diarization",
+      "alternatives": [
+        {
+          "option_id": "transcribe_without_diarization",
+          "can_run_now": true,
+          "tradeoff": "speaker labels will be absent",
+          "drops_capability": "speaker_diarization"
+        },
+        {
+          "option_id": "cpu_local_diarization",
+          "can_run_now": false,
+          "tradeoff": "very slow and not preferred unless explicitly approved"
+        },
+        {
+          "option_id": "reject",
+          "can_run_now": true
+        }
+      ]
+    }
+  ]
+}

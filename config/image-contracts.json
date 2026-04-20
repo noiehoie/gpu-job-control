@@ -1,0 +1,69 @@
+{
+  "registry_version": "gpu-job-image-contract-registry-v1",
+  "image_contracts": {
+    "asr-fast-large-v3-cuda12.4": {
+      "contract_id": "asr-fast-large-v3-cuda12.4",
+      "description": "faster-whisper large-v3 ASR worker image contract",
+      "status": "verified",
+      "image": "gpu-job/asr-worker:large-v3-cuda12.4",
+      "entrypoint": "gpu-job-asr-worker",
+      "provides_backends": ["faster_whisper"],
+      "required_packages": {
+        "faster-whisper": "1.2.1"
+      },
+      "provider_images": {
+        "modal": {"status": "provider_native"},
+        "runpod": {"status": "missing"},
+        "vast": {"status": "missing"}
+      },
+      "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+      "probe_command": ["gpu-job-asr-worker", "--help"]
+    },
+    "asr-diarization-large-v3-pyannote3.3.2-cuda12.4": {
+      "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+      "description": "faster-whisper large-v3 plus pyannote speaker diarization worker image contract",
+      "status": "verified",
+      "image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+      "entrypoint": "gpu-job-asr-worker",
+      "provides_backends": ["faster_whisper", "pyannote"],
+      "required_packages": {
+        "faster-whisper": "1.2.1",
+        "pyannote.audio": "3.3.2",
+        "torch": "2.5.1",
+        "torchaudio": "2.5.1",
+        "huggingface-hub": "0.24.7",
+        "matplotlib": "3.10.1"
+      },
+      "provider_images": {
+        "modal": {"status": "provider_native"},
+        "runpod": {
+          "status": "verified",
+          "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+          "registry_auth": {
+            "type": "runpod_container_registry_auth",
+            "registry": "ghcr.io",
+            "username": "noiehoie",
+            "auth_id": "cmo69c98l00iyjj07z22tsrzm"
+          }
+        },
+        "vast": {
+          "status": "verified",
+          "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+          "registry_auth": {
+            "type": "vast_image_login",
+            "registry": "ghcr.io",
+            "username_env": "GHCR_USERNAME",
+            "password_env": "GHCR_TOKEN"
+          }
+        }
+      },
+      "required_secrets": ["hf_token"],
+      "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+      "probe_command": ["gpu-job-asr-worker", "--probe-runtime", "--diarize"],
+      "build_action": {
+        "dockerfile": "docker/asr-worker.Dockerfile",
+        "reason": "speaker diarization must use a prebuilt image; runtime pip install is not allowed for production execution"
+      }
+    }
+  }
+}
