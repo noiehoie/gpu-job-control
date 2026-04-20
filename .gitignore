@@ -20,3 +20,10 @@ build/
 *.log
 audit/
 artifacts/
+ai-audit/
+tasks/
+.aider.chat.history.md
+.aider.input.history
+.opencode/
+scripts/continue_vast_asr_instance.sh
+scripts/vast_asr_30s_canary.sh

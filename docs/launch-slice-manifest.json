@@ -1,0 +1,233 @@
+{
+  "manifest_version": "gpu-job-launch-slice-manifest-v1",
+  "purpose": "Classify every current dirty worktree path into exactly one launch review unit so RunPod, Vast, and Modal work can proceed without mixing contract, runtime, and provider-risk changes.",
+  "invariant": "gpu-job-control is a deterministic generic cloud-GPU broker. Provider execution changes must be reviewed after contracts, workspace evidence, and cleanup guarantees are in place.",
+  "slice_order": [
+    "00_launch_metadata",
+    "01_contract_core",
+    "02_runtime_binding",
+    "03_lifecycle_reconciliation",
+    "05_runtime_configuration",
+    "04_provider_common",
+    "04_modal",
+    "04_runpod",
+    "04_vast"
+  ],
+  "slices": {
+    "00_launch_metadata": {
+      "goal": "Record launch boundaries, provider research facts, stop conditions, and local artifact ignore rules.",
+      "review_status": "launchable_docs_after_ci",
+      "files": [
+        ".gitignore",
+        "docs/cloud-gpu-provider-research.md",
+        "docs/launch-worktree-cleanup.md",
+        "docs/launch-slice-manifest.json"
+      ],
+      "tests": [
+        "git diff --check -- .gitignore docs/cloud-gpu-provider-research.md docs/launch-worktree-cleanup.md docs/launch-slice-manifest.json"
+      ],
+      "blocks": []
+    },
+    "01_contract_core": {
+      "goal": "Public deterministic workload contracts, PlanQuote, ExecutionPlan, ExecutionRecord, requirement/image/workspace registries, provider catalog, timing, and contract-probe evidence.",
+      "review_status": "locally_verified",
+      "files": [
+        "config/image-contracts.json",
+        "config/requirement-registry.json",
+        "src/gpu_job/contracts.py",
+        "src/gpu_job/execution_plan.py",
+        "src/gpu_job/execution_record.py",
+        "src/gpu_job/image_contracts.py",
+        "src/gpu_job/plan_quote.py",
+        "src/gpu_job/provider_catalog.py",
+        "src/gpu_job/provider_contract_probe.py",
+        "src/gpu_job/provider_probe.py",
+        "src/gpu_job/requirements.py",
+        "src/gpu_job/timing.py",
+        "src/gpu_job/workspace_registry.py",
+        "tests/test_asr_diarization_contract.py",
+        "tests/test_execution_plan_contract.py",
+        "tests/test_image_contracts.py",
+        "tests/test_provider_catalog_contracts.py",
+        "tests/test_provider_contract_probe.py",
+        "tests/test_requirement_registry.py",
+        "tests/test_timing_v2.py"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_asr_diarization_contract.py tests/test_execution_plan_contract.py tests/test_image_contracts.py tests/test_provider_catalog_contracts.py tests/test_provider_contract_probe.py tests/test_requirement_registry.py tests/test_timing_v2.py -q"
+      ],
+      "blocks": [
+        "provider API calls",
+        "live GPU allocation",
+        "runtime dependency installation"
+      ]
+    },
+    "02_runtime_binding": {
+      "goal": "Bind contracts to public/admin CLI, API, policy, queue, router, runner, workflow, verification, WAL/circuit/guard behavior, and package entry points.",
+      "review_status": "locally_verified_after_ci",
+      "files": [
+        "config/README.md",
+        "config/execution-policy.json",
+        "config/provider-operations.example.json",
+        "pyproject.toml",
+        "src/gpu_job/api.py",
+        "src/gpu_job/capacity.py",
+        "src/gpu_job/circuit.py",
+        "src/gpu_job/cli.py",
+        "src/gpu_job/cli_public.py",
+        "src/gpu_job/concurrency.py",
+        "src/gpu_job/error_class.py",
+        "src/gpu_job/policy.py",
+        "src/gpu_job/policy_engine.py",
+        "src/gpu_job/queue.py",
+        "src/gpu_job/router.py",
+        "src/gpu_job/runner.py",
+        "src/gpu_job/verify.py",
+        "src/gpu_job/workflow.py",
+        "src/gpu_job/workflow_helpers.py",
+        "tests/test_api_response_schema.py",
+        "tests/test_circuit_half_open.py",
+        "tests/test_cli_public_surface.py",
+        "tests/test_guard_scope.py",
+        "tests/test_policy_router.py",
+        "tests/test_production_contracts.py",
+        "tests/test_wal_recovery.py",
+        "tests/test_workflow_planner.py"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_api_response_schema.py tests/test_circuit_half_open.py tests/test_cli_public_surface.py tests/test_guard_scope.py tests/test_policy_router.py tests/test_production_contracts.py tests/test_wal_recovery.py tests/test_workflow_planner.py -q",
+        "uv run gpu-job selftest",
+        "uv run gpu-job validate examples/jobs/asr.example.json"
+      ],
+      "blocks": [
+        "public CLI importing provider adapters at startup",
+        "public API live provider execution",
+        "plan/execute provider drift"
+      ]
+    },
+    "03_lifecycle_reconciliation": {
+      "goal": "Vast orphan inventory, lifecycle evidence, conservative reaper policy, and report-only handling of ghosts/mismatches.",
+      "review_status": "locally_verified_conservative_only",
+      "files": [
+        "src/gpu_job/orphan_inventory.py",
+        "tests/test_vast_orphan_inventory.py"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_vast_orphan_inventory.py -q"
+      ],
+      "blocks": [
+        "ghost destructive cleanup",
+        "id_mismatch destructive cleanup",
+        "cleanup without fresh provider read",
+        "cleanup without destructive_preflight"
+      ]
+    },
+    "05_runtime_configuration": {
+      "goal": "GPU profile/runtime configuration that enables ASR diarization planning without routing to unverified provider images.",
+      "review_status": "needs_provider_slice_cross_check",
+      "files": [
+        "config/gpu-profiles.json"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_asr_diarization_contract.py tests/test_policy_router.py -q"
+      ],
+      "blocks": [
+        "production routing to unverified provider images"
+      ]
+    },
+    "04_provider_common": {
+      "goal": "Shared ASR worker image, image distribution operations, and ASR worker implementation used by provider-specific canaries.",
+      "review_status": "high_risk_requires_provider_canaries",
+      "files": [
+        "docker/asr-worker.Dockerfile",
+        "src/gpu_job/image.py",
+        "src/gpu_job/workers/asr.py",
+        "tests/test_image_distribution.py"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_image_distribution.py -q"
+      ],
+      "blocks": [
+        "runtime pip install in provider adapters",
+        "image build/push without image contract",
+        "worker image without ffmpeg/ffprobe and ASR dependencies"
+      ]
+    },
+    "04_modal": {
+      "goal": "Modal provider execution and canaries, isolated from RunPod/Vast behavior.",
+      "review_status": "high_risk_provider_slice",
+      "files": [
+        "src/gpu_job/modal_asr.py",
+        "src/gpu_job/modal_llm.py",
+        "src/gpu_job/modal_vlm.py",
+        "src/gpu_job/providers/modal.py",
+        "tests/test_modal_llm_quality.py",
+        "tests/test_modal_provider.py"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_modal_llm_quality.py tests/test_modal_provider.py -q"
+      ],
+      "blocks": [
+        "Modal image not rebuilt after dependency changes",
+        "HF model cache not persisted where required",
+        "canary passing on tiny workload only"
+      ]
+    },
+    "04_runpod": {
+      "goal": "RunPod pod/serverless provider behavior, ASR diarization workspace canary, endpoint/pod cleanup, and RunPod-specific operation records.",
+      "review_status": "high_risk_provider_slice",
+      "files": [
+        "src/gpu_job/providers/runpod.py",
+        "tests/test_runpod_config.py"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_runpod_config.py tests/test_provider_contract_probe.py -q"
+      ],
+      "blocks": [
+        "serverless ASR production dispatch before workspace canary parity",
+        "warm worker or endpoint residue after canary",
+        "unbounded workersMax or unmanaged network volume cost"
+      ]
+    },
+    "04_vast": {
+      "goal": "Vast direct instance ASR, startup timing, prebuilt image use, private registry login, and direct instance cleanup observations.",
+      "review_status": "high_risk_provider_slice",
+      "files": [
+        "src/gpu_job/providers/vast.py",
+        "tests/test_vast_asr_provider.py"
+      ],
+      "tests": [
+        "uv run python -m pytest tests/test_vast_asr_provider.py tests/test_vast_orphan_inventory.py -q"
+      ],
+      "blocks": [
+        "runtime dependency install outside debug mode",
+        "destroying instance without lifecycle evidence",
+        "using Vast r8 as production dispatch proof without provider residue checks"
+      ]
+    }
+  },
+  "provider_fast_path_order": [
+    {
+      "provider": "modal",
+      "next_gate": "prove rebuilt image, persistent model/cache behavior, and ASR/LLM canary with contract probe evidence"
+    },
+    {
+      "provider": "runpod",
+      "next_gate": "promote pod ASR workspace canary evidence, then build serverless workspace contract before production dispatch"
+    },
+    {
+      "provider": "vast",
+      "next_gate": "use prebuilt image plus lifecycle evidence; keep r8 as canary evidence until cleanup/residue is proven repeatedly"
+    }
+  ],
+  "global_ci_gate": [
+    "uv run python -m compileall -q src tests",
+    "uv run python -m unittest discover -s tests -q",
+    "uv run python -m pytest -q",
+    "uv run --with ruff ruff check src tests",
+    "uv run --with ruff ruff format --check src tests",
+    "uv run gpu-job selftest",
+    "uv run gpu-job validate examples/jobs/asr.example.json",
+    "git diff --check"
+  ]
+}
