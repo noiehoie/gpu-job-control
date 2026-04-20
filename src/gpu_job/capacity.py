@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .concurrency import flatten_provider_limits, provider_profile_key, provider_profile_limit
 from .models import Job, now_unix
 from .policy import load_execution_policy
 from .router import route_job
@@ -44,13 +45,16 @@ def compact_job(job: Job) -> dict[str, Any]:
 def queue_capacity(limit: int = 1000) -> dict[str, Any]:
     store = JobStore()
     policy = load_execution_policy()
-    provider_limits = {str(k): int(v) for k, v in dict(policy.get("provider_limits", {})).items()}
+    provider_limits = dict(policy.get("provider_limits", {}))
+    flat_limits = flatten_provider_limits(provider_limits)
     jobs = store.list_jobs(limit=limit)
     counts: dict[str, int] = {}
     by_job_type: dict[str, dict[str, int]] = {}
     providers: dict[str, dict[str, Any]] = {
-        provider: {
-            "provider": provider,
+        key: {
+            "provider_profile_key": key,
+            "provider": key.split(":", 1)[0],
+            "gpu_profile": key.split(":", 1)[1] if ":" in key else "*",
             "max_concurrent": max(0, max_concurrent),
             "active": 0,
             "queued": 0,
@@ -58,7 +62,7 @@ def queue_capacity(limit: int = 1000) -> dict[str, Any]:
             "saturated": False,
             "expected_wait_seconds": 0,
         }
-        for provider, max_concurrent in provider_limits.items()
+        for key, max_concurrent in flat_limits.items()
     }
 
     for job in jobs:
@@ -71,11 +75,14 @@ def queue_capacity(limit: int = 1000) -> dict[str, Any]:
             provider = selected_provider_for_job(job, resolve_auto=False)
         except Exception:
             provider = str(job.metadata.get("selected_provider") or job.provider or "unknown")
+        profile_key = provider_profile_key(provider, job.gpu_profile)
         entry = providers.setdefault(
-            provider,
+            profile_key,
             {
+                "provider_profile_key": profile_key,
                 "provider": provider,
-                "max_concurrent": 1,
+                "gpu_profile": job.gpu_profile,
+                "max_concurrent": provider_profile_limit(provider_limits, provider, job.gpu_profile),
                 "active": 0,
                 "queued": 0,
                 "available_slots": 1,
@@ -102,6 +109,7 @@ def queue_capacity(limit: int = 1000) -> dict[str, Any]:
         "counts": counts,
         "by_job_type": by_job_type,
         "provider_limits": provider_limits,
+        "flattened_provider_limits": flat_limits,
         "providers": providers,
         "active_total": sum(int(p.get("active") or 0) for p in providers.values()),
         "queued_total": sum(int(p.get("queued") or 0) for p in providers.values()),
@@ -111,10 +119,12 @@ def queue_capacity(limit: int = 1000) -> dict[str, Any]:
 def reserve_direct_execution_slot(job: Job, provider: str) -> dict[str, Any]:
     store = JobStore()
     policy = load_execution_policy()
-    max_concurrent = int(dict(policy.get("provider_limits", {})).get(provider, 1))
-    with StoreLock(store.lock_path(f"capacity-{provider}")):
+    provider_limits = dict(policy.get("provider_limits", {}))
+    max_concurrent = provider_profile_limit(provider_limits, provider, job.gpu_profile)
+    profile_key = provider_profile_key(provider, job.gpu_profile)
+    with StoreLock(store.lock_path(f"capacity-{profile_key}")):
         capacity = queue_capacity()
-        provider_capacity = dict(capacity.get("providers", {}).get(provider, {}))
+        provider_capacity = dict(capacity.get("providers", {}).get(profile_key, {}))
         active = int(provider_capacity.get("active") or 0)
         queued = int(provider_capacity.get("queued") or 0)
         if max_concurrent > 0 and active >= max_concurrent:
@@ -123,6 +133,8 @@ def reserve_direct_execution_slot(job: Job, provider: str) -> dict[str, Any]:
                 "ok": False,
                 "error": "provider concurrency limit reached",
                 "provider": provider,
+                "gpu_profile": job.gpu_profile,
+                "profile_key": profile_key,
                 "max_concurrent": max_concurrent,
                 "active": active,
                 "queued": queued,

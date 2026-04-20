@@ -5,6 +5,7 @@ import unittest
 from tempfile import TemporaryDirectory
 
 from gpu_job.workflow import (
+    advance_workflows,
     approve_workflow,
     cost_drift_decision,
     enforce_workflow_budget_drains,
@@ -17,6 +18,7 @@ from gpu_job.workflow import (
     workflow_budget_monitor,
     workflow_strategies,
 )
+from gpu_job.store import JobStore
 
 
 class WorkflowPlannerTest(unittest.TestCase):
@@ -37,8 +39,8 @@ class WorkflowPlannerTest(unittest.TestCase):
             {
                 "workflow_type": "bulk_test",
                 "business_context": {
-                    "app_id": "news-system",
-                    "budget_class": "daily_news_core",
+                    "app_id": "generic-caller",
+                    "budget_class": "standard",
                     "priority": "high",
                 },
                 "jobs": [_job_payload("a"), _job_payload("b")],
@@ -48,12 +50,12 @@ class WorkflowPlannerTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         workflow = result["workflow"]
         self.assertEqual(workflow["total_jobs"], 2)
-        self.assertEqual(workflow["expected_budget_class"], "daily_news_core")
+        self.assertEqual(workflow["expected_budget_class"], "standard")
         self.assertEqual(workflow["summary"]["counts"], {"queued": 2})
         self.assertEqual(workflow["summary"]["children"][0]["stage"], "map")
 
     def test_json_array_plan_auto_executes_under_budget(self) -> None:
-        result = plan_workflow(_scatter_payload(item_count=6, item_tokens=2000, budget_class="daily_news_core"))
+        result = plan_workflow(_scatter_payload(item_count=6, item_tokens=2000, budget_class="standard"))
 
         self.assertTrue(result["ok"])
         self.assertEqual(result["approval"]["decision"], "auto_execute")
@@ -83,13 +85,48 @@ class WorkflowPlannerTest(unittest.TestCase):
         self.assertEqual(approved["workflow"]["status"], "approved")
 
     def test_execute_workflow_splits_and_queues_jobs(self) -> None:
-        payload = _scatter_payload(item_count=9, item_tokens=6000, budget_class="daily_news_core")
+        payload = _scatter_payload(item_count=9, item_tokens=6000, budget_class="standard")
         result = execute_workflow(payload)
 
         self.assertTrue(result["ok"])
         workflow = load_workflow(result["workflow_id"])["workflow"]
         self.assertEqual(workflow["status"], "queued")
         self.assertEqual(workflow["summary"]["counts"]["queued"], workflow["plan"]["map_job_count"])
+
+    def test_plan_workflow_returns_plan_quote_and_children_inherit_it(self) -> None:
+        payload = _scatter_payload(item_count=3, item_tokens=1000, budget_class="standard")
+
+        planned = plan_workflow(payload)
+        result = execute_workflow(payload)
+
+        self.assertTrue(planned["ok"])
+        self.assertEqual(planned["plan_quote"]["quote_version"], "gpu-job-plan-quote-v1")
+        self.assertEqual(planned["plan_quote"]["explanation"]["selected_provider"], "modal")
+        workflow = load_workflow(result["workflow_id"])["workflow"]
+        self.assertEqual(workflow["plan_quote"]["quote_hash"], planned["plan_quote"]["quote_hash"])
+        jobs = JobStore().list_jobs(limit=20)
+        children = [job for job in jobs if job.metadata.get("workflow_id") == workflow["workflow_id"]]
+        self.assertTrue(children)
+        self.assertTrue(
+            all(job.metadata.get("workflow_plan_quote", {}).get("quote_hash") == workflow["plan_quote"]["quote_hash"] for job in children)
+        )
+        self.assertTrue(all(job.metadata.get("workspace_plan", {}).get("provider") == "modal" for job in children))
+
+    def test_workflow_plan_quote_overrides_template_plan_quote_for_map_children(self) -> None:
+        payload = _scatter_payload(item_count=2, item_tokens=1000, budget_class="standard")
+        payload["job_template"]["metadata"]["plan_quote"] = {
+            "quote_id": "stale-template-quote",
+            "selected_option": {"provider": "vast", "gpu_profile": "llm_heavy"},
+        }
+
+        result = execute_workflow(payload)
+
+        workflow = load_workflow(result["workflow_id"])["workflow"]
+        children = [job for job in JobStore().list_jobs(limit=20) if job.metadata.get("workflow_id") == workflow["workflow_id"]]
+        self.assertTrue(children)
+        self.assertEqual(children[0].metadata["plan_quote"]["quote_id"], "stale-template-quote")
+        self.assertEqual(children[0].metadata["workflow_plan_quote"]["quote_hash"], workflow["plan_quote"]["quote_hash"])
+        self.assertEqual(children[0].metadata["workspace_plan"]["provider"], "modal")
 
     def test_cost_drift_requests_drain_when_projected_above_hard_cap(self) -> None:
         decision = cost_drift_decision(
@@ -126,11 +163,111 @@ class WorkflowPlannerTest(unittest.TestCase):
         status = load_workflow("wf-drain-test")["workflow"]
         self.assertEqual(status["status"], "draining")
 
+    def test_budget_drain_skips_non_runnable_states(self) -> None:
+        for workflow_id, status in [
+            ("wf-drain-skip-pending-approval", "pending_approval"),
+            ("wf-drain-skip-requires-action", "requires_action"),
+            ("wf-drain-skip-draining", "draining"),
+        ]:
+            result = submit_bulk_workflow(
+                {
+                    "workflow_id": workflow_id,
+                    "workflow_type": "bulk_test",
+                    "jobs": [_job_payload(workflow_id)],
+                }
+            )
+            workflow = load_workflow(result["workflow_id"])["workflow"]
+            workflow["status"] = status
+            workflow["plan"] = {"map_job_count": 1}
+            workflow["estimate"] = {"estimated_cost_p95_usd": 10.0}
+            workflow["approval"] = {"effective_hard_cap_usd": 1.0}
+            from gpu_job.workflow import _save_manifest
+
+            _save_manifest(workflow)
+
+        drained = enforce_workflow_budget_drains()
+
+        self.assertEqual(drained["drained_count"], 0)
+
     def test_non_text_strategies_are_registered_as_worker_plugins(self) -> None:
         strategies = workflow_strategies()
         self.assertFalse(strategies["ffmpeg_time_splitter"]["runs_in_api"])
         self.assertEqual(strategies["ffmpeg_time_splitter"]["worker_job_type"], "cpu_workflow_helper")
         self.assertFalse(strategies["pdf_page_splitter"]["runs_in_api"])
+
+    def test_non_json_splitter_queues_cpu_helper_instead_of_placeholder_map(self) -> None:
+        payload = _scatter_payload(item_count=0, item_tokens=0, budget_class="standard")
+        payload["workflow_type"] = "media_split_test"
+        payload["input_uri"] = "/tmp/input.mp4"
+        payload["strategy"] = {
+            "splitter": "ffmpeg_time_splitter",
+            "reducer": "timeline_reducer",
+            "estimated_map_seconds": 30,
+            "estimated_reduce_seconds": 10,
+        }
+        payload["input_payload"] = {"input_uri": "/tmp/input.mp4", "duration_seconds": 600}
+        payload["job_template"]["job_type"] = "asr"
+        payload["job_template"]["gpu_profile"] = "asr_fast"
+
+        result = execute_workflow(payload)
+
+        self.assertTrue(result["ok"])
+        workflow = load_workflow(result["workflow_id"])["workflow"]
+        stages = [child["stage"] for child in workflow["summary"]["children"]]
+        self.assertIn("split", stages)
+        self.assertNotIn("reduce", stages)
+        self.assertNotIn("map", stages)
+        jobs = JobStore().list_jobs(limit=20)
+        split_jobs = [job for job in jobs if job.metadata.get("workflow_stage") == "split"]
+        self.assertTrue(split_jobs)
+        self.assertEqual(split_jobs[0].metadata["plan_quote"]["selected_option"]["provider"], "local")
+        self.assertEqual(split_jobs[0].metadata["workspace_plan"]["provider"], "local")
+
+    def test_non_api_reducer_waits_for_map_completion(self) -> None:
+        payload = _scatter_payload(item_count=4, item_tokens=1000, budget_class="standard")
+        payload["strategy"]["reducer"] = "timeline_reducer"
+
+        result = execute_workflow(payload)
+
+        workflow = load_workflow(result["workflow_id"])["workflow"]
+        stages = [child["stage"] for child in workflow["summary"]["children"]]
+        self.assertIn("map", stages)
+        self.assertNotIn("reduce", stages)
+        store = JobStore()
+        for job in store.list_jobs(limit=20):
+            if job.metadata.get("workflow_id") == workflow["workflow_id"] and job.metadata.get("workflow_stage") == "map":
+                job.status = "succeeded"
+                store.save(job)
+
+        advanced = advance_workflows()
+
+        self.assertEqual(advanced["advanced_count"], 1)
+        workflow = load_workflow(result["workflow_id"])["workflow"]
+        stages = [child["stage"] for child in workflow["summary"]["children"]]
+        self.assertIn("reduce", stages)
+
+    def test_advance_workflows_skips_non_runnable_states(self) -> None:
+        for workflow_id, status in [
+            ("wf-skip-requires-action", "requires_action"),
+            ("wf-skip-pending-approval", "pending_approval"),
+            ("wf-skip-draining", "draining"),
+        ]:
+            submit_bulk_workflow(
+                {
+                    "workflow_id": workflow_id,
+                    "workflow_type": "bulk_test",
+                    "jobs": [_job_payload(workflow_id)],
+                }
+            )
+            from gpu_job.workflow import _save_manifest
+
+            workflow = load_workflow(workflow_id)["workflow"]
+            workflow["status"] = status
+            _save_manifest(workflow)
+
+        advanced = advance_workflows()
+
+        self.assertEqual(advanced["advanced_count"], 0)
 
     def test_json_array_merger(self) -> None:
         result = merge_json_array_results([[{"a": 1}], {"items": [{"b": 2}]}, {"c": 3}])
@@ -167,7 +304,7 @@ def _job_payload(suffix: str) -> dict:
 
 def _scatter_payload(*, item_count: int, item_tokens: int, budget_class: str) -> dict:
     return {
-        "workflow_type": "topic_ranking",
+        "workflow_type": "generic_map_reduce",
         "strategy": {
             "splitter": "json_array_chunker",
             "reducer": "json_array_merger",
@@ -175,7 +312,7 @@ def _scatter_payload(*, item_count: int, item_tokens: int, budget_class: str) ->
             "estimated_map_seconds": 30,
         },
         "business_context": {
-            "app_id": "news-system",
+            "app_id": "generic-caller",
             "budget_class": budget_class,
             "priority": "high",
             "sla_target_minutes": 30,
@@ -187,8 +324,8 @@ def _scatter_payload(*, item_count: int, item_tokens: int, budget_class: str) ->
         },
         "job_template": {
             "job_type": "llm_heavy",
-            "input_uri": "workflow://topic-ranking",
-            "output_uri": "workflow://topic-ranking/out",
+            "input_uri": "workflow://generic-map-reduce",
+            "output_uri": "workflow://generic-map-reduce/out",
             "worker_image": "modal:qwen2.5",
             "gpu_profile": "llm_heavy",
             "model": "claude-sonnet-4-6",

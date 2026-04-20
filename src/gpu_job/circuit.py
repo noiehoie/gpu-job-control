@@ -61,9 +61,7 @@ def provider_circuit_state(provider: str, store: JobStore | None = None, policy:
         and int(latest_sample.updated_at or latest_sample.created_at) >= int(latest_failure.updated_at or latest_failure.created_at)
     )
     latest_success_is_circuit_probe = (
-        latest_sample is not None
-        and latest_sample.status == "succeeded"
-        and isinstance(latest_sample.metadata.get("circuit_probe"), dict)
+        latest_sample is not None and latest_sample.status == "succeeded" and isinstance(latest_sample.metadata.get("circuit_probe"), dict)
     )
     if state == "open" and latest_success_after_failure and latest_success_is_circuit_probe:
         state = "closed"

@@ -4,11 +4,11 @@
     "running": 14400
   },
   "provider_limits": {
-    "local": 1,
-    "modal": 1,
-    "ollama": 1,
-    "runpod": 1,
-    "vast": 1
+    "local": {"*": 1},
+    "modal": {"llm_heavy": 1, "vlm_ocr": 1, "asr": 2, "asr_diarization": 1, "*": 1},
+    "ollama": {"embedding": 1, "llm_heavy": 1, "vlm_ocr": 1, "*": 1},
+    "runpod": {"llm_heavy": 1, "asr": 2, "*": 1},
+    "vast": {"asr": 1, "asr_diarization": 1, "*": 1}
   },
   "default_job_timeout_seconds": 14400,
   "job_type_timeouts_seconds": {
@@ -70,15 +70,6 @@
     "max_ollama_memory_current_gb": 112,
     "max_ollama_memory_peak_gb": 124
   },
-  "persistent_storage": {
-    "runpod": {
-      "network_volume_price_usd_per_gb_month": 0.07,
-      "allowed_monthly_usd": 0,
-      "warning_monthly_usd": 5,
-      "fail_monthly_usd": 10,
-      "allowed_network_volumes": []
-    }
-  },
   "quota": {
     "global_budget_usd": 50,
     "default_source_budget_usd": 10,
@@ -108,13 +99,6 @@
         "retry_multiplier": 1.2,
         "safety_margin": 1.3
       },
-      "daily_news_core": {
-        "auto_approve_cap_usd": 3.0,
-        "hard_cap_usd": 8.0,
-        "allowed_providers": ["modal", "runpod", "ollama"],
-        "retry_multiplier": 1.3,
-        "safety_margin": 1.4
-      },
       "batch_low_cost": {
         "auto_approve_cap_usd": 0.5,
         "hard_cap_usd": 2.0,
@@ -142,11 +126,6 @@
     "pdf_page_estimator": {"kind": "estimator", "media": "pdf", "runs_in_api": false, "worker_job_type": "cpu_workflow_helper"},
     "pdf_page_splitter": {"kind": "splitter", "media": "pdf", "runs_in_api": false, "worker_job_type": "cpu_workflow_helper"},
     "page_result_merger": {"kind": "reducer", "media": "pdf", "runs_in_api": false, "worker_job_type": "cpu_workflow_helper"}
-  },
-  "secret_policy": {
-    "allowed_refs": {
-      "*:*:*": []
-    }
   },
   "retention": {
     "artifact_retention_days": 30,

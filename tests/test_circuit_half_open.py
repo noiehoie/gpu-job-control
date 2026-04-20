@@ -72,17 +72,19 @@ class CircuitHalfOpenTest(unittest.TestCase):
                 store.save(_job(f"failed-{idx}", "failed", updated_at=now + idx))
 
             job = _job("new-probe", "planned", updated_at=now + 20)
-            with patch("gpu_job.runner.validate_policy", return_value={"ok": True}), \
-                patch("gpu_job.runner.evaluate_provenance", return_value={"ok": True}), \
-                patch("gpu_job.runner.evaluate_compliance", return_value={"ok": True}), \
-                patch("gpu_job.runner.evaluate_model_capability", return_value={"ok": True}), \
-                patch("gpu_job.runner.quota_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.cost_estimate", return_value={"ok": True}), \
-                patch("gpu_job.runner.secret_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.placement_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.preemption_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.timeout_contract", return_value={"ok": True, "timeout_seconds": 60}), \
-                patch("gpu_job.runner.make_decision", return_value={"decision_hash": "test"}):
+            with (
+                patch("gpu_job.runner.validate_policy", return_value={"ok": True}),
+                patch("gpu_job.runner.evaluate_provenance", return_value={"ok": True}),
+                patch("gpu_job.runner.evaluate_compliance", return_value={"ok": True}),
+                patch("gpu_job.runner.evaluate_model_capability", return_value={"ok": True}),
+                patch("gpu_job.runner.quota_check", return_value={"ok": True}),
+                patch("gpu_job.runner.cost_estimate", return_value={"ok": True}),
+                patch("gpu_job.runner.secret_check", return_value={"ok": True}),
+                patch("gpu_job.runner.placement_check", return_value={"ok": True}),
+                patch("gpu_job.runner.preemption_check", return_value={"ok": True}),
+                patch("gpu_job.runner.timeout_contract", return_value={"ok": True, "timeout_seconds": 60}),
+                patch("gpu_job.runner.make_decision", return_value={"decision_hash": "test"}),
+            ):
                 result = submit_job(job, provider_name="modal", execute=False)
 
             self.assertTrue(result["ok"])
@@ -110,20 +112,22 @@ class CircuitHalfOpenTest(unittest.TestCase):
                 guard_calls.append(provider_names)
                 return {"ok": True, "providers": provider_names}
 
-            with patch("gpu_job.runner.validate_policy", return_value={"ok": True}), \
-                patch("gpu_job.runner.evaluate_provenance", return_value={"ok": True}), \
-                patch("gpu_job.runner.evaluate_compliance", return_value={"ok": True}), \
-                patch("gpu_job.runner.evaluate_model_capability", return_value={"ok": True}), \
-                patch("gpu_job.runner.quota_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.cost_estimate", return_value={"ok": True}), \
-                patch("gpu_job.runner.secret_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.placement_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.preemption_check", return_value={"ok": True}), \
-                patch("gpu_job.runner.timeout_contract", return_value={"ok": True, "timeout_seconds": 60}), \
-                patch("gpu_job.runner.make_decision", return_value={"decision_hash": "test"}), \
-                patch("gpu_job.runner.reserve_direct_execution_slot", return_value={"ok": True}), \
-                patch("gpu_job.runner.collect_cost_guard", side_effect=_guard), \
-                patch("gpu_job.runner.get_provider", return_value=FakeProvider()):
+            with (
+                patch("gpu_job.runner.validate_policy", return_value={"ok": True}),
+                patch("gpu_job.runner.evaluate_provenance", return_value={"ok": True}),
+                patch("gpu_job.runner.evaluate_compliance", return_value={"ok": True}),
+                patch("gpu_job.runner.evaluate_model_capability", return_value={"ok": True}),
+                patch("gpu_job.runner.quota_check", return_value={"ok": True}),
+                patch("gpu_job.runner.cost_estimate", return_value={"ok": True}),
+                patch("gpu_job.runner.secret_check", return_value={"ok": True}),
+                patch("gpu_job.runner.placement_check", return_value={"ok": True}),
+                patch("gpu_job.runner.preemption_check", return_value={"ok": True}),
+                patch("gpu_job.runner.timeout_contract", return_value={"ok": True, "timeout_seconds": 60}),
+                patch("gpu_job.runner.make_decision", return_value={"decision_hash": "test"}),
+                patch("gpu_job.runner.reserve_direct_execution_slot", return_value={"ok": True}),
+                patch("gpu_job.runner.collect_cost_guard", side_effect=_guard),
+                patch("gpu_job.runner.get_provider", return_value=FakeProvider()),
+            ):
                 result = submit_job(job, provider_name="modal", execute=True)
 
             self.assertTrue(result["ok"])

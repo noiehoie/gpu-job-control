@@ -25,7 +25,9 @@ class WalRecoveryTest(unittest.TestCase):
     def test_terminal_job_resolves_missing_provider_final_wal(self) -> None:
         store = JobStore()
         job = _job("wal-terminal")
-        append_wal(job, transition="starting->provider_submit", intent="provider_submit", extra={"provider": "modal", "execute": True}, store=store)
+        append_wal(
+            job, transition="starting->provider_submit", intent="provider_submit", extra={"provider": "modal", "execute": True}, store=store
+        )
         job.status = "failed"
         job.finished_at = job.created_at + 300
         job.exit_code = 124
@@ -42,7 +44,9 @@ class WalRecoveryTest(unittest.TestCase):
     def test_non_terminal_job_remains_ambiguous(self) -> None:
         store = JobStore()
         job = _job("wal-running")
-        append_wal(job, transition="starting->provider_submit", intent="provider_submit", extra={"provider": "modal", "execute": True}, store=store)
+        append_wal(
+            job, transition="starting->provider_submit", intent="provider_submit", extra={"provider": "modal", "execute": True}, store=store
+        )
         job.status = "running"
         store.save(job)
 

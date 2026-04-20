@@ -20,15 +20,34 @@ from .drain import clear_drain, drain_status, start_drain
 from .dlq import dlq_status
 from .error_class import classify_error
 from .guard import collect_cost_guard
-from .image import image_build, image_check, image_mirror, image_plan
+from .image import (
+    image_build,
+    image_check,
+    image_contract_build,
+    image_contract_check,
+    image_contract_plan,
+    image_contract_probe,
+    image_mirror,
+    image_plan,
+)
 from .invariants import evaluate_invariants
 from .metrics_export import metrics_prometheus, metrics_snapshot
 from .intake import intake_job, intake_status, plan_intake_groups
+from .orphan_inventory import vast_orphan_inventory, vast_orphan_reaper
 from .policy_engine import policy_activation_record
 from .provider_stability import provider_stability_report
+from .provider_contract_probe import (
+    active_contract_probe,
+    list_contract_probes,
+    parse_contract_probe_artifact,
+    plan_contract_probe,
+    provider_contract_probe_schema,
+    recent_contract_probe_summary,
+)
 from .provenance import expected_attestation_hash
 from .providers import PROVIDERS, get_provider
 from .providers.runpod import RunPodProvider
+from .providers.runpod import _runpod_asr_diarization_pod_defaults
 from .queue import cancel_group, cancel_job, enqueue_job, queue_status, replan_queued_jobs, retry_job, work_loop, work_once
 from .readiness import launch_readiness
 from .remediation import remediation_decision
@@ -44,6 +63,7 @@ from .runner import submit_job
 from .stats import collect_stats
 from .store import JobStore
 from .timeout import timeout_contract
+from .timing import public_timing
 from .verify import verify_artifacts
 from .wal import wal_recovery_plan, wal_recovery_status, wal_status
 from .workflow import (
@@ -207,7 +227,10 @@ def cmd_worker(args: argparse.Namespace) -> int:
 def cmd_status(args: argparse.Namespace) -> int:
     store = JobStore()
     job = store.load(args.job_id)
-    print_json(job.to_dict())
+    if getattr(args, "timing", False):
+        print_json({"job_id": job.job_id, "status": job.status, "timing_v2": public_timing(job)})
+    else:
+        print_json(job.to_dict())
     return 0
 
 
@@ -216,6 +239,31 @@ def cmd_verify(args: argparse.Namespace) -> int:
     result = verify_artifacts(Path(args.artifact_dir), required=required)
     print_json(result)
     return 0 if result["ok"] else 1
+
+
+def cmd_contract_probe(args: argparse.Namespace) -> int:
+    if args.contract_probe_command == "list":
+        result = list_contract_probes()
+    elif args.contract_probe_command == "schema":
+        result = provider_contract_probe_schema()
+    elif args.contract_probe_command == "summary":
+        result = recent_contract_probe_summary(limit=args.limit)
+    elif args.contract_probe_command == "plan":
+        result = plan_contract_probe(args.provider, args.probe)
+    elif args.contract_probe_command == "run":
+        result = active_contract_probe(args.provider, args.probe, execute=True)
+    elif args.contract_probe_command == "parse":
+        result = parse_contract_probe_artifact(
+            Path(args.artifact_dir),
+            provider=args.provider,
+            probe_name=args.probe,
+            execution_mode="fixture" if args.fixture else "executed",
+            append=args.append,
+        )
+    else:
+        raise ValueError(f"unknown contract-probe command: {args.contract_probe_command}")
+    print_json(result)
+    return 0 if result.get("ok", True) else 2
 
 
 def cmd_offers(args: argparse.Namespace) -> int:
@@ -248,6 +296,23 @@ def cmd_stability(_: argparse.Namespace) -> int:
 
 def cmd_guard(args: argparse.Namespace) -> int:
     result = collect_cost_guard(args.provider or sorted(PROVIDERS))
+    print_json(result)
+    return 0 if result["ok"] else 2
+
+
+def cmd_vast_orphan_inventory(_: argparse.Namespace) -> int:
+    result = vast_orphan_inventory()
+    print_json(result)
+    return 0 if result["ok"] else 2
+
+
+def cmd_vast_orphan_reaper(args: argparse.Namespace) -> int:
+    result = vast_orphan_reaper(
+        apply=args.apply,
+        principal=args.principal,
+        max_instances=args.max_instances,
+        mode_policy=args.mode_policy,
+    )
     print_json(result)
     return 0 if result["ok"] else 2
 
@@ -498,6 +563,14 @@ def cmd_image(args: argparse.Namespace) -> int:
         return 0 if result.get("ok") else 1
     elif args.image_command == "mirror":
         result = image_mirror(args.source, args.target, builder=args.builder, execute=args.execute)
+    elif args.image_command == "contract-plan":
+        result = image_contract_plan(args.contract_id)
+    elif args.image_command == "contract-check":
+        result = image_contract_check(args.contract_id)
+    elif args.image_command == "contract-build":
+        result = image_contract_build(args.contract_id, execute=args.execute)
+    elif args.image_command == "contract-probe":
+        result = image_contract_probe(args.contract_id, execute=args.execute, require_gpu=args.require_gpu)
     else:
         raise ValueError(f"unknown image command: {args.image_command}")
     print_json(result)
@@ -574,12 +647,42 @@ def cmd_runpod(args: argparse.Namespace) -> int:
             network_volume_id=args.network_volume_id,
             data_center_id=args.data_center_id,
             worker_mode=args.worker_mode,
+            container_registry_auth_id=args.container_registry_auth_id,
             prompt=args.prompt,
             execute=args.execute,
         )
         result["pre_pod_http_canary_guard"] = pre_guard
         post_guard = collect_cost_guard(["runpod"])
         result["post_pod_http_canary_guard"] = post_guard
+        if not post_guard["ok"]:
+            result["ok"] = False
+    elif args.runpod_command == "canary-asr-diarization-workspace":
+        pre_guard = collect_cost_guard(["runpod"])
+        if args.execute and not pre_guard["ok"]:
+            print_json({"ok": False, "error": "pre-asr-diarization-workspace-canary cost guard failed", "guard": pre_guard})
+            return 2
+        result = provider.canary_pod_http_worker(
+            gpu_type_id=args.gpu_type_id,
+            image=args.image,
+            cloud_type=args.cloud_type,
+            gpu_count=args.gpu_count,
+            volume_in_gb=args.volume_in_gb,
+            container_disk_in_gb=args.container_disk_in_gb,
+            min_vcpu_count=args.min_vcpu_count,
+            min_memory_in_gb=args.min_memory_in_gb,
+            max_uptime_seconds=args.max_uptime_seconds,
+            max_estimated_cost_usd=args.max_estimated_cost_usd,
+            network_volume_id=args.network_volume_id,
+            data_center_id=args.data_center_id,
+            worker_mode="asr_diarization",
+            hf_secret_name=args.hf_secret_name,
+            container_registry_auth_id=args.container_registry_auth_id,
+            prompt="GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY",
+            execute=args.execute,
+        )
+        result["pre_asr_diarization_workspace_canary_guard"] = pre_guard
+        post_guard = collect_cost_guard(["runpod"])
+        result["post_asr_diarization_workspace_canary_guard"] = post_guard
         if not post_guard["ok"]:
             result["ok"] = False
     elif args.runpod_command == "plan-vllm-endpoint":
@@ -647,7 +750,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="gpu-job")
+    parser = argparse.ArgumentParser(prog="gpu-job-admin")
     sub = parser.add_subparsers(dest="command", required=True)
 
     doctor = sub.add_parser("doctor", help="check provider readiness without submitting work")
@@ -727,12 +830,38 @@ def build_parser() -> argparse.ArgumentParser:
 
     status = sub.add_parser("status", help="show one stored job")
     status.add_argument("job_id", help="job id to load")
+    status.add_argument("--timing", action="store_true", help="show Status/Timing v2 phase table and events")
     status.set_defaults(func=cmd_status)
 
     verify = sub.add_parser("verify", help="verify an artifact directory")
     verify.add_argument("artifact_dir", help="artifact directory to verify")
     verify.add_argument("--required", action="append", help="required artifact filename; may be repeated")
     verify.set_defaults(func=cmd_verify)
+
+    contract_probe = sub.add_parser("contract-probe", help="plan or parse provider contract probes")
+    contract_probe_sub = contract_probe.add_subparsers(dest="contract_probe_command", required=True)
+    contract_probe_list = contract_probe_sub.add_parser("list", help="list built-in provider contract probes")
+    contract_probe_list.set_defaults(func=cmd_contract_probe)
+    contract_probe_schema = contract_probe_sub.add_parser("schema", help="show provider contract probe record schema")
+    contract_probe_schema.set_defaults(func=cmd_contract_probe)
+    contract_probe_summary = contract_probe_sub.add_parser("summary", help="show recent provider contract probe records")
+    contract_probe_summary.add_argument("--limit", type=int, default=100, help="maximum records to inspect")
+    contract_probe_summary.set_defaults(func=cmd_contract_probe)
+    contract_probe_plan = contract_probe_sub.add_parser("plan", help="show expected contract for a provider probe")
+    contract_probe_plan.add_argument("--provider", required=True, choices=sorted(PROVIDERS), help="provider to plan")
+    contract_probe_plan.add_argument("--probe", default="", help="explicit probe name")
+    contract_probe_plan.set_defaults(func=cmd_contract_probe)
+    contract_probe_run = contract_probe_sub.add_parser("run", help="run a gpu-job-control generated live provider contract canary")
+    contract_probe_run.add_argument("--provider", required=True, choices=sorted(PROVIDERS), help="provider to probe")
+    contract_probe_run.add_argument("--probe", default="", help="explicit probe name")
+    contract_probe_run.set_defaults(func=cmd_contract_probe)
+    contract_probe_parse = contract_probe_sub.add_parser("parse", help="parse an artifact directory against a provider contract")
+    contract_probe_parse.add_argument("artifact_dir", help="artifact directory to parse")
+    contract_probe_parse.add_argument("--provider", required=True, choices=sorted(PROVIDERS), help="provider whose contract applies")
+    contract_probe_parse.add_argument("--probe", default="", help="explicit probe name")
+    contract_probe_parse.add_argument("--fixture", action="store_true", help="mark the record as fixture-sourced")
+    contract_probe_parse.add_argument("--append", action="store_true", help="append the record to local probe history")
+    contract_probe_parse.set_defaults(func=cmd_contract_probe)
 
     offers = sub.add_parser("offers", help="query provider offers for a profile")
     offers.add_argument("--provider", choices=["vast"], required=True, help="provider to query")
@@ -751,6 +880,16 @@ def build_parser() -> argparse.ArgumentParser:
     guard = sub.add_parser("guard", help="run spend, queue, and local resource guards")
     guard.add_argument("--provider", action="append", choices=sorted(PROVIDERS), help="provider to guard; repeatable")
     guard.set_defaults(func=cmd_guard)
+
+    vast_orphan = sub.add_parser("vast-orphan-inventory", help="dry-run inventory of gpu-job-labelled Vast instances")
+    vast_orphan.set_defaults(func=cmd_vast_orphan_inventory)
+
+    vast_reaper = sub.add_parser("vast-orphan-reaper", help="dry-run or approved cleanup of eligible Vast orphan instances")
+    vast_reaper.add_argument("--apply", action="store_true", help="destroy eligible instances after approval and fresh provider read")
+    vast_reaper.add_argument("--principal", default="", help="principal used for destructive approval checks when --apply is set")
+    vast_reaper.add_argument("--max-instances", type=int, default=10, help="maximum instances to destroy in one apply run")
+    vast_reaper.add_argument("--mode-policy", default="conservative", help="reaper mode policy; only conservative is supported for launch")
+    vast_reaper.set_defaults(func=cmd_vast_orphan_reaper)
 
     stats = sub.add_parser("stats", help="show observed job statistics")
     stats.set_defaults(func=cmd_stats)
@@ -925,6 +1064,21 @@ def build_parser() -> argparse.ArgumentParser:
     image_mirror_parser.add_argument("--builder", default="", help="SSH host that has Docker/buildx and registry credentials")
     image_mirror_parser.add_argument("--execute", action="store_true", help="perform the mirror operation")
     image_mirror_parser.set_defaults(func=cmd_image)
+    image_contract_plan_parser = image_sub.add_parser("contract-plan", help="plan one registered image contract")
+    image_contract_plan_parser.add_argument("contract_id", help="image contract id")
+    image_contract_plan_parser.set_defaults(func=cmd_image)
+    image_contract_check_parser = image_sub.add_parser("contract-check", help="check one registered image contract")
+    image_contract_check_parser.add_argument("contract_id", help="image contract id")
+    image_contract_check_parser.set_defaults(func=cmd_image)
+    image_contract_build_parser = image_sub.add_parser("contract-build", help="build one registered image contract")
+    image_contract_build_parser.add_argument("contract_id", help="image contract id")
+    image_contract_build_parser.add_argument("--execute", action="store_true", help="perform the Docker build")
+    image_contract_build_parser.set_defaults(func=cmd_image)
+    image_contract_probe_parser = image_sub.add_parser("contract-probe", help="run one registered image contract probe")
+    image_contract_probe_parser.add_argument("contract_id", help="image contract id")
+    image_contract_probe_parser.add_argument("--execute", action="store_true", help="perform the Docker probe")
+    image_contract_probe_parser.add_argument("--require-gpu", action="store_true", help="require nvidia-smi inside the probe container")
+    image_contract_probe_parser.set_defaults(func=cmd_image)
 
     runpod = sub.add_parser("runpod", help="RunPod-specific promotion helpers")
     runpod_sub = runpod.add_subparsers(dest="runpod_command", required=True)
@@ -1004,9 +1158,35 @@ def build_parser() -> argparse.ArgumentParser:
         default="smoke",
         help="HTTP worker mode to verify",
     )
+    canary_pod_http.add_argument("--container-registry-auth-id", default=os.getenv("RUNPOD_CONTAINER_REGISTRY_AUTH_ID", ""))
     canary_pod_http.add_argument("--prompt", default="", help="prompt for --worker-mode llm")
     canary_pod_http.add_argument("--execute", action="store_true", help="actually create and terminate the pod")
     canary_pod_http.set_defaults(func=cmd_runpod)
+
+    asr_defaults = _runpod_asr_diarization_pod_defaults()
+    canary_asr = runpod_sub.add_parser(
+        "canary-asr-diarization-workspace",
+        help="create, probe, and terminate a bounded RunPod ASR diarization workspace canary",
+    )
+    canary_asr.add_argument("--gpu-type-id", default=asr_defaults["gpu_type_id"], help="RunPod concrete GPU type id")
+    canary_asr.add_argument("--image", default=asr_defaults["image"], help="ASR diarization worker image")
+    canary_asr.add_argument("--cloud-type", default=asr_defaults["cloud_type"], choices=["ALL", "SECURE", "COMMUNITY"])
+    canary_asr.add_argument("--gpu-count", type=int, default=asr_defaults["gpu_count"])
+    canary_asr.add_argument("--volume-in-gb", type=int, default=asr_defaults["volume_in_gb"])
+    canary_asr.add_argument("--container-disk-in-gb", type=int, default=asr_defaults["container_disk_in_gb"])
+    canary_asr.add_argument("--min-vcpu-count", type=int, default=asr_defaults["min_vcpu_count"])
+    canary_asr.add_argument("--min-memory-in-gb", type=int, default=asr_defaults["min_memory_in_gb"])
+    canary_asr.add_argument("--max-uptime-seconds", type=int, default=asr_defaults["max_uptime_seconds"])
+    canary_asr.add_argument("--max-estimated-cost-usd", type=float, default=asr_defaults["max_estimated_cost_usd"])
+    canary_asr.add_argument("--network-volume-id", default=os.getenv("RUNPOD_NETWORK_VOLUME_ID", ""))
+    canary_asr.add_argument("--data-center-id", default=os.getenv("RUNPOD_DATA_CENTER_ID", ""))
+    canary_asr.add_argument("--hf-secret-name", default=os.getenv("RUNPOD_HF_SECRET_NAME", "gpu_job_hf_read"))
+    canary_asr.add_argument(
+        "--container-registry-auth-id",
+        default=asr_defaults.get("container_registry_auth_id") or os.getenv("RUNPOD_CONTAINER_REGISTRY_AUTH_ID", ""),
+    )
+    canary_asr.add_argument("--execute", action="store_true", help="actually create and terminate the pod")
+    canary_asr.set_defaults(func=cmd_runpod)
 
     vllm_defaults = {
         "model": "Qwen/Qwen2.5-0.5B-Instruct",

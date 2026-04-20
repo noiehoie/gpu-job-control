@@ -5,6 +5,7 @@ import json
 import time
 
 from .capacity import ACTIVE_STATUSES, compact_job, queue_capacity
+from .concurrency import flatten_provider_limits, provider_profile_key, provider_profile_limit
 from .intake import plan_intake_groups
 from .drain import drain_status
 from .models import Job, now_unix
@@ -226,7 +227,8 @@ def _active_counts(store: JobStore) -> dict[str, int]:
         if job.status not in ACTIVE_STATUSES:
             continue
         provider = str(job.metadata.get("selected_provider") or job.metadata.get("requested_provider") or job.provider or "unknown")
-        counts[provider] = counts.get(provider, 0) + 1
+        key = provider_profile_key(provider, job.gpu_profile)
+        counts[key] = counts.get(key, 0) + 1
     return counts
 
 
@@ -245,13 +247,32 @@ def next_runnable_job(store: JobStore, policy: dict[str, Any]) -> tuple[Job | No
             )
             continue
         provider = _requested_or_selected_provider(job)
-        limit = int(limits.get(provider, 1))
-        if active.get(provider, 0) >= limit:
-            skipped.append({"job_id": job.job_id, "provider": provider, "reason": "provider concurrency limit reached"})
+        profile_key = provider_profile_key(provider, job.gpu_profile)
+        limit = provider_profile_limit(limits, provider, job.gpu_profile)
+        if active.get(profile_key, 0) >= limit:
+            skipped.append(
+                {
+                    "job_id": job.job_id,
+                    "provider": provider,
+                    "gpu_profile": job.gpu_profile,
+                    "profile_key": profile_key,
+                    "reason": "provider/profile concurrency limit reached",
+                }
+            )
             continue
         job.metadata["selected_provider"] = provider
-        return job, {"active": active, "provider_limits": limits, "skipped": skipped}
-    return None, {"active": active, "provider_limits": limits, "skipped": skipped}
+        return job, {
+            "active": active,
+            "provider_limits": limits,
+            "flattened_provider_limits": flatten_provider_limits(limits),
+            "skipped": skipped,
+        }
+    return None, {
+        "active": active,
+        "provider_limits": limits,
+        "flattened_provider_limits": flatten_provider_limits(limits),
+        "skipped": skipped,
+    }
 
 
 def work_once() -> dict[str, Any]:
@@ -279,9 +300,10 @@ def work_once() -> dict[str, Any]:
             }
         replan = replan_queued_jobs()
         intake = plan_intake_groups(policy)
-        from .workflow import enforce_workflow_budget_drains
+        from .workflow import advance_workflows, enforce_workflow_budget_drains
 
         workflow_budget_drains = enforce_workflow_budget_drains()
+        workflow_advance = advance_workflows()
         job, scheduling = next_runnable_job(store, policy)
         if not job:
             return {
@@ -292,6 +314,7 @@ def work_once() -> dict[str, Any]:
                 "replan": replan,
                 "intake": intake,
                 "workflow_budget_drains": workflow_budget_drains,
+                "workflow_advance": workflow_advance,
                 "scheduling": scheduling,
             }
         provider_name = str(job.metadata.get("selected_provider") or job.metadata.get("requested_provider") or job.provider or "auto")
@@ -311,6 +334,7 @@ def work_once() -> dict[str, Any]:
             "replan": replan,
             "intake": intake,
             "workflow_budget_drains": workflow_budget_drains,
+            "workflow_advance": workflow_advance,
             "scheduling": scheduling,
             "result": result,
             "remediation": remediation,

@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import unittest
 import os
+import json
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from gpu_job.models import Job, now_unix
+from gpu_job.policy import load_execution_policy
 from gpu_job.policy_engine import validate_policy
+from gpu_job.queue import next_runnable_job
 from gpu_job.router import capability_policy_decision, route_job, startup_policy_decision, workload_policy_decision
 from gpu_job.secrets_policy import secret_check
 from gpu_job.store import JobStore
@@ -30,6 +34,112 @@ class PolicyAndRouterTest(unittest.TestCase):
         result = validate_policy({"stale_seconds": {}})
         self.assertFalse(result["ok"])
         self.assertIn("provider_limits must be a non-empty object", result["errors"])
+
+    def test_policy_accepts_profile_aware_provider_limits(self) -> None:
+        result = validate_policy({"provider_limits": {"modal": {"llm_heavy": 1, "asr": 2, "*": 1}}, "stale_seconds": {}})
+        self.assertTrue(result["ok"])
+
+    def test_execution_policy_merges_private_provider_operations(self) -> None:
+        with TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "execution-policy.json"
+            ops_path = Path(tmp) / "provider-operations.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "provider_limits": {"runpod": {"asr": 1}},
+                        "secret_policy": {"allowed_refs": {"*:*:*": []}},
+                    }
+                )
+            )
+            ops_path.write_text(
+                json.dumps(
+                    {
+                        "persistent_storage": {
+                            "runpod": {
+                                "allowed_monthly_usd": 9.1,
+                                "allowed_network_volumes": [{"id": "volume-1"}],
+                            }
+                        },
+                        "secret_policy": {"allowed_refs": {"runpod:contract-probe:asr": ["hf_token"]}},
+                    }
+                )
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "GPU_JOB_EXECUTION_POLICY": str(policy_path),
+                    "GPU_JOB_PROVIDER_OPERATIONS_POLICY": str(ops_path),
+                },
+                clear=False,
+            ):
+                policy = load_execution_policy()
+
+        self.assertEqual(policy["provider_limits"], {"runpod": {"asr": 1}})
+        self.assertEqual(policy["persistent_storage"]["runpod"]["allowed_monthly_usd"], 9.1)
+        self.assertEqual(policy["secret_policy"]["allowed_refs"]["*:*:*"], [])
+        self.assertEqual(policy["secret_policy"]["allowed_refs"]["runpod:contract-probe:asr"], ["hf_token"])
+
+    def test_explicit_execution_policy_path_does_not_merge_provider_operations(self) -> None:
+        with TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "execution-policy.json"
+            ops_path = Path(tmp) / "provider-operations.json"
+            policy_path.write_text(json.dumps({"provider_limits": {"modal": 1}}))
+            ops_path.write_text(json.dumps({"secret_policy": {"allowed_refs": {"modal:probe:asr": ["hf_token"]}}}))
+
+            with patch.dict(os.environ, {"GPU_JOB_PROVIDER_OPERATIONS_POLICY": str(ops_path)}, clear=False):
+                policy = load_execution_policy(policy_path)
+
+        self.assertEqual(policy, {"provider_limits": {"modal": 1}})
+
+    def test_queue_limits_are_provider_profile_aware(self) -> None:
+        old_data_home = os.environ.get("XDG_DATA_HOME")
+        try:
+            with TemporaryDirectory() as tmp:
+                os.environ["XDG_DATA_HOME"] = tmp
+                store = JobStore()
+                active = make_job()
+                active.job_id = "active-llm"
+                active.provider = "modal"
+                active.status = "running"
+                active.metadata["selected_provider"] = "modal"
+                store.save(active)
+
+                queued_llm = make_job()
+                queued_llm.job_id = "queued-llm"
+                queued_llm.provider = "modal"
+                queued_llm.status = "queued"
+                queued_llm.created_at = 1
+                queued_llm.metadata["requested_provider"] = "modal"
+                store.save(queued_llm)
+
+                queued_asr = Job(
+                    job_id="queued-asr",
+                    job_type="asr",
+                    input_uri="s3://example/audio.wav",
+                    output_uri="s3://example/out",
+                    worker_image="worker:asr",
+                    gpu_profile="asr",
+                    provider="modal",
+                    status="queued",
+                    created_at=2,
+                    metadata={"requested_provider": "modal"},
+                )
+                store.save(queued_asr)
+
+                job, scheduling = next_runnable_job(
+                    store,
+                    {"provider_limits": {"modal": {"llm_heavy": 1, "asr": 1}}},
+                )
+
+                self.assertIsNotNone(job)
+                self.assertEqual(job.job_id, "queued-asr")
+                self.assertEqual(scheduling["active"], {"modal:llm_heavy": 1})
+                self.assertEqual(scheduling["skipped"][0]["profile_key"], "modal:llm_heavy")
+        finally:
+            if old_data_home is None:
+                os.environ.pop("XDG_DATA_HOME", None)
+            else:
+                os.environ["XDG_DATA_HOME"] = old_data_home
 
     def test_capability_rejects_unsupported_job_type(self) -> None:
         job = Job(
@@ -164,8 +274,10 @@ class PolicyAndRouterTest(unittest.TestCase):
                         "estimated_startup_seconds": 1,
                     }
 
-                with patch("gpu_job.router.provider_signal", side_effect=_signal), \
-                    patch("gpu_job.router.collect_stats", return_value={"ok": True, "groups": {}}):
+                with (
+                    patch("gpu_job.router.provider_signal", side_effect=_signal),
+                    patch("gpu_job.router.collect_stats", return_value={"ok": True, "groups": {}}),
+                ):
                     result = route_job(make_job(routing={"estimated_gpu_runtime_seconds": 5}))
 
                 self.assertEqual(result["selected_provider"], "ollama")

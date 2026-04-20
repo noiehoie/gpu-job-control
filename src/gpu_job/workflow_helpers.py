@@ -145,15 +145,27 @@ def _ffmpeg_time_splitter(job: Job, payload: dict[str, Any], artifact_dir: Path)
     )
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg split failed ({proc.returncode}): {proc.stderr.strip()}")
-    segments = [
-        {"index": index, "path": str(item), "bytes": item.stat().st_size}
-        for index, item in enumerate(sorted(out_dir.glob(f"*{suffix}")))
-    ]
+    duration = _media_duration_seconds(path)
+    segments = []
+    for index, item in enumerate(sorted(out_dir.glob(f"*{suffix}"))):
+        start = float(index * segment_seconds)
+        end = min(duration, float((index + 1) * segment_seconds)) if duration > 0 else float((index + 1) * segment_seconds)
+        segments.append(
+            {
+                "index": index,
+                "path": str(item),
+                "bytes": item.stat().st_size,
+                "start_seconds": round(start, 3),
+                "end_seconds": round(end, 3),
+                "duration_seconds": round(max(0.0, end - start), 3),
+            }
+        )
     return {
         "ok": bool(segments),
         "action": "ffmpeg_time_splitter",
         "input_path": str(path),
         "segment_seconds": segment_seconds,
+        "duration_seconds": duration,
         "segments": segments,
         "count": len(segments),
     }
@@ -164,14 +176,47 @@ def _timeline_reducer(job: Job, payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(items, list):
         items = payload.get("segments") if isinstance(payload.get("segments"), list) else []
     timeline = []
+    segments = []
+    speaker_segments = []
+    text_parts = []
     for index, item in enumerate(items):
         if isinstance(item, dict):
             row = dict(item)
         else:
             row = {"value": item}
         row.setdefault("index", index)
+        text = str(row.get("text") or row.get("transcript") or "")
+        if text:
+            text_parts.append(text)
+        result = row.get("result") if isinstance(row.get("result"), dict) else {}
+        for segment in result.get("segments") or []:
+            if isinstance(segment, dict):
+                segments.append(dict(segment))
+        for segment in result.get("speaker_segments") or []:
+            if isinstance(segment, dict):
+                speaker_segments.append(dict(segment))
         timeline.append(row)
-    return {"ok": True, "action": "timeline_reducer", "timeline": timeline, "count": len(timeline)}
+    return {
+        "ok": True,
+        "action": "timeline_reducer",
+        "timeline": timeline,
+        "count": len(timeline),
+        "text": "\n".join(text_parts),
+        "segments": segments,
+        "speaker_segments": speaker_segments,
+        "speaker_count": len({str(item.get("speaker")) for item in speaker_segments if item.get("speaker")}),
+    }
+
+
+def _media_duration_seconds(path: Path) -> float:
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        return 0.0
+    try:
+        data = _run_json([ffprobe, "-v", "error", "-show_format", "-of", "json", str(path)])
+        return float((data.get("format") or {}).get("duration") or 0)
+    except Exception:
+        return 0.0
 
 
 def _pdf_page_estimator(job: Job, payload: dict[str, Any]) -> dict[str, Any]:
@@ -255,7 +300,9 @@ def _split_pdf_pages(path: Path, out_dir: Path) -> tuple[list[dict[str, Any]], s
         pages = []
         for page in range(1, page_count + 1):
             out = out_dir / f"page-{page:05d}.pdf"
-            proc = subprocess.run([qpdf, str(path), "--pages", str(path), str(page), "--", str(out)], text=True, capture_output=True, check=False)
+            proc = subprocess.run(
+                [qpdf, str(path), "--pages", str(path), str(page), "--", str(out)], text=True, capture_output=True, check=False
+            )
             if proc.returncode != 0:
                 raise RuntimeError(f"qpdf page split failed ({proc.returncode}): {proc.stderr.strip()}")
             pages.append({"page": page, "path": str(out), "bytes": out.stat().st_size})

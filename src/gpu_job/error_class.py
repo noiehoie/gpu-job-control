@@ -4,6 +4,45 @@ from typing import Any
 
 
 ERROR_CLASS_VERSION = "gpu-job-error-class-v1"
+PROVIDER_NATIVE_RULES: dict[str, list[tuple[str, str, bool, str]]] = {
+    "modal": [
+        (
+            "qwen/qwen2.5-0.5b-instruct",
+            "model_contract_mismatch",
+            False,
+            "Modal returned a forbidden small model for a heavy-model contract",
+        ),
+        ("repositorynotfounderror", "model_unavailable", False, "Modal worker could not resolve requested model"),
+        (
+            "loading an awq quantized model requires gptqmodel",
+            "image_missing_dependency",
+            False,
+            "Modal image missing quantization dependency",
+        ),
+        ("torchcodec is required", "image_missing_dependency", False, "Modal ASR image missing torchcodec dependency"),
+        ("libavutil.so", "image_missing_dependency", False, "Modal ASR image missing FFmpeg shared libraries required by torchcodec"),
+        ("torchaudio' has no attribute 'info", "image_missing_dependency", False, "Modal ASR image missing torchaudio compatibility shim"),
+        ("no module named 'matplotlib'", "image_missing_dependency", False, "ASR diarization image missing pyannote lazy dependency"),
+        ("fetching", "cold_start_timeout", True, "Modal model cache miss or cold-start download observed"),
+        ("prompt exceeds model context", "context_overflow", False, "Prompt exceeds model context limit"),
+        ("concurrency", "backpressure", True, "Modal concurrency pressure"),
+    ],
+    "runpod": [
+        ("in_queue", "provider_backpressure", True, "RunPod endpoint queue backpressure"),
+        ("no worker", "provider_backpressure", True, "RunPod has no active worker"),
+        ("endpoint not found", "endpoint_unreachable", True, "RunPod endpoint is not reachable"),
+        ("502", "provider_transient", True, "RunPod gateway transient failure"),
+        ("504", "provider_transient", True, "RunPod gateway timeout"),
+        ("pod not found", "provider_transient", True, "RunPod pod unavailable"),
+    ],
+    "vast": [
+        ("no offers", "provider_backpressure", True, "Vast has no eligible offers"),
+        ("unauthorized", "endpoint_unreachable", False, "Vast endpoint authorization failed"),
+        ("endpoint not found", "endpoint_unreachable", True, "Vast endpoint is not reachable"),
+        ("no module named 'matplotlib'", "image_missing_dependency", False, "ASR diarization image missing pyannote lazy dependency"),
+        ("ssh", "provider_transient", True, "Vast SSH/bootstrap transient failure"),
+    ],
+}
 
 
 RETRYABLE_CLASSES = {
@@ -12,6 +51,9 @@ RETRYABLE_CLASSES = {
     "provider_rate_limit",
     "provider_transient",
     "network_transient",
+    "cold_start_timeout",
+    "cache_contract_missing",
+    "endpoint_unreachable",
 }
 
 PERMANENT_CLASSES = {
@@ -22,12 +64,21 @@ PERMANENT_CLASSES = {
     "unsupported_job_type",
     "capability_block",
     "artifact_integrity_failed",
+    "artifact_contract_failure",
     "approval_required",
     "quota_block",
     "cost_block",
     "secret_block",
     "placement_block",
     "preemption_block",
+    "model_contract_mismatch",
+    "image_contract_mismatch",
+    "gpu_contract_mismatch",
+    "image_missing_dependency",
+    "model_unavailable",
+    "context_overflow",
+    "empty_output_success",
+    "verification_failed",
 }
 
 
@@ -44,7 +95,12 @@ def classify_error(
     retryable = False
     reason = "unclassified error"
 
-    if status_code == 429 or "backpressure" in text or "concurrency limit" in text:
+    native = _provider_native_classification(text, provider)
+    if native is not None:
+        error_class = native["class"]
+        retryable = native["retryable"]
+        reason = native["reason"]
+    elif status_code == 429 or "backpressure" in text or "concurrency limit" in text:
         error_class = "backpressure"
         retryable = True
         reason = "capacity or concurrency pressure"
@@ -127,3 +183,10 @@ def classify_error(
 
 def rate_limit_status_code() -> int:
     return 429
+
+
+def _provider_native_classification(text: str, provider: str) -> dict[str, Any] | None:
+    for needle, klass, retryable, reason in PROVIDER_NATIVE_RULES.get(str(provider or "").lower(), []):
+        if needle in text:
+            return {"class": klass, "retryable": retryable, "reason": reason}
+    return None

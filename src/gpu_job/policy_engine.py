@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .canonical import canonical_hash
+from .concurrency import provider_profile_key
 from .models import now_unix
 from .policy import load_execution_policy
 
@@ -18,11 +19,23 @@ def validate_policy(policy: dict[str, Any] | None = None) -> dict[str, Any]:
         errors.append("provider_limits must be a non-empty object")
     else:
         for provider, limit in provider_limits.items():
-            try:
-                if int(limit) < 0:
-                    errors.append(f"provider_limits.{provider} must be >= 0")
-            except (TypeError, ValueError):
-                errors.append(f"provider_limits.{provider} must be integer-like")
+            if isinstance(limit, dict):
+                if not limit:
+                    errors.append(f"provider_limits.{provider} must not be empty")
+                    continue
+                for profile, profile_limit in limit.items():
+                    key = provider_profile_key(str(provider), str(profile))
+                    try:
+                        if int(profile_limit) < 0:
+                            errors.append(f"provider_limits.{key} must be >= 0")
+                    except (TypeError, ValueError):
+                        errors.append(f"provider_limits.{key} must be integer-like")
+            else:
+                try:
+                    if int(limit) < 0:
+                        errors.append(f"provider_limits.{provider} must be >= 0")
+                except (TypeError, ValueError):
+                    errors.append(f"provider_limits.{provider} must be integer-like")
     stale = policy.get("stale_seconds", {})
     if not isinstance(stale, dict):
         errors.append("stale_seconds must be an object")

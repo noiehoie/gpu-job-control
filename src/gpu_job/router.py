@@ -6,6 +6,7 @@ import json
 
 from .config import config_path
 from .circuit import provider_circuit_state
+from .concurrency import provider_profile_limit
 from .models import Job
 from .policy import load_execution_policy
 from .providers import PROVIDERS
@@ -14,13 +15,6 @@ from .store import JobStore
 
 
 ACTIVE_STATUSES = {"starting", "running"}
-EXECUTABLE_JOB_TYPES = {
-    "local": {"smoke", "embedding", "llm_heavy", "pdf_ocr", "vlm_ocr", "cpu_workflow_helper"},
-    "modal": {"smoke", "asr", "llm_heavy", "pdf_ocr", "vlm_ocr"},
-    "ollama": {"embedding", "llm_heavy", "vlm_ocr"},
-    "runpod": {"smoke", "llm_heavy"},
-    "vast": {"smoke"},
-}
 
 
 def default_config_path() -> Path:
@@ -128,16 +122,18 @@ def _estimated_gpu_runtime_seconds(job: Job, profile: dict[str, Any], signal: di
     return float(profile.get("estimated_gpu_runtime_seconds") or job_runtime_minutes(job, profile) * 60)
 
 
-def _provider_load(provider: str) -> dict[str, Any]:
+def _provider_load(provider: str, gpu_profile: str = "*") -> dict[str, Any]:
     policy = load_execution_policy()
-    provider_limits = {str(k): int(v) for k, v in dict(policy.get("provider_limits", {})).items()}
-    max_concurrent = int(provider_limits.get(provider, 1))
+    provider_limits = dict(policy.get("provider_limits", {}))
+    max_concurrent = provider_profile_limit(provider_limits, provider, gpu_profile)
     active = 0
     queued = 0
     for job in JobStore().list_jobs(limit=1000):
         selected = str(job.metadata.get("selected_provider") or job.provider or "")
         requested = str(job.metadata.get("requested_provider") or "")
         if provider not in {selected, requested}:
+            continue
+        if gpu_profile != "*" and job.gpu_profile != gpu_profile:
             continue
         if job.status in ACTIVE_STATUSES:
             active += 1
@@ -166,7 +162,7 @@ def workload_policy_decision(job: Job, profile: dict[str, Any], signal: dict[str
     latency_class = _str_value(routing.get("latency_class"), input_data.get("latency_class"), default="batch")
     startup_amortized = startup / batch_size
     gpu_runtime = _estimated_gpu_runtime_seconds(job, profile, signal)
-    load = _provider_load(provider)
+    load = _provider_load(provider, job.gpu_profile)
     queue_wait = 0.0
     if load["saturated"] or load["queued"]:
         queue_wait = max(30.0, gpu_runtime) * max(1, int(load["queued"]) + 1)
@@ -365,16 +361,25 @@ def startup_policy_decision(job: Job, profile: dict[str, Any], signal: dict[str,
 
 
 def capability_policy_decision(job: Job, provider: str) -> dict[str, Any]:
-    supported = EXECUTABLE_JOB_TYPES.get(provider)
-    if supported is None:
+    from .provider_catalog import provider_capability
+
+    capability = provider_capability(provider)
+    supported = set(capability.get("supported_job_types") or [])
+    if not capability:
         return {"ok": False, "reason": "unknown provider capability"}
     if job.job_type not in supported:
         return {
             "ok": False,
             "reason": f"provider does not execute job_type: {job.job_type}",
             "supported_job_types": sorted(supported),
+            "catalog_version": capability.get("catalog_version"),
         }
-    return {"ok": True, "reason": "provider supports job_type", "supported_job_types": sorted(supported)}
+    return {
+        "ok": True,
+        "reason": "provider supports job_type",
+        "supported_job_types": sorted(supported),
+        "catalog_version": capability.get("catalog_version"),
+    }
 
 
 def route_job(job: Job, config_path: Path | None = None) -> dict[str, Any]:
@@ -442,3 +447,19 @@ def route_job(job: Job, config_path: Path | None = None) -> dict[str, Any]:
             "preferences": provider_decisions[selected]["workload_policy"].get("preferences", []),
         },
     }
+
+
+def route_explanation(route_result: dict[str, Any]) -> str:
+    selected = str(route_result.get("selected_provider") or "")
+    gpu_profile = str(route_result.get("gpu_profile") or "")
+    candidates = ", ".join(str(item) for item in route_result.get("candidates") or []) or selected
+    decision = route_result.get("decision") if isinstance(route_result.get("decision"), dict) else {}
+    reason = str(decision.get("reason") or "provider explicitly requested")
+    ranked = route_result.get("eligible_ranked") if isinstance(route_result.get("eligible_ranked"), list) else []
+    score = None
+    for item in ranked:
+        if isinstance(item, dict) and item.get("provider") == selected:
+            score = item.get("score")
+            break
+    score_text = f" score={score}" if score is not None else ""
+    return f"selected provider '{selected}' for gpu_profile '{gpu_profile}' from candidates [{candidates}].{score_text} reason: {reason}"

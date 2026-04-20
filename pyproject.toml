@@ -41,7 +41,8 @@ dev = [
 ]
 
 [project.scripts]
-gpu-job = "gpu_job.cli:main"
+gpu-job = "gpu_job.cli_public:main"
+gpu-job-admin = "gpu_job.cli:main"
 gpu-job-api = "gpu_job.api:main"
 gpu-job-asr-worker = "gpu_job.workers.asr:main"
 
