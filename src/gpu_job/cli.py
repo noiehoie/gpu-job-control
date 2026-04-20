@@ -33,7 +33,7 @@ from .image import (
 from .invariants import evaluate_invariants
 from .metrics_export import metrics_prometheus, metrics_snapshot
 from .intake import intake_job, intake_status, plan_intake_groups
-from .orphan_inventory import vast_orphan_inventory, vast_orphan_reaper
+from .orphan_inventory import orphan_inventory, orphan_reaper, vast_orphan_inventory, vast_orphan_reaper
 from .policy_engine import policy_activation_record
 from .provider_stability import provider_stability_report
 from .provider_contract_probe import (
@@ -311,6 +311,24 @@ def cmd_vast_orphan_reaper(args: argparse.Namespace) -> int:
         apply=args.apply,
         principal=args.principal,
         max_instances=args.max_instances,
+        mode_policy=args.mode_policy,
+    )
+    print_json(result)
+    return 0 if result["ok"] else 2
+
+
+def cmd_orphan_inventory(args: argparse.Namespace) -> int:
+    result = orphan_inventory(providers=args.provider)
+    print_json(result)
+    return 0 if result["ok"] else 2
+
+
+def cmd_orphan_reaper(args: argparse.Namespace) -> int:
+    result = orphan_reaper(
+        providers=args.provider,
+        apply=args.apply,
+        principal=args.principal,
+        max_resources=args.max_resources,
         mode_policy=args.mode_policy,
     )
     print_json(result)
@@ -704,6 +722,21 @@ def cmd_runpod(args: argparse.Namespace) -> int:
             served_model_name=args.served_model_name,
             flashboot=args.flashboot,
         )
+    elif args.runpod_command == "plan-asr-endpoint":
+        result = provider.plan_asr_endpoint(
+            image=args.image,
+            container_disk_in_gb=args.container_disk_in_gb,
+            gpu_ids=args.gpu_ids,
+            network_volume_id=args.network_volume_id,
+            locations=args.locations,
+            hf_secret_name=args.hf_secret_name,
+            idle_timeout=args.idle_timeout,
+            workers_max=args.workers_max,
+            scaler_value=args.scaler_value,
+            flashboot=args.flashboot,
+            model=args.model,
+            speaker_model=args.speaker_model,
+        )
     elif args.runpod_command == "promote-vllm-endpoint":
         pre_guard = collect_cost_guard(["runpod"])
         if args.execute and not pre_guard["ok"]:
@@ -733,6 +766,32 @@ def cmd_runpod(args: argparse.Namespace) -> int:
         result["pre_promotion_guard"] = pre_guard
         post_guard = collect_cost_guard(["runpod"])
         result["post_promotion_guard"] = post_guard
+        if not post_guard["ok"]:
+            result["ok"] = False
+    elif args.runpod_command == "promote-asr-endpoint":
+        pre_guard = collect_cost_guard(["runpod"])
+        if args.execute and not pre_guard["ok"]:
+            print_json({"ok": False, "error": "pre-asr-promotion cost guard failed", "guard": pre_guard})
+            return 2
+        result = provider.promote_asr_endpoint(
+            image=args.image,
+            container_disk_in_gb=args.container_disk_in_gb,
+            gpu_ids=args.gpu_ids,
+            network_volume_id=args.network_volume_id,
+            locations=args.locations,
+            hf_secret_name=args.hf_secret_name,
+            idle_timeout=args.idle_timeout,
+            workers_max=args.workers_max,
+            scaler_value=args.scaler_value,
+            flashboot=args.flashboot,
+            model=args.model,
+            speaker_model=args.speaker_model,
+            execute=args.execute,
+            allow_unverified_serverless_handler=args.allow_unverified_serverless_handler,
+        )
+        result["pre_asr_promotion_guard"] = pre_guard
+        post_guard = collect_cost_guard(["runpod"])
+        result["post_asr_promotion_guard"] = post_guard
         if not post_guard["ok"]:
             result["ok"] = False
     else:
@@ -880,6 +939,18 @@ def build_parser() -> argparse.ArgumentParser:
     guard = sub.add_parser("guard", help="run spend, queue, and local resource guards")
     guard.add_argument("--provider", action="append", choices=sorted(PROVIDERS), help="provider to guard; repeatable")
     guard.set_defaults(func=cmd_guard)
+
+    orphan = sub.add_parser("orphan-inventory", help="provider-neutral dry-run inventory of gpu-job controlled resources")
+    orphan.add_argument("--provider", action="append", choices=sorted(PROVIDERS), help="provider to inspect; repeatable")
+    orphan.set_defaults(func=cmd_orphan_inventory)
+
+    reaper = sub.add_parser("orphan-reaper", help="provider-neutral dry-run or approved cleanup of eligible orphan resources")
+    reaper.add_argument("--provider", action="append", choices=sorted(PROVIDERS), help="provider to inspect; repeatable")
+    reaper.add_argument("--apply", action="store_true", help="destroy eligible resources after approval and fresh provider checks")
+    reaper.add_argument("--principal", default="", help="principal used for destructive approval checks when --apply is set")
+    reaper.add_argument("--max-resources", type=int, default=10, help="maximum resources to destroy in one apply run")
+    reaper.add_argument("--mode-policy", default="conservative", help="reaper mode policy; only conservative is supported for launch")
+    reaper.set_defaults(func=cmd_orphan_reaper)
 
     vast_orphan = sub.add_parser("vast-orphan-inventory", help="dry-run inventory of gpu-job-labelled Vast instances")
     vast_orphan.set_defaults(func=cmd_vast_orphan_inventory)
@@ -1249,6 +1320,59 @@ def build_parser() -> argparse.ArgumentParser:
     promote_vllm.add_argument("--canary-timeout-seconds", type=int, default=300, help="bounded canary wait")
     promote_vllm.add_argument("--execute", action="store_true", help="actually create and canary the endpoint")
     promote_vllm.set_defaults(func=cmd_runpod)
+
+    asr_endpoint_defaults = {
+        "image": asr_defaults["image"],
+        "container_disk_in_gb": asr_defaults["container_disk_in_gb"],
+        "gpu_ids": "ADA_24",
+        "locations": "",
+        "hf_secret_name": "gpu_job_hf_read",
+        "idle_timeout": 60,
+        "workers_max": 1,
+        "scaler_value": 4,
+        "model": "large-v3",
+        "speaker_model": "pyannote/speaker-diarization-3.1",
+    }
+
+    def add_asr_endpoint_args(item: argparse.ArgumentParser) -> None:
+        item.add_argument("--image", default=asr_endpoint_defaults["image"], help="RunPod ASR diarization worker image")
+        item.add_argument(
+            "--container-disk-in-gb",
+            type=int,
+            default=asr_endpoint_defaults["container_disk_in_gb"],
+            help="serverless template container disk size",
+        )
+        item.add_argument("--gpu-ids", default=asr_endpoint_defaults["gpu_ids"], help="RunPod GPU id list")
+        item.add_argument("--locations", default=asr_endpoint_defaults["locations"], help="RunPod location filter")
+        item.add_argument(
+            "--network-volume-id",
+            default=os.getenv("RUNPOD_NETWORK_VOLUME_ID", ""),
+            help="optional approved RunPod network volume id",
+        )
+        item.add_argument("--hf-secret-name", default=asr_endpoint_defaults["hf_secret_name"], help="RunPod secret name for HF_TOKEN")
+        item.add_argument("--idle-timeout", type=int, default=asr_endpoint_defaults["idle_timeout"], help="endpoint idle timeout seconds")
+        item.add_argument("--workers-max", type=int, default=asr_endpoint_defaults["workers_max"], help="maximum serverless workers")
+        item.add_argument("--scaler-value", type=int, default=asr_endpoint_defaults["scaler_value"], help="QUEUE_DELAY scaler value")
+        item.add_argument("--model", default=asr_endpoint_defaults["model"], help="faster-whisper model name")
+        item.add_argument("--speaker-model", default=asr_endpoint_defaults["speaker_model"], help="pyannote speaker model id")
+        item.add_argument("--flashboot", action="store_true", help="request RunPod FlashBoot")
+
+    plan_asr_endpoint = runpod_sub.add_parser("plan-asr-endpoint", help="plan a safe RunPod ASR diarization serverless endpoint")
+    add_asr_endpoint_args(plan_asr_endpoint)
+    plan_asr_endpoint.set_defaults(func=cmd_runpod)
+
+    promote_asr_endpoint = runpod_sub.add_parser(
+        "promote-asr-endpoint",
+        help="promote RunPod ASR serverless endpoint only after handler and workspace contracts are verified",
+    )
+    add_asr_endpoint_args(promote_asr_endpoint)
+    promote_asr_endpoint.add_argument("--execute", action="store_true", help="attempt promotion; fails closed until handler is verified")
+    promote_asr_endpoint.add_argument(
+        "--allow-unverified-serverless-handler",
+        action="store_true",
+        help="debug only; does not enable production dispatch without a verified handler contract",
+    )
+    promote_asr_endpoint.set_defaults(func=cmd_runpod)
 
     serve = sub.add_parser("serve", help="start the local/private HTTP API")
     serve.add_argument("--host", default="127.0.0.1", help="API bind host")

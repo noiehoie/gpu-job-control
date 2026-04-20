@@ -46,6 +46,8 @@ class PublicCLISurfaceTest(unittest.TestCase):
             "signals",
             "stability",
             "guard",
+            "orphan-inventory",
+            "orphan-reaper",
             "reconcile",
             "vast-orphan-inventory",
             "vast-orphan-reaper",

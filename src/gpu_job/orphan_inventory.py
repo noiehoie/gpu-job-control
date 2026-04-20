@@ -19,6 +19,7 @@ VAST_STOPPING_STATES = {"stopping", "exiting"}
 VAST_TERMINAL_STATES = INACTIVE_VAST_STATES
 REAPER_DESTROYABLE_LIFECYCLE_PHASES = {"running"}
 REAPER_MODES = {"conservative"}
+SUPPORTED_ORPHAN_PROVIDERS = {"modal", "runpod", "vast"}
 REASON_CATEGORY = {
     "job_missing": "ghost",
     "job_unreadable": "job_unreadable",
@@ -163,6 +164,110 @@ def vast_orphan_reaper(
     }
 
 
+def orphan_inventory(
+    *,
+    providers: list[str] | None = None,
+    store: JobStore | None = None,
+    provider_objects: dict[str, Any] | None = None,
+    checked_at: int | None = None,
+) -> dict[str, Any]:
+    """Provider-neutral orphan inventory.
+
+    This is intentionally conservative. Vast keeps its lifecycle-aware
+    inventory. Other providers are inventory/report-only unless an exact stored
+    terminal job -> provider resource id match exists.
+    """
+    checked = checked_at if checked_at is not None else now_unix()
+    store = store or JobStore()
+    selected = providers or sorted(SUPPORTED_ORPHAN_PROVIDERS)
+    inventories: dict[str, Any] = {}
+    for name in selected:
+        if name not in SUPPORTED_ORPHAN_PROVIDERS:
+            inventories[name] = {
+                "ok": False,
+                "provider": name,
+                "error": "unsupported_orphan_provider",
+                "supported_providers": sorted(SUPPORTED_ORPHAN_PROVIDERS),
+            }
+            continue
+        provider = (provider_objects or {}).get(name)
+        if name == "vast":
+            inventories[name] = vast_orphan_inventory(store=store, provider=provider, checked_at=checked)
+        else:
+            inventories[name] = _generic_orphan_inventory(name, store=store, provider=provider, checked_at=checked)
+    return {
+        "ok": all(item.get("ok", False) for item in inventories.values()),
+        "inventory_version": "gpu-job-provider-orphan-inventory-v1",
+        "checked_at": checked,
+        "providers": inventories,
+        "summary": {
+            "provider_count": len(inventories),
+            "candidate_count": sum(len(item.get("candidates") or []) for item in inventories.values() if isinstance(item, dict)),
+        },
+    }
+
+
+def orphan_reaper(
+    *,
+    providers: list[str] | None = None,
+    apply: bool = False,
+    principal: str = "",
+    max_resources: int = 10,
+    mode_policy: str = "conservative",
+    store: JobStore | None = None,
+    provider_objects: dict[str, Any] | None = None,
+    checked_at: int | None = None,
+) -> dict[str, Any]:
+    checked = checked_at if checked_at is not None else now_unix()
+    store = store or JobStore()
+    selected = providers or sorted(SUPPORTED_ORPHAN_PROVIDERS)
+    results: dict[str, Any] = {}
+    for name in selected:
+        provider = (provider_objects or {}).get(name)
+        if name == "vast":
+            results[name] = vast_orphan_reaper(
+                apply=apply,
+                principal=principal,
+                max_instances=max_resources,
+                mode_policy=mode_policy,
+                store=store,
+                provider=provider,
+                checked_at=checked,
+            )
+        elif name in SUPPORTED_ORPHAN_PROVIDERS:
+            results[name] = _generic_orphan_reaper(
+                name,
+                apply=apply,
+                principal=principal,
+                max_resources=max_resources,
+                mode_policy=mode_policy,
+                store=store,
+                provider=provider,
+                checked_at=checked,
+            )
+        else:
+            results[name] = {
+                "ok": False,
+                "provider": name,
+                "error": "unsupported_orphan_provider",
+                "supported_providers": sorted(SUPPORTED_ORPHAN_PROVIDERS),
+            }
+    return {
+        "ok": all(item.get("ok", False) for item in results.values()),
+        "reaper_version": "gpu-job-provider-orphan-reaper-v1",
+        "mode": "apply" if apply else "dry_run",
+        "dry_run": not apply,
+        "checked_at": checked,
+        "providers": results,
+        "summary": {
+            "provider_count": len(results),
+            "candidate_count": sum(int((item.get("summary") or {}).get("candidate_count") or 0) for item in results.values()),
+            "destroyed_count": sum(int((item.get("summary") or {}).get("destroyed_count") or 0) for item in results.values()),
+            "skipped_count": sum(int((item.get("summary") or {}).get("skipped_count") or 0) for item in results.values()),
+        },
+    }
+
+
 def _reaper_plan_for_candidate(candidate: dict[str, Any], *, store: JobStore) -> dict[str, Any]:
     reason = str(candidate.get("reason") or "")
     instance_id = _string_or_empty(candidate.get("instance_id"))
@@ -203,6 +308,203 @@ def _reaper_plan_for_candidate(candidate: dict[str, Any], *, store: JobStore) ->
     action["eligible"] = True
     action["would_destroy"] = True
     return action
+
+
+def _generic_orphan_inventory(
+    provider_name: str,
+    *,
+    store: JobStore,
+    provider: Any | None,
+    checked_at: int,
+) -> dict[str, Any]:
+    provider = provider or _provider_by_name(provider_name)
+    guard = provider.cost_guard() if provider is not None and hasattr(provider, "cost_guard") else {}
+    resources = list(guard.get("billable_resources") or []) if isinstance(guard, dict) else []
+    jobs_by_provider_id: dict[str, Any] = {}
+    for job in store.list_jobs(limit=5000):
+        if str(job.provider or job.metadata.get("selected_provider") or "") != provider_name:
+            continue
+        if job.provider_job_id:
+            jobs_by_provider_id[str(job.provider_job_id)] = job
+    candidates = []
+    summary = {"terminal_job_active_resource": 0, "unmatched_billable_resource": 0}
+    for resource in resources:
+        resource_id = _string_or_empty(resource.get("id") if isinstance(resource, dict) else "")
+        job = jobs_by_provider_id.get(resource_id)
+        if job and job.status in TERMINAL_JOB_STATUSES:
+            reason = "terminal_job_active_resource"
+            summary[reason] += 1
+            candidates.append(_generic_candidate(provider_name, resource, job=job, reason=reason, resource_id=resource_id))
+        else:
+            reason = "unmatched_billable_resource"
+            summary[reason] += 1
+            candidates.append(_generic_candidate(provider_name, resource, job=job, reason=reason, resource_id=resource_id))
+    return {
+        "ok": True,
+        "dry_run": True,
+        "provider": provider_name,
+        "checked_at": checked_at,
+        "resources_seen": len(resources),
+        "candidates": candidates,
+        "summary": summary,
+        "guard": guard,
+    }
+
+
+def _generic_orphan_reaper(
+    provider_name: str,
+    *,
+    apply: bool,
+    principal: str,
+    max_resources: int,
+    mode_policy: str,
+    store: JobStore,
+    provider: Any | None,
+    checked_at: int,
+) -> dict[str, Any]:
+    if mode_policy not in REAPER_MODES:
+        return {
+            "ok": False,
+            "reaper_policy_version": "gpu-job-provider-orphan-reaper-policy-v1",
+            "provider": provider_name,
+            "mode_policy": mode_policy,
+            "mode": "apply" if apply else "dry_run",
+            "dry_run": not apply,
+            "checked_at": checked_at,
+            "error": "unsupported_reaper_mode_policy",
+            "supported_mode_policies": sorted(REAPER_MODES),
+            "inventory": None,
+            "actions": [],
+            "summary": {"candidate_count": 0, "eligible_count": 0, "destroyed_count": 0, "skipped_count": 0},
+        }
+    provider = provider or _provider_by_name(provider_name)
+    inventory = _generic_orphan_inventory(provider_name, store=store, provider=provider, checked_at=checked_at)
+    actions = [_generic_reaper_plan_for_candidate(item, provider_name=provider_name) for item in inventory["candidates"]]
+    destroyed = 0
+    skipped = 0
+    limit = max(0, int(max_resources))
+    for action in actions:
+        if apply and action["eligible"] and destroyed >= limit:
+            action["eligible"] = False
+            action["would_destroy"] = False
+            action["skip_reason"] = "max_resources_exceeded"
+        if apply and action["eligible"]:
+            _apply_generic_reaper_action(action, provider=provider, principal=principal)
+            if isinstance(action.get("destroy_result"), dict) and action["destroy_result"].get("ok"):
+                destroyed += 1
+            else:
+                skipped += 1
+        elif not action["eligible"]:
+            skipped += 1
+    return {
+        "ok": not apply or all(not item.get("eligible") or item.get("destroy_result", {}).get("ok") for item in actions),
+        "reaper_policy_version": "gpu-job-provider-orphan-reaper-policy-v1",
+        "provider": provider_name,
+        "mode_policy": mode_policy,
+        "mode": "apply" if apply else "dry_run",
+        "dry_run": not apply,
+        "checked_at": checked_at,
+        "inventory": inventory,
+        "actions": actions,
+        "summary": {
+            "candidate_count": len(actions),
+            "eligible_count": sum(1 for item in actions if item.get("eligible")),
+            "destroyed_count": destroyed,
+            "skipped_count": skipped,
+        },
+    }
+
+
+def _generic_candidate(provider_name: str, resource: Any, *, job: Any, reason: str, resource_id: str) -> dict[str, Any]:
+    resource_type = str(resource.get("type") or "resource") if isinstance(resource, dict) else "resource"
+    job_status = getattr(job, "status", None)
+    return {
+        "provider": provider_name,
+        "resource_id": resource_id,
+        "resource_type": resource_type,
+        "reason": reason,
+        "category": "zombie" if reason == "terminal_job_active_resource" else "unmatched_resource",
+        "job_id": getattr(job, "job_id", ""),
+        "job_status": job_status,
+        "provider_job_id": getattr(job, "provider_job_id", ""),
+        "resource": resource,
+        "evidence": {
+            "evidence_version": "gpu-job-provider-orphan-evidence-v1",
+            "provider": provider_name,
+            "resource_id": resource_id,
+            "resource_type": resource_type,
+            "job_exists": job is not None,
+            "job_terminal": job_status in TERMINAL_JOB_STATUSES,
+            "provider_job_id_exact_match": bool(job and resource_id and str(getattr(job, "provider_job_id", "")) == resource_id),
+            "job_lifecycle": _job_lifecycle_evidence(job),
+            "cleanup": _cleanup_evidence(job),
+        },
+        "would_destroy": False,
+    }
+
+
+def _generic_reaper_plan_for_candidate(candidate: dict[str, Any], *, provider_name: str) -> dict[str, Any]:
+    action = {
+        **candidate,
+        "eligible": False,
+        "would_destroy": False,
+        "skip_reason": "",
+        "preflight": None,
+        "destroy_result": None,
+    }
+    if candidate.get("reason") != "terminal_job_active_resource":
+        action["skip_reason"] = "report_only_reason"
+        return action
+    if provider_name == "runpod" and candidate.get("resource_type") in {"pod", "resource"}:
+        if not candidate.get("resource_id") or not candidate.get("evidence", {}).get("provider_job_id_exact_match"):
+            action["skip_reason"] = "provider_job_id_not_exact_match"
+            return action
+        if not candidate.get("evidence", {}).get("cleanup", {}).get("exit_seen"):
+            action["skip_reason"] = "missing_cleanup_evidence"
+            return action
+        action["eligible"] = True
+        action["would_destroy"] = True
+        return action
+    action["skip_reason"] = "provider_resource_type_not_destroyable_by_generic_reaper"
+    return action
+
+
+def _apply_generic_reaper_action(action: dict[str, Any], *, provider: Any, principal: str) -> None:
+    if not principal:
+        action["eligible"] = False
+        action["would_destroy"] = False
+        action["skip_reason"] = "principal_required"
+        return
+    provider_name = str(action.get("provider") or "")
+    resource_id = str(action.get("resource_id") or "")
+    resource_type = str(action.get("resource_type") or "")
+    preflight = destructive_preflight(
+        "destroy",
+        principal,
+        target=f"{provider_name}:{resource_type}:{resource_id}",
+        scope="provider-orphan-reaper",
+    )
+    action["preflight"] = preflight
+    if not preflight.get("ok"):
+        action["eligible"] = False
+        action["would_destroy"] = False
+        action["skip_reason"] = "destructive_preflight_failed"
+        return
+    if provider_name == "runpod" and hasattr(provider, "_terminate_pod"):
+        action["destroy_result"] = provider._terminate_pod(resource_id)
+        return
+    action["eligible"] = False
+    action["would_destroy"] = False
+    action["skip_reason"] = "provider_destroy_not_supported"
+
+
+def _provider_by_name(provider_name: str) -> Any | None:
+    try:
+        from .providers import get_provider
+
+        return get_provider(provider_name)
+    except Exception:
+        return None
 
 
 def _apply_reaper_action(action: dict[str, Any], *, store: JobStore, provider: VastProvider, principal: str) -> None:
