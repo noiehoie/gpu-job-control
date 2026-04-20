@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from gpu_job.image import image_mirror, image_mirror_plan
+from gpu_job.image import image_contract_check, image_contract_plan, image_contract_probe, image_mirror, image_mirror_plan
+from gpu_job.workers.asr import probe_runtime
 
 
 class ImageDistributionTest(unittest.TestCase):
@@ -26,6 +27,34 @@ class ImageDistributionTest(unittest.TestCase):
         )
         self.assertTrue(result["ok"])
         self.assertTrue(result["planned"])
+
+    def test_image_contract_plan_uses_registered_contract(self) -> None:
+        result = image_contract_plan("asr-diarization-large-v3-pyannote3.3.2-cuda12.4")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["image"], "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4")
+        self.assertEqual(result["dockerfile"], "docker/asr-worker.Dockerfile")
+        self.assertEqual(result["probe_command"], ["gpu-job-asr-worker", "--probe-runtime", "--diarize"])
+
+    def test_image_contract_check_validates_dockerfile_and_required_fields(self) -> None:
+        result = image_contract_check("asr-diarization-large-v3-pyannote3.3.2-cuda12.4")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["missing_fields"], [])
+        self.assertTrue(result["dockerfile_check"]["ok"])
+
+    def test_image_contract_probe_without_execute_is_plan_only(self) -> None:
+        result = image_contract_probe("asr-diarization-large-v3-pyannote3.3.2-cuda12.4", execute=False)
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["planned"])
+        self.assertIn("--probe-runtime", result["command"])
+
+    def test_asr_runtime_probe_imports_fast_backend(self) -> None:
+        result = probe_runtime(diarize=False, require_gpu=False)
+
+        self.assertIn("faster_whisper_import", result["checks"])
+        self.assertIn("ffmpeg_present", result["checks"])
 
 
 if __name__ == "__main__":
