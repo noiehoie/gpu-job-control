@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
-from gpu_job.image import image_contract_check, image_contract_plan, image_contract_probe, image_mirror, image_mirror_plan
+from gpu_job.image import (
+    image_contract_build,
+    image_contract_check,
+    image_contract_plan,
+    image_contract_probe,
+    image_mirror,
+    image_mirror_plan,
+)
 from gpu_job.workers.asr import probe_runtime
 
 
@@ -61,6 +69,22 @@ class ImageDistributionTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertTrue(result["planned"])
         self.assertIn("--probe-runtime", result["command"])
+
+    def test_image_contract_build_fails_closed_when_local_docker_missing(self) -> None:
+        with patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False), patch("gpu_job.image.which", return_value=None):
+            result = image_contract_build("asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4", execute=True)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "docker binary not found")
+        self.assertEqual(result["requires_action"], "install_docker_or_configure_remote_builder")
+
+    def test_image_contract_probe_fails_closed_when_local_docker_missing(self) -> None:
+        with patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False), patch("gpu_job.image.which", return_value=None):
+            result = image_contract_probe("asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4", execute=True)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "docker binary not found")
+        self.assertEqual(result["requires_action"], "install_docker_or_configure_remote_builder")
 
     def test_asr_runtime_probe_imports_fast_backend(self) -> None:
         result = probe_runtime(diarize=False, require_gpu=False)

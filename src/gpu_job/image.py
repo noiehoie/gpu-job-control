@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from shutil import which
 from subprocess import run
 from typing import Any
 import json
@@ -147,6 +148,15 @@ def image_contract_build(contract_id: str, *, execute: bool = False) -> dict[str
         return {
             "ok": False,
             "error": "refusing to run Docker build without GPU_JOB_ALLOW_LOCAL_DOCKER=1",
+            "requires_action": "enable_local_docker_or_configure_remote_builder",
+            "plan": plan,
+            "check": check,
+        }
+    if not which("docker"):
+        return {
+            "ok": False,
+            "error": "docker binary not found",
+            "requires_action": "install_docker_or_configure_remote_builder",
             "plan": plan,
             "check": check,
         }
@@ -176,6 +186,15 @@ def image_contract_probe(contract_id: str, *, execute: bool = False, require_gpu
         return {
             "ok": False,
             "error": "refusing to run Docker probe without GPU_JOB_ALLOW_LOCAL_DOCKER=1",
+            "requires_action": "enable_local_docker_or_configure_remote_builder",
+            "command": command,
+            "plan": plan,
+        }
+    if not which("docker"):
+        return {
+            "ok": False,
+            "error": "docker binary not found",
+            "requires_action": "install_docker_or_configure_remote_builder",
             "command": command,
             "plan": plan,
         }
