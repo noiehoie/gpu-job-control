@@ -66,6 +66,49 @@ class ProviderContractProbeTest(unittest.TestCase):
         self.assertEqual(job.metadata["source_system"], "contract-probe")
         self.assertEqual(job.metadata["secret_refs"], ["hf_token"])
 
+    def test_runpod_serverless_asr_handler_probe_is_distinct(self) -> None:
+        plan = plan_contract_probe("runpod", "runpod.asr_diarization.serverless_handler")
+
+        self.assertEqual(plan["probe_name"], "runpod.asr_diarization.serverless_handler")
+        self.assertEqual(
+            plan["spec"]["image_contract_id"],
+            "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
+        )
+        self.assertTrue(plan["spec"]["serverless_handler_contract_required"])
+
+    def test_runpod_serverless_asr_handler_artifact_passes_contract(self) -> None:
+        path = self._artifact(
+            result={
+                "text": "GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY_OK",
+                "model": "pyannote/speaker-diarization-3.1",
+                "worker_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+                "workspace_contract_ok": True,
+                "hf_token_present": True,
+                "image_contract_marker_present": True,
+                "cache_hit": True,
+                "worker_startup_ok": True,
+                "actual_cost_guard": {"ok": True},
+                "cleanup": {"ok": True},
+            },
+            metrics={"cache_hit": True},
+            verify={"ok": True},
+            probe_info={
+                "provider_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+                "cache_hit": True,
+                "gpu_probe": {"ok": True, "stdout": "NVIDIA"},
+            },
+        )
+
+        record = parse_contract_probe_artifact(
+            path,
+            provider="runpod",
+            probe_name="runpod.asr_diarization.serverless_handler",
+        )
+
+        self.assertTrue(record["ok"])
+        self.assertEqual(record["probe_name"], "runpod.asr_diarization.serverless_handler")
+        self.assertTrue(record["checks"]["workspace_contract_ok"])
+
     def test_modal_success_warm_cache_passes(self) -> None:
         path = self._artifact(
             result={"text": "ok", "model": "Qwen/Qwen2.5-32B-Instruct"},

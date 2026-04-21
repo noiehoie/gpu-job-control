@@ -126,6 +126,22 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
         "cache_required": True,
         "workspace_contract_required": True,
     },
+    "runpod.asr_diarization.serverless_handler": {
+        "provider": "runpod",
+        "workload_family": "asr",
+        "job_type": "asr",
+        "gpu_profile": "asr_diarization",
+        "expected_model": "pyannote/speaker-diarization-3.1",
+        "expected_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+        "expected_image_digest": "",
+        "forbidden_models": [],
+        "required_files": [*DEFAULT_REQUIRED],
+        "require_gpu_utilization": False,
+        "cache_required": True,
+        "workspace_contract_required": True,
+        "image_contract_id": "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
+        "serverless_handler_contract_required": True,
+    },
 }
 
 MODEL_RE = re.compile(r"(?:Qwen/)?Qwen[0-9.]+-[A-Za-z0-9_.-]+(?:-[A-Za-z0-9_.-]+)*")
@@ -188,7 +204,9 @@ def contract_probe_spec(provider: str, probe_name: str = "") -> dict[str, Any]:
             raise ValueError(f"unknown contract probe: {probe_name}")
         if provider and spec["provider"] != provider:
             raise ValueError(f"probe {probe_name} belongs to provider {spec['provider']}, not {provider}")
-        return _enrich_probe_spec(dict(spec))
+        enriched = _enrich_probe_spec(dict(spec))
+        enriched["probe_name"] = probe_name
+        return enriched
     matches = [_enrich_probe_spec(dict(spec)) for spec in DEFAULT_CONTRACT_PROBES.values() if spec["provider"] == provider]
     if not matches:
         raise ValueError(f"no default contract probe for provider: {provider}")
@@ -320,8 +338,11 @@ def append_contract_probe(record: dict[str, Any]) -> None:
 def _probe_name(spec: dict[str, Any], fallback: str = "") -> str:
     if fallback:
         return fallback
+    if spec.get("probe_name"):
+        return str(spec["probe_name"])
     for name, candidate in DEFAULT_CONTRACT_PROBES.items():
-        if all(candidate.get(key) == spec.get(key) for key in ("provider", "job_type", "gpu_profile", "expected_model")):
+        keys = ("provider", "job_type", "gpu_profile", "expected_model", "image_contract_id")
+        if all(candidate.get(key) == spec.get(key) for key in keys if key in candidate or key in spec):
             return name
     return f"{spec.get('provider')}.{spec.get('job_type')}.{int(time.time())}"
 
@@ -334,7 +355,7 @@ def _enrich_probe_spec(spec: dict[str, Any]) -> dict[str, Any]:
         return spec
     try:
         runtime = dict((load_requirement_registry().get("provider_runtimes") or {}).get(f"{provider}:{gpu_profile}") or {})
-        contract_id = str(runtime.get("image_contract_id") or "")
+        contract_id = str(spec.get("image_contract_id") or runtime.get("image_contract_id") or "")
         contract = dict((load_image_contract_registry().get("image_contracts") or {}).get(contract_id) or {})
         distribution = dict((contract.get("provider_images") or {}).get(provider) or {})
     except Exception:

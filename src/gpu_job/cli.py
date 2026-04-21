@@ -725,6 +725,7 @@ def cmd_runpod(args: argparse.Namespace) -> int:
     elif args.runpod_command == "plan-asr-endpoint":
         result = provider.plan_asr_endpoint(
             image=args.image,
+            handler_contract_id=args.handler_contract_id,
             container_disk_in_gb=args.container_disk_in_gb,
             gpu_ids=args.gpu_ids,
             network_volume_id=args.network_volume_id,
@@ -775,6 +776,7 @@ def cmd_runpod(args: argparse.Namespace) -> int:
             return 2
         result = provider.promote_asr_endpoint(
             image=args.image,
+            handler_contract_id=args.handler_contract_id,
             container_disk_in_gb=args.container_disk_in_gb,
             gpu_ids=args.gpu_ids,
             network_volume_id=args.network_volume_id,
@@ -1322,7 +1324,7 @@ def build_parser() -> argparse.ArgumentParser:
     promote_vllm.set_defaults(func=cmd_runpod)
 
     asr_endpoint_defaults = {
-        "image": asr_defaults["image"],
+        "image": "",
         "container_disk_in_gb": asr_defaults["container_disk_in_gb"],
         "gpu_ids": "ADA_24",
         "locations": "",
@@ -1335,7 +1337,7 @@ def build_parser() -> argparse.ArgumentParser:
     }
 
     def add_asr_endpoint_args(item: argparse.ArgumentParser) -> None:
-        item.add_argument("--image", default=asr_endpoint_defaults["image"], help="RunPod ASR diarization worker image")
+        item.add_argument("--image", default=asr_endpoint_defaults["image"], help="optional explicit RunPod ASR serverless handler image")
         item.add_argument(
             "--container-disk-in-gb",
             type=int,
@@ -1355,6 +1357,11 @@ def build_parser() -> argparse.ArgumentParser:
         item.add_argument("--scaler-value", type=int, default=asr_endpoint_defaults["scaler_value"], help="QUEUE_DELAY scaler value")
         item.add_argument("--model", default=asr_endpoint_defaults["model"], help="faster-whisper model name")
         item.add_argument("--speaker-model", default=asr_endpoint_defaults["speaker_model"], help="pyannote speaker model id")
+        item.add_argument(
+            "--handler-contract-id",
+            default="asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
+            help="RunPod serverless handler image contract id",
+        )
         item.add_argument("--flashboot", action="store_true", help="request RunPod FlashBoot")
 
     plan_asr_endpoint = runpod_sub.add_parser("plan-asr-endpoint", help="plan a safe RunPod ASR diarization serverless endpoint")

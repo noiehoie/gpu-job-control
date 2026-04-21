@@ -80,6 +80,8 @@ def _validate_runpod_gpu_ids(gpu_ids: str) -> dict[str, Any]:
 
 RUNPOD_DEFAULT_POD_GPU_TYPE_ID = "NVIDIA GeForce RTX 3090"
 RUNPOD_DEFAULT_POD_IMAGE = "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
+ASR_DIARIZATION_IMAGE_CONTRACT_ID = "asr-diarization-large-v3-pyannote3.3.2-cuda12.4"
+RUNPOD_ASR_SERVERLESS_HANDLER_CONTRACT_ID = "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4"
 
 
 def _runpod_api_key() -> str:
@@ -871,6 +873,7 @@ mutation {{
         self,
         *,
         image: str = "",
+        handler_contract_id: str = RUNPOD_ASR_SERVERLESS_HANDLER_CONTRACT_ID,
         container_disk_in_gb: int = 80,
         gpu_ids: str = "ADA_24",
         network_volume_id: str = "",
@@ -901,8 +904,17 @@ mutation {{
                 "error": "invalid_runpod_gpu_ids",
                 "gpu_selection": gpu_selection,
             }
-        distribution = _runpod_asr_diarization_image_distribution()
-        resolved_image = image or str(distribution.get("image") or "")
+        worker_distribution = _runpod_asr_diarization_image_distribution()
+        handler_contract = _runpod_asr_serverless_handler_contract(handler_contract_id)
+        handler_distribution = handler_contract.get("provider_image") if isinstance(handler_contract.get("provider_image"), dict) else {}
+        resolved_image = image or str(
+            handler_distribution.get("image") or handler_contract.get("image") or worker_distribution.get("image") or ""
+        )
+        handler_status = str(handler_contract.get("status") or "missing")
+        handler_reason = str(handler_contract.get("reason") or "")
+        if image and handler_status == "verified" and image != str(handler_distribution.get("image") or ""):
+            handler_status = "image_override_unverified"
+            handler_reason = "explicit image override does not match the verified RunPod serverless handler provider image."
         if not resolved_image:
             return {
                 "ok": False,
@@ -939,17 +951,20 @@ mutation {{
             },
             "gpu_selection": gpu_selection,
             "image_contract": {
-                "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
-                "provider_image": resolved_image,
-                "provider_image_status": distribution.get("status") or "",
-                "registry_auth": distribution.get("registry_auth") or {},
+                "contract_id": ASR_DIARIZATION_IMAGE_CONTRACT_ID,
+                "provider_image": worker_distribution.get("image") or "",
+                "provider_image_status": worker_distribution.get("status") or "",
+                "registry_auth": worker_distribution.get("registry_auth") or {},
             },
             "serverless_handler_contract": {
-                "status": "unverified",
-                "reason": (
-                    "current ASR diarization provider image is a command/HTTP worker image; "
-                    "RunPod serverless handler entrypoint must be contract-probed before production dispatch"
-                ),
+                "contract_id": handler_contract_id,
+                "status": handler_status,
+                "provider_image": resolved_image,
+                "provider_image_status": handler_distribution.get("status") or "",
+                "entrypoint": handler_contract.get("entrypoint") or "",
+                "probe_command": handler_contract.get("probe_command") or [],
+                "registry_auth": handler_distribution.get("registry_auth") or {},
+                "reason": handler_reason,
                 "required_before_execute": True,
             },
             "safety_invariants": {
@@ -999,6 +1014,7 @@ mutation {{
         self,
         *,
         image: str = "",
+        handler_contract_id: str = RUNPOD_ASR_SERVERLESS_HANDLER_CONTRACT_ID,
         container_disk_in_gb: int = 80,
         gpu_ids: str = "ADA_24",
         network_volume_id: str = "",
@@ -1015,6 +1031,7 @@ mutation {{
     ) -> dict[str, Any]:
         plan = self.plan_asr_endpoint(
             image=image,
+            handler_contract_id=handler_contract_id,
             container_disk_in_gb=container_disk_in_gb,
             gpu_ids=gpu_ids,
             network_volume_id=network_volume_id,
@@ -2702,9 +2719,44 @@ def _runpod_image_digest_parts(image: str) -> tuple[str, str]:
 
 
 def _runpod_asr_diarization_image_distribution() -> dict[str, Any]:
-    contract = (load_image_contract_registry().get("image_contracts") or {}).get("asr-diarization-large-v3-pyannote3.3.2-cuda12.4") or {}
+    contract = (load_image_contract_registry().get("image_contracts") or {}).get(ASR_DIARIZATION_IMAGE_CONTRACT_ID) or {}
     distribution = (contract.get("provider_images") or {}).get("runpod") or {}
     return dict(distribution) if isinstance(distribution, dict) else {}
+
+
+def _runpod_asr_serverless_handler_contract(contract_id: str = RUNPOD_ASR_SERVERLESS_HANDLER_CONTRACT_ID) -> dict[str, Any]:
+    registry = load_image_contract_registry()
+    contract = dict((registry.get("image_contracts") or {}).get(contract_id) or {})
+    if not contract:
+        return {
+            "contract_id": contract_id,
+            "status": "missing",
+            "reason": "RunPod ASR serverless handler image contract is not registered.",
+            "provider_image": {},
+        }
+    distribution = dict((contract.get("provider_images") or {}).get("runpod") or {})
+    contract_status = str(contract.get("status") or "unverified")
+    provider_status = str(distribution.get("status") or "missing")
+    provider_image = str(distribution.get("image") or "")
+    verified = contract_status == "verified" and provider_status == "verified" and "@sha256:" in provider_image
+    status = "verified" if verified else contract_status if contract_status != "verified" else provider_status
+    if contract_status == "verified" and provider_status == "verified" and provider_image and "@sha256:" not in provider_image:
+        status = "provider_image_not_digest_pinned"
+    reason = ""
+    if not verified:
+        reason = (
+            "RunPod serverless ASR handler image must have contract.status=verified, "
+            "provider_images.runpod.status=verified, and a digest-pinned provider image before GPU allocation."
+        )
+    return {
+        "contract_id": contract_id,
+        "status": status,
+        "image": contract.get("image") or "",
+        "entrypoint": contract.get("entrypoint") or "",
+        "probe_command": contract.get("probe_command") or [],
+        "provider_image": distribution,
+        "reason": reason,
+    }
 
 
 def _safe_name(value: str) -> str:

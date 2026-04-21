@@ -64,6 +64,42 @@
         "dockerfile": "docker/asr-worker.Dockerfile",
         "reason": "speaker diarization must use a prebuilt image; runtime pip install is not allowed for production execution"
       }
+    },
+    "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4": {
+      "contract_id": "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
+      "description": "RunPod serverless handler image contract for faster-whisper large-v3 plus pyannote speaker diarization",
+      "status": "unverified",
+      "image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+      "entrypoint": "gpu-job-runpod-asr-worker",
+      "provides_backends": ["runpod_serverless_handler", "faster_whisper", "pyannote"],
+      "required_packages": {
+        "runpod": "1.9.0",
+        "faster-whisper": "1.2.1",
+        "pyannote.audio": "3.3.2",
+        "torch": "2.5.1",
+        "torchaudio": "2.5.1",
+        "huggingface-hub": "0.24.7",
+        "matplotlib": "3.10.1"
+      },
+      "provider_images": {
+        "runpod": {
+          "status": "missing",
+          "image": "",
+          "registry_auth": {
+            "type": "runpod_container_registry_auth",
+            "registry": "ghcr.io",
+            "username": "noiehoie",
+            "auth_id": "cmo69c98l00iyjj07z22tsrzm"
+          }
+        }
+      },
+      "required_secrets": ["hf_token"],
+      "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+      "probe_command": ["gpu-job-runpod-asr-worker"],
+      "build_action": {
+        "dockerfile": "docker/runpod-asr-worker.Dockerfile",
+        "reason": "RunPod serverless ASR requires a handler entrypoint image; command/HTTP worker images are not production serverless dispatch contracts"
+      }
     }
   }
 }

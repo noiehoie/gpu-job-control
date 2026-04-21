@@ -301,12 +301,114 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertEqual(plan["endpoint"]["networkVolumeId"], "vol-runpod-asr")
         self.assertEqual(plan["endpoint"]["flashBootType"], "FLASHBOOT")
         self.assertEqual(plan["template"]["ports"], "8000/http")
-        self.assertTrue(plan["template"]["imageName"].startswith("ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:"))
+        self.assertEqual(plan["template"]["imageName"], "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4")
+        self.assertEqual(
+            plan["serverless_handler_contract"]["contract_id"],
+            "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
+        )
         env = {item["key"]: item["value"] for item in plan["template"]["env"]}
         self.assertEqual(env["GPU_JOB_WORKER_MODE"], "asr_diarization")
         self.assertEqual(env["HF_TOKEN"], "{{ RUNPOD_SECRET_gpu_job_hf_read }}")
         self.assertIn("provider_residue", plan["workspace_observation_contract"]["required_categories"])
         self.assertIn("cleanup_result", plan["workspace_observation_contract"]["required_categories"])
+
+    def test_runpod_asr_endpoint_cli_defaults_do_not_override_handler_contract_image(self) -> None:
+        from gpu_job.cli import build_parser
+
+        args = build_parser().parse_args(["runpod", "plan-asr-endpoint"])
+
+        self.assertEqual(args.image, "")
+        self.assertEqual(args.handler_contract_id, "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4")
+
+    def test_runpod_asr_serverless_plan_uses_verified_handler_image_when_registered(self) -> None:
+        provider = RunPodProvider()
+        registry = {
+            "image_contracts": {
+                "asr-diarization-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "provider_images": {"runpod": {"status": "verified", "image": "worker-image@sha256:111"}},
+                },
+                "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "image": "logical-handler-image",
+                    "entrypoint": "gpu-job-runpod-asr-worker",
+                    "probe_command": ["gpu-job-runpod-asr-worker"],
+                    "provider_images": {
+                        "runpod": {
+                            "status": "verified",
+                            "image": "ghcr.io/noiehoie/gpu-job-control/asr-runpod-handler@sha256:222",
+                        }
+                    },
+                },
+            }
+        }
+
+        with patch("gpu_job.providers.runpod.load_image_contract_registry", return_value=registry):
+            plan = provider.plan_asr_endpoint(gpu_ids="ADA_24")
+
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["serverless_handler_contract"]["status"], "verified")
+        self.assertEqual(plan["template"]["imageName"], "ghcr.io/noiehoie/gpu-job-control/asr-runpod-handler@sha256:222")
+
+    def test_runpod_asr_serverless_plan_refuses_verified_status_without_digest_pinned_handler_image(self) -> None:
+        provider = RunPodProvider()
+        registry = {
+            "image_contracts": {
+                "asr-diarization-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "provider_images": {"runpod": {"status": "verified", "image": "worker-image@sha256:111"}},
+                },
+                "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "image": "logical-handler-image",
+                    "entrypoint": "gpu-job-runpod-asr-worker",
+                    "probe_command": ["gpu-job-runpod-asr-worker"],
+                    "provider_images": {
+                        "runpod": {
+                            "status": "verified",
+                            "image": "ghcr.io/noiehoie/gpu-job-control/asr-runpod-handler:latest",
+                        }
+                    },
+                },
+            }
+        }
+
+        with patch("gpu_job.providers.runpod.load_image_contract_registry", return_value=registry):
+            plan = provider.plan_asr_endpoint(gpu_ids="ADA_24")
+
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["serverless_handler_contract"]["status"], "provider_image_not_digest_pinned")
+        self.assertIn("digest-pinned", plan["serverless_handler_contract"]["reason"])
+
+    def test_runpod_asr_serverless_plan_does_not_verify_explicit_image_override(self) -> None:
+        provider = RunPodProvider()
+        registry = {
+            "image_contracts": {
+                "asr-diarization-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "provider_images": {"runpod": {"status": "verified", "image": "worker-image@sha256:111"}},
+                },
+                "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "image": "logical-handler-image",
+                    "entrypoint": "gpu-job-runpod-asr-worker",
+                    "probe_command": ["gpu-job-runpod-asr-worker"],
+                    "provider_images": {
+                        "runpod": {
+                            "status": "verified",
+                            "image": "ghcr.io/noiehoie/gpu-job-control/asr-runpod-handler@sha256:222",
+                        }
+                    },
+                },
+            }
+        }
+
+        with patch("gpu_job.providers.runpod.load_image_contract_registry", return_value=registry):
+            plan = provider.plan_asr_endpoint(gpu_ids="ADA_24", image="ghcr.io/noiehoie/other@sha256:333")
+
+        self.assertTrue(plan["ok"])
+        self.assertEqual(plan["template"]["imageName"], "ghcr.io/noiehoie/other@sha256:333")
+        self.assertEqual(plan["serverless_handler_contract"]["status"], "image_override_unverified")
 
     def test_runpod_asr_serverless_plan_rejects_unbounded_creation_shape(self) -> None:
         provider = RunPodProvider()
@@ -334,6 +436,40 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertFalse(result["executed"])
         self.assertEqual(result["error"], "runpod_asr_serverless_handler_contract_unverified")
+
+    def test_runpod_asr_serverless_promotion_passes_handler_gate_only_when_verified(self) -> None:
+        provider = RunPodProvider()
+        registry = {
+            "image_contracts": {
+                "asr-diarization-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "provider_images": {"runpod": {"status": "verified", "image": "worker-image@sha256:111"}},
+                },
+                "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4": {
+                    "status": "verified",
+                    "image": "logical-handler-image",
+                    "entrypoint": "gpu-job-runpod-asr-worker",
+                    "probe_command": ["gpu-job-runpod-asr-worker"],
+                    "provider_images": {
+                        "runpod": {
+                            "status": "verified",
+                            "image": "ghcr.io/noiehoie/gpu-job-control/asr-runpod-handler@sha256:222",
+                        }
+                    },
+                },
+            }
+        }
+
+        with (
+            patch("gpu_job.providers.runpod.load_image_contract_registry", return_value=registry),
+            patch.object(provider, "_run_graphql", side_effect=AssertionError("live allocation remains disabled in this slice")),
+        ):
+            result = provider.promote_asr_endpoint(execute=True)
+
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["executed"])
+        self.assertEqual(result["serverless_handler_contract"]["status"], "verified")
+        self.assertEqual(result["error"], "runpod_asr_serverless_execute_not_enabled")
 
     def test_runpod_pod_plan_includes_registry_auth_when_private_image_requires_it(self) -> None:
         provider = RunPodProvider()
