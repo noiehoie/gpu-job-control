@@ -190,7 +190,26 @@ class RunPodProvider(Provider):
     def _endpoint_health(self, endpoints: list[dict[str, Any]]) -> list[dict[str, Any]]:
         python_bin = runpod_python()
         if not python_bin:
-            return [{"ok": False, "error": "runpod python SDK not importable; install gpu-job-control[providers] or set RUNPOD_PYTHON"}]
+            rows = []
+            for endpoint in endpoints:
+                endpoint_id = str(endpoint.get("id") or "")
+                pods = endpoint.get("pods") if isinstance(endpoint.get("pods"), list) else []
+                workers = {
+                    "running": sum(1 for pod in pods if str(pod.get("desiredStatus") or "").upper() == "RUNNING"),
+                    "exited": sum(1 for pod in pods if str(pod.get("desiredStatus") or "").upper() == "EXITED"),
+                    "total": len(pods),
+                }
+                rows.append(
+                    {
+                        "id": endpoint_id,
+                        "name": endpoint.get("name"),
+                        "ok": True,
+                        "source": "graphql_endpoint_snapshot",
+                        "jobs": {"inQueue": 0, "inProgress": workers["running"]},
+                        "workers": workers,
+                    }
+                )
+            return rows
         rows = []
         for endpoint in endpoints:
             endpoint_id = str(endpoint.get("id") or "")
@@ -218,28 +237,57 @@ class RunPodProvider(Provider):
         return rows
 
     def _api_snapshot(self) -> dict[str, Any]:
+        sdk_snapshot: dict[str, Any] = {}
         try:
             python_bin = runpod_python()
-            if not python_bin:
-                return {}
-            proc = run(
-                [
-                    python_bin,
-                    "-c",
-                    (
-                        "import json,runpod; "
-                        "print(json.dumps({'pods': runpod.get_pods(), "
-                        "'endpoints': runpod.get_endpoints(), "
-                        "'user': runpod.get_user()}))"
-                    ),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=45,
-            )
-            return json.loads(proc.stdout) if proc.returncode == 0 and proc.stdout.strip() else {}
+            if python_bin:
+                proc = run(
+                    [
+                        python_bin,
+                        "-c",
+                        (
+                            "import json,runpod; "
+                            "print(json.dumps({'pods': runpod.get_pods(), "
+                            "'endpoints': runpod.get_endpoints(), "
+                            "'user': runpod.get_user()}))"
+                        ),
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=45,
+                )
+                sdk_snapshot = json.loads(proc.stdout) if proc.returncode == 0 and proc.stdout.strip() else {}
+        except Exception:
+            sdk_snapshot = {}
+        if sdk_snapshot:
+            return sdk_snapshot
+        try:
+            return self._api_snapshot_graphql()
         except Exception:
             return {}
+
+    def _api_snapshot_graphql(self) -> dict[str, Any]:
+        query = """
+query {
+  myself {
+    pods { id name desiredStatus costPerHr gpuCount imageName }
+    endpoints {
+      id name gpuIds idleTimeout locations networkVolumeId
+      scalerType scalerValue templateId workersMax workersMin workersStandby gpuCount
+      pods { desiredStatus }
+    }
+    networkVolumes { id name size }
+  }
+}
+"""
+        payload = self._run_graphql(query)
+        myself = ((payload.get("data") or {}).get("myself") or {}) if isinstance(payload, dict) else {}
+        return {
+            "source": "graphql",
+            "pods": list(myself.get("pods") or []),
+            "endpoints": list(myself.get("endpoints") or []),
+            "user": {"networkVolumes": list(myself.get("networkVolumes") or [])},
+        }
 
     def quarantine_public_ollama_endpoint(
         self,

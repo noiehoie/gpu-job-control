@@ -561,6 +561,40 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("podStop returned no pod", result["error"])
 
+    def test_api_snapshot_falls_back_to_graphql_without_runpod_sdk(self) -> None:
+        provider = RunPodProvider()
+        graph_result = {
+            "data": {
+                "myself": {
+                    "pods": [{"id": "pod-1", "name": "pod", "desiredStatus": "RUNNING", "costPerHr": 0.46}],
+                    "endpoints": [
+                        {
+                            "id": "ep-1",
+                            "name": "endpoint",
+                            "workersMin": 0,
+                            "workersStandby": 0,
+                            "workersMax": 1,
+                            "pods": [{"desiredStatus": "RUNNING"}],
+                        }
+                    ],
+                    "networkVolumes": [{"id": "vol-1", "name": "cache", "size": 10}],
+                }
+            }
+        }
+
+        with (
+            patch("gpu_job.providers.runpod.runpod_python", return_value=None),
+            patch.object(provider, "_run_graphql", return_value=graph_result),
+        ):
+            result = provider._api_snapshot()
+            health = provider._endpoint_health(result["endpoints"])
+
+        self.assertEqual(result["source"], "graphql")
+        self.assertEqual(result["pods"][0]["id"], "pod-1")
+        self.assertEqual(result["user"]["networkVolumes"][0]["id"], "vol-1")
+        self.assertEqual(health[0]["source"], "graphql_endpoint_snapshot")
+        self.assertEqual(health[0]["jobs"]["inProgress"], 1)
+
     def test_submit_asr_diarization_uses_workspace_canary_artifact_contract(self) -> None:
         provider = RunPodProvider()
         with TemporaryDirectory() as tmp:
