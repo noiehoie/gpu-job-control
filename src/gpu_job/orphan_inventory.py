@@ -318,7 +318,21 @@ def _generic_orphan_inventory(
     checked_at: int,
 ) -> dict[str, Any]:
     provider = provider or _provider_by_name(provider_name)
-    guard = provider.cost_guard() if provider is not None and hasattr(provider, "cost_guard") else {}
+    try:
+        guard = provider.cost_guard() if provider is not None and hasattr(provider, "cost_guard") else {}
+    except Exception as exc:
+        return {
+            "ok": False,
+            "dry_run": True,
+            "provider": provider_name,
+            "checked_at": checked_at,
+            "error": "cost_guard_failed",
+            "reason": str(exc),
+            "resources_seen": 0,
+            "candidates": [],
+            "summary": {"terminal_job_active_resource": 0, "unmatched_billable_resource": 0},
+            "guard": {"ok": False, "error": "cost_guard_failed", "reason": str(exc), "billable_resources": []},
+        }
     resources = list(guard.get("billable_resources") or []) if isinstance(guard, dict) else []
     jobs_by_provider_id: dict[str, Any] = {}
     for job in store.list_jobs(limit=5000):
@@ -450,6 +464,8 @@ def _generic_reaper_plan_for_candidate(candidate: dict[str, Any], *, provider_na
         "would_destroy": False,
         "skip_reason": "",
         "preflight": None,
+        "fresh_resource": None,
+        "post_guard": None,
         "destroy_result": None,
     }
     if candidate.get("reason") != "terminal_job_active_resource":
@@ -490,12 +506,76 @@ def _apply_generic_reaper_action(action: dict[str, Any], *, provider: Any, princ
         action["would_destroy"] = False
         action["skip_reason"] = "destructive_preflight_failed"
         return
+    fresh = _fresh_billable_resource(provider, resource_id=resource_id, resource_type=resource_type)
+    if isinstance(fresh, dict) and fresh.get("__cost_guard_error"):
+        action["eligible"] = False
+        action["would_destroy"] = False
+        action["skip_reason"] = "fresh_resource_guard_failed"
+        action["fresh_resource"] = fresh
+        return
+    if fresh is None:
+        action["eligible"] = False
+        action["would_destroy"] = False
+        action["skip_reason"] = "fresh_resource_not_found"
+        return
+    action["fresh_resource"] = fresh
     if provider_name == "runpod" and hasattr(provider, "_terminate_pod"):
         action["destroy_result"] = provider._terminate_pod(resource_id)
+        try:
+            post_guard = provider.cost_guard() if hasattr(provider, "cost_guard") else {}
+        except Exception as exc:
+            post_guard = {"ok": False, "error": "cost_guard_failed", "reason": str(exc), "billable_resources": []}
+        action["post_guard"] = post_guard
+        if (
+            post_guard.get("error") == "cost_guard_failed"
+            and isinstance(action["destroy_result"], dict)
+            and action["destroy_result"].get("ok")
+        ):
+            action["destroy_result"] = {
+                **action["destroy_result"],
+                "ok": False,
+                "error": "post_destroy_cost_guard_failed",
+                "reason": post_guard.get("reason") or "",
+            }
+            return
+        residue = _fresh_billable_resource(provider, resource_id=resource_id, resource_type=resource_type, guard=post_guard)
+        if residue and isinstance(action["destroy_result"], dict) and action["destroy_result"].get("ok"):
+            action["destroy_result"] = {
+                **action["destroy_result"],
+                "ok": False,
+                "error": "post_destroy_resource_still_billable",
+                "residue": residue,
+            }
         return
     action["eligible"] = False
     action["would_destroy"] = False
     action["skip_reason"] = "provider_destroy_not_supported"
+
+
+def _fresh_billable_resource(
+    provider: Any,
+    *,
+    resource_id: str,
+    resource_type: str,
+    guard: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if not resource_id or provider is None or not hasattr(provider, "cost_guard"):
+        return None
+    try:
+        current_guard = guard if isinstance(guard, dict) else provider.cost_guard()
+    except Exception as exc:
+        return {"__cost_guard_error": str(exc)}
+    resources = current_guard.get("billable_resources") if isinstance(current_guard, dict) else []
+    for resource in resources or []:
+        if not isinstance(resource, dict):
+            continue
+        if _string_or_empty(resource.get("id")) != resource_id:
+            continue
+        current_type = str(resource.get("type") or "resource")
+        if resource_type and current_type != resource_type:
+            continue
+        return dict(resource)
+    return None
 
 
 def _provider_by_name(provider_name: str) -> Any | None:
