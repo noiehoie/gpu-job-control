@@ -6,12 +6,15 @@ from subprocess import run
 from typing import Any
 import json
 import os
+import platform
 import shlex
 
 from .image_contracts import load_image_contract_registry
 
 
 ROOT = Path(__file__).resolve().parents[2]
+LOCAL_DOCKER_FORBIDDEN_ACTION = "use_remote_linux_builder_or_ci"
+LOCAL_DOCKER_FORBIDDEN_REASON = "local Docker execution is forbidden on macOS/Mac Studio; use a remote Linux builder or CI"
 
 
 def image_plan(worker: str = "asr") -> dict[str, Any]:
@@ -73,10 +76,14 @@ def image_build(worker: str = "asr", execute: bool = False) -> dict[str, Any]:
     ]
     if not execute:
         return {"ok": True, "planned": True, "command": command, "plan": plan, "check": check}
+    forbidden = _local_docker_forbidden()
+    if forbidden:
+        return {**forbidden, "command": command, "plan": plan, "check": check}
     if os.getenv("GPU_JOB_ALLOW_LOCAL_DOCKER", "") != "1":
         return {
             "ok": False,
             "error": "refusing to run Docker build without GPU_JOB_ALLOW_LOCAL_DOCKER=1",
+            "requires_action": "enable_remote_linux_builder_or_ci",
             "command": command,
         }
     proc = run(command, cwd=ROOT, capture_output=True, text=True, timeout=1800)
@@ -144,11 +151,14 @@ def image_contract_build(contract_id: str, *, execute: bool = False) -> dict[str
         return {"ok": False, "check": check, "plan": plan}
     if not execute:
         return {"ok": True, "planned": True, "plan": plan, "check": check}
+    forbidden = _local_docker_forbidden()
+    if forbidden:
+        return {**forbidden, "plan": plan, "check": check}
     if os.getenv("GPU_JOB_ALLOW_LOCAL_DOCKER", "") != "1":
         return {
             "ok": False,
             "error": "refusing to run Docker build without GPU_JOB_ALLOW_LOCAL_DOCKER=1",
-            "requires_action": "enable_local_docker_or_configure_remote_builder",
+            "requires_action": "enable_remote_linux_builder_or_ci",
             "plan": plan,
             "check": check,
         }
@@ -182,11 +192,14 @@ def image_contract_probe(contract_id: str, *, execute: bool = False, require_gpu
         return {"ok": False, "error": "image contract does not declare probe_command", "plan": plan}
     if not execute:
         return {"ok": True, "planned": True, "contract_id": contract_id, "command": command, "plan": plan}
+    forbidden = _local_docker_forbidden()
+    if forbidden:
+        return {**forbidden, "command": command, "plan": plan}
     if os.getenv("GPU_JOB_ALLOW_LOCAL_DOCKER", "") != "1":
         return {
             "ok": False,
             "error": "refusing to run Docker probe without GPU_JOB_ALLOW_LOCAL_DOCKER=1",
-            "requires_action": "enable_local_docker_or_configure_remote_builder",
+            "requires_action": "enable_remote_linux_builder_or_ci",
             "command": command,
             "plan": plan,
         }
@@ -233,6 +246,17 @@ def image_mirror_plan(source: str, target: str, *, builder: str = "") -> dict[st
             "target registry credentials are available only on the builder",
             "production jobs use the target digest after verification",
         ],
+    }
+
+
+def _local_docker_forbidden() -> dict[str, Any]:
+    if platform.system() != "Darwin":
+        return {}
+    return {
+        "ok": False,
+        "error": "local_docker_forbidden_on_macos",
+        "requires_action": LOCAL_DOCKER_FORBIDDEN_ACTION,
+        "reason": LOCAL_DOCKER_FORBIDDEN_REASON,
     }
 
 

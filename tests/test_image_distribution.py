@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from gpu_job.image import (
+    image_build,
     image_contract_build,
     image_contract_check,
     image_contract_plan,
@@ -71,7 +72,11 @@ class ImageDistributionTest(unittest.TestCase):
         self.assertIn("--probe-runtime", result["command"])
 
     def test_image_contract_build_fails_closed_when_local_docker_missing(self) -> None:
-        with patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False), patch("gpu_job.image.which", return_value=None):
+        with (
+            patch("gpu_job.image.platform.system", return_value="Linux"),
+            patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False),
+            patch("gpu_job.image.which", return_value=None),
+        ):
             result = image_contract_build("asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4", execute=True)
 
         self.assertFalse(result["ok"])
@@ -79,12 +84,38 @@ class ImageDistributionTest(unittest.TestCase):
         self.assertEqual(result["requires_action"], "install_docker_or_configure_remote_builder")
 
     def test_image_contract_probe_fails_closed_when_local_docker_missing(self) -> None:
-        with patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False), patch("gpu_job.image.which", return_value=None):
+        with (
+            patch("gpu_job.image.platform.system", return_value="Linux"),
+            patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False),
+            patch("gpu_job.image.which", return_value=None),
+        ):
             result = image_contract_probe("asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4", execute=True)
 
         self.assertFalse(result["ok"])
         self.assertEqual(result["error"], "docker binary not found")
         self.assertEqual(result["requires_action"], "install_docker_or_configure_remote_builder")
+
+    def test_local_docker_build_is_forbidden_on_macos_even_when_enabled(self) -> None:
+        with (
+            patch("gpu_job.image.platform.system", return_value="Darwin"),
+            patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False),
+        ):
+            result = image_contract_build("asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4", execute=True)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "local_docker_forbidden_on_macos")
+        self.assertEqual(result["requires_action"], "use_remote_linux_builder_or_ci")
+
+    def test_legacy_image_build_is_forbidden_on_macos_even_when_enabled(self) -> None:
+        with (
+            patch("gpu_job.image.platform.system", return_value="Darwin"),
+            patch.dict("os.environ", {"GPU_JOB_ALLOW_LOCAL_DOCKER": "1"}, clear=False),
+        ):
+            result = image_build("asr", execute=True)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "local_docker_forbidden_on_macos")
+        self.assertEqual(result["requires_action"], "use_remote_linux_builder_or_ci")
 
     def test_asr_runtime_probe_imports_fast_backend(self) -> None:
         result = probe_runtime(diarize=False, require_gpu=False)
