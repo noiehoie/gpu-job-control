@@ -42,6 +42,7 @@ def validate_policy(policy: dict[str, Any] | None = None) -> dict[str, Any]:
     for key in ["resource_guard", "persistent_storage"]:
         if key in policy and not isinstance(policy[key], dict):
             errors.append(f"{key} must be an object")
+    errors.extend(_validate_provider_module_routing(policy))
     exception_result = validate_policy_exceptions(policy)
     errors.extend(exception_result["errors"])
     return {
@@ -88,3 +89,19 @@ def validate_policy_exceptions(policy: dict[str, Any]) -> dict[str, Any]:
         else:
             active.append(row)
     return {"ok": not errors, "errors": errors, "active": active, "expired": expired}
+
+
+def _validate_provider_module_routing(policy: dict[str, Any]) -> list[str]:
+    if "provider_module_routing" not in policy:
+        return []
+    routing = policy.get("provider_module_routing")
+    if not isinstance(routing, dict):
+        return ["provider_module_routing must be an object"]
+    errors = []
+    enabled = routing.get("routing_by_module_enabled", False)
+    if enabled is not False:
+        errors.append("provider_module_routing.routing_by_module_enabled must remain false until module routing is implemented")
+    canary_required = routing.get("canary_evidence_required", True)
+    if not isinstance(canary_required, bool):
+        errors.append("provider_module_routing.canary_evidence_required must be boolean")
+    return errors

@@ -64,6 +64,7 @@ from gpu_job.modal_llm import (  # noqa: E402
     DEFAULT_HEAVY_MODEL,
     MODAL_LLM_CACHE_MOUNT,
     MODAL_LLM_CACHE_VOLUME_NAME,
+    MODAL_LLM_HF_HUB_CACHE,
     MODAL_LLM_HF_HOME,
     MODAL_LLM_PACKAGES,
     MODAL_LLM_POST_INSTALL_COMMANDS,
@@ -141,6 +142,7 @@ class ModalLlmQualityTest(unittest.TestCase):
         self.assertEqual(MODAL_LLM_CACHE_VOLUME_NAME, "gpu-job-modal-llm-cache")
         self.assertEqual(MODAL_LLM_CACHE_MOUNT, "/cache")
         self.assertEqual(MODAL_LLM_HF_HOME, "/cache/huggingface")
+        self.assertEqual(MODAL_LLM_HF_HUB_CACHE, "/cache/huggingface/hub")
 
     def test_prompt_includes_workflow_chunk_items(self) -> None:
         job = {

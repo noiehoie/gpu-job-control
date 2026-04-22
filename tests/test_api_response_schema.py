@@ -46,6 +46,8 @@ class ApiResponseSchemaTest(unittest.TestCase):
                 "/schemas/execution-record": ("execution_record_version", "gpu-job-execution-record-v1"),
                 "/schemas/provider-workspace": ("workspace_registry_version", "gpu-job-provider-workspace-registry-v1"),
                 "/schemas/contracts": ("contract_version", "gpu-job-contract-v1"),
+                "/schemas/provider-module": ("provider_module_contract_version", "gpu-job-provider-module-contract-v1"),
+                "/schemas/provider-contract-probe": ("contract_probe_version", "gpu-job-provider-contract-probe-v1"),
             }
             for path, (key, expected) in checks.items():
                 with self.subTest(path=path):
@@ -53,6 +55,10 @@ class ApiResponseSchemaTest(unittest.TestCase):
                         payload = json.loads(response.read().decode())
                     self.assertEqual(response.status, 200)
                     self.assertEqual(payload[key], expected)
+                    if path == "/schemas/provider-module":
+                        self.assertEqual(payload["provider_module_routing_flag"]["current_allowed_values"], [False])
+                    if path == "/schemas/provider-contract-probe":
+                        self.assertIn("provider_module_canary_evidence", payload["required_top_level_fields"])
         finally:
             server.shutdown()
             server.server_close()

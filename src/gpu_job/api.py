@@ -32,6 +32,7 @@ from .policy_engine import policy_activation_record
 from .placement import placement_check
 from .preemption import preemption_check
 from .provider_catalog import load_provider_catalog
+from .provider_module_contracts import apply_provider_module_metadata, provider_module_contract_schema, provider_module_validation
 from .provider_contract_probe import (
     list_contract_probes,
     provider_contract_probe_schema,
@@ -185,6 +186,15 @@ def _job_response(job: Job) -> dict[str, Any]:
     data["timing_v2"] = public_timing(job)
     _attach_artifact_summary(data, artifact_dir)
     return data
+
+
+def _apply_provider_module_payload(job: Job, payload: dict[str, Any], qs: dict[str, list[str]]) -> Job:
+    job.metadata = apply_provider_module_metadata(
+        job.metadata,
+        provider_module_id=str(payload.get("provider_module_id") or _first(qs, "provider_module_id", "") or ""),
+        provider_contract_unit=str(payload.get("provider_contract_unit") or _first(qs, "provider_contract_unit", "") or ""),
+    )
+    return job
 
 
 def _submit_response(result: dict[str, Any]) -> dict[str, Any]:
@@ -404,6 +414,9 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 return
             if path == "/schemas/provider-workspace":
                 _json_response(self, 200, workspace_registry_schema())
+                return
+            if path == "/schemas/provider-module":
+                _json_response(self, 200, provider_module_contract_schema())
                 return
             if path == "/schemas/provider-contract-probe":
                 _json_response(self, 200, provider_contract_probe_schema())
@@ -634,9 +647,22 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 return
             job_data = payload.get("job", payload)
             job = Job.from_dict(job_data)
+            _apply_provider_module_payload(job, payload, qs)
 
             if path == "/validate":
-                _json_response(self, 200, {"ok": True, "job": job.to_dict()})
+                provider_name = str(payload.get("provider") or _first(qs, "provider", ""))
+                providers = [provider_name] if provider_name else sorted(PROVIDERS)
+                _json_response(
+                    self,
+                    200,
+                    {
+                        "ok": True,
+                        "job": job.to_dict(),
+                        "provider_module_validation": {
+                            provider: provider_module_validation(job.metadata, provider) for provider in providers
+                        },
+                    },
+                )
                 return
             if path == "/timeout":
                 _json_response(self, 200, timeout_contract(job))

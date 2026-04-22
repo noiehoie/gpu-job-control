@@ -7,6 +7,7 @@ Start here when evaluating or integrating `gpu-job-control`.
 - [Architecture](architecture.md): components, control flow, and the determinism boundary.
 - [Worker Contract](worker-contract.md): required job and artifact interfaces.
 - [Routing Policy](routing-policy.md): provider scoring, intake buffering, burst handling, and backpressure.
+- [Provider Module Contracts](provider-module-contracts.md): provider-native module units for RunPod, Vast, and Modal without reimplementing their runtimes.
 
 ## Operations
 
@@ -14,6 +15,7 @@ Start here when evaluating or integrating `gpu-job-control`.
 - [Provider Promotion](provider-promotion.md): conditions for moving a provider from canary to production routing.
 - [RunPod Self-Hosted Endpoint Research](runpod-self-hosted-research.md): RunPod templates, cached models, network volumes, and endpoint promotion gates.
 - [Launch Decision](launch-decision.md): current launch route decision and deferred provider paths.
+- [Launch Phase 0-5 Gate](launch-phase0-5-gate.md): machine-readable launch gates and current stop conditions from contract freeze through provider canaries.
 - [Generic System Integration Prompt](generic-system-integration-prompt.md): reusable prompt for adapting any system to gpu-job-control without confusing synchronous submit with asynchronous intake.
 - [RunPod Support Question](runpod-support-question.md): reproducible evidence for the current Serverless vLLM endpoint blocker.
 - [Worker Image Distribution](ghcr-publish-runbook.md): runtime-independent image publishing and registry-mirroring guidance.

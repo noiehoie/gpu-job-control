@@ -105,6 +105,8 @@ def _quote_explanation(basis: dict[str, Any], selected: dict[str, Any]) -> dict[
         "decision": str(approval.get("decision") or ""),
         "reason": str(approval.get("reason") or "selected lowest p95 cost among supported and allowed options"),
         "selected_provider": str(selected.get("provider") or ""),
+        "selected_provider_module_id": _selected_module_id(selected),
+        "routing_by_module_enabled": _routing_by_module_enabled(selected),
         "selected_gpu_profile": str(selected.get("gpu_profile") or basis.get("gpu_profile") or ""),
         "selection_rule": "sort by estimated_total_cost_usd_p95, estimated_total_seconds_p95, provider",
         "estimated_seconds_p50": selected.get("estimated_total_seconds_p50"),
@@ -112,3 +114,16 @@ def _quote_explanation(basis: dict[str, Any], selected: dict[str, Any]) -> dict[
         "estimated_cost_usd_p50": selected.get("estimated_total_cost_usd_p50"),
         "estimated_cost_usd_p95": selected.get("estimated_total_cost_usd_p95"),
     }
+
+
+def _selected_module_id(selected: dict[str, Any]) -> str:
+    if selected.get("provider_module_id"):
+        return str(selected.get("provider_module_id") or "")
+    contract = selected.get("provider_module_contract") if isinstance(selected.get("provider_module_contract"), dict) else {}
+    return str(contract.get("active_module_id") or "")
+
+
+def _routing_by_module_enabled(selected: dict[str, Any]) -> bool:
+    contract = selected.get("provider_module_contract") if isinstance(selected.get("provider_module_contract"), dict) else {}
+    selection = contract.get("selection") if isinstance(contract.get("selection"), dict) else {}
+    return bool(selected.get("routing_by_module_enabled") or selection.get("routing_by_module_enabled"))

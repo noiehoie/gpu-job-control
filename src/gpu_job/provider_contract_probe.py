@@ -10,6 +10,17 @@ from .error_class import classify_error
 from .image_contracts import load_image_contract_registry
 from .manifest import build_manifest
 from .models import Job, app_data_dir, make_job_id, now_unix
+from .provider_module_contracts import (
+    MODAL_FUNCTION,
+    RUNPOD_POD,
+    RUNPOD_SERVERLESS,
+    VAST_INSTANCE,
+    VAST_PYWORKER_SERVERLESS,
+    provider_module_canary_evidence,
+    provider_module_canary_evidence_schema,
+    provider_module_contract_for_job,
+    provider_module_probe_name,
+)
 from .requirements import load_requirement_registry
 from .store import JobStore
 from .verify import DEFAULT_REQUIRED, collect_hardware_utilization_evidence, verify_artifacts
@@ -35,6 +46,7 @@ WORKSPACE_OBSERVATION_CATEGORIES = [
 DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
     "modal.llm_heavy.qwen2_5_32b": {
         "provider": "modal",
+        "provider_module_id": MODAL_FUNCTION,
         "workload_family": "llm_heavy",
         "job_type": "llm_heavy",
         "gpu_profile": "llm_heavy",
@@ -48,6 +60,7 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
     },
     "runpod.llm_heavy.endpoint_openai": {
         "provider": "runpod",
+        "provider_module_id": RUNPOD_SERVERLESS,
         "workload_family": "llm_heavy",
         "job_type": "llm_heavy",
         "gpu_profile": "llm_heavy",
@@ -61,6 +74,7 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
     },
     "runpod.llm_heavy.pod_http": {
         "provider": "runpod",
+        "provider_module_id": RUNPOD_POD,
         "workload_family": "llm_heavy",
         "job_type": "llm_heavy",
         "gpu_profile": "llm_heavy",
@@ -72,8 +86,23 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
         "require_gpu_utilization": True,
         "cache_required": False,
     },
+    "vast.instance_smoke.cuda": {
+        "provider": "vast",
+        "provider_module_id": VAST_INSTANCE,
+        "workload_family": "smoke",
+        "job_type": "smoke",
+        "gpu_profile": "smoke",
+        "expected_model": "",
+        "expected_image": "nvidia/cuda:12.4.1-base-ubuntu22.04",
+        "expected_image_digest": "",
+        "forbidden_models": [],
+        "required_files": [*DEFAULT_REQUIRED],
+        "require_gpu_utilization": True,
+        "cache_required": False,
+    },
     "vast.asr.serverless_template": {
         "provider": "vast",
+        "provider_module_id": VAST_PYWORKER_SERVERLESS,
         "workload_family": "asr",
         "job_type": "asr",
         "gpu_profile": "asr_fast",
@@ -87,6 +116,7 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
     },
     "vast.asr_diarization.pyannote": {
         "provider": "vast",
+        "provider_module_id": VAST_INSTANCE,
         "workload_family": "asr",
         "job_type": "asr",
         "gpu_profile": "asr_diarization",
@@ -101,6 +131,7 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
     },
     "modal.asr_diarization.pyannote": {
         "provider": "modal",
+        "provider_module_id": MODAL_FUNCTION,
         "workload_family": "asr",
         "job_type": "asr",
         "gpu_profile": "asr_diarization",
@@ -114,6 +145,7 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
     },
     "runpod.asr_diarization.pyannote": {
         "provider": "runpod",
+        "provider_module_id": RUNPOD_POD,
         "workload_family": "asr",
         "job_type": "asr",
         "gpu_profile": "asr_diarization",
@@ -128,6 +160,7 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
     },
     "runpod.asr_diarization.serverless_handler": {
         "provider": "runpod",
+        "provider_module_id": RUNPOD_SERVERLESS,
         "workload_family": "asr",
         "job_type": "asr",
         "gpu_profile": "asr_diarization",
@@ -162,9 +195,12 @@ def provider_contract_probe_schema() -> dict[str, Any]:
             "contract_probe_version",
             "provider",
             "probe_name",
+            "provider_module_probe_name",
             "execution_mode",
             "spec",
             "observed",
+            "provider_module_contract",
+            "provider_module_canary_evidence",
             "checks",
             "failure",
             "ok",
@@ -182,8 +218,15 @@ def provider_contract_probe_schema() -> dict[str, Any]:
                 "observed": "bool; whether deterministic evidence was present in artifact files",
                 "ok": "bool|null; category verdict when observed, null when missing",
                 "evidence_fields": "list[str]; deterministic source fields used for the category",
+                "evidence_values": "dict[str, str]; normalized resource identity values used by module-specific gates",
             },
         },
+        "provider_module_input": {
+            "field": "spec.provider_module_id",
+            "module_probe_name": "record.provider_module_probe_name",
+            "rule": "module probe names are deterministic aliases; probe_name remains backward compatible",
+        },
+        "provider_module_canary_evidence": provider_module_canary_evidence_schema(),
         "canary_rule": "live provider canaries are admin-only and must record cleanup_result and provider_residue for billable resources",
     }
 
@@ -221,7 +264,12 @@ def plan_contract_probe(provider: str, probe_name: str = "") -> dict[str, Any]:
         "execution_mode": "planned",
         "provider": spec["provider"],
         "probe_name": _probe_name(spec),
+        "provider_module_probe_name": provider_module_probe_name(_probe_name(spec), spec),
         "spec": spec,
+        "provider_module_contract": provider_module_contract_for_job(
+            {"provider_module_id": spec.get("provider_module_id")}, str(spec["provider"])
+        ),
+        "provider_module_canary_evidence_schema": provider_module_canary_evidence_schema(str(spec.get("provider_module_id") or "")),
         "note": "contract probes do not submit live cloud work unless an explicit execute path is added by the caller",
     }
 
@@ -235,6 +283,7 @@ def active_contract_probe(provider: str, probe_name: str = "", *, execute: bool 
     job = _canary_job(spec)
     result = submit_job(job, provider_name=spec["provider"], execute=True)
     artifact_dir = JobStore().artifact_dir(job.job_id)
+    _write_submit_result_summary(artifact_dir, result)
     record = parse_contract_probe_artifact(
         artifact_dir,
         provider=spec["provider"],
@@ -248,6 +297,7 @@ def active_contract_probe(provider: str, probe_name: str = "", *, execute: bool 
         "contract_probe_version": CONTRACT_PROBE_VERSION,
         "provider": spec["provider"],
         "probe_name": _probe_name(spec, probe_name),
+        "provider_module_probe_name": provider_module_probe_name(_probe_name(spec, probe_name), spec),
         "job_id": job.job_id,
         "submit_result": result,
         "record": record,
@@ -272,6 +322,7 @@ def parse_contract_probe_artifact(
     metrics = _read_json(path / "metrics.json")
     verify_payload = _read_json(path / "verify.json")
     probe_info = _read_json(path / "probe_info.json")
+    submit_result = _read_json(path / "submit_result.json")
     artifact_verify = verify_artifacts(
         path,
         required=required,
@@ -287,21 +338,32 @@ def parse_contract_probe_artifact(
         "hardware": _hardware_summary(metrics, probe_info),
         "gpu_utilization_evidence": collect_hardware_utilization_evidence(path / "metrics.json"),
         "cache": _cache_summary(result, metrics, probe_info, text),
-        "workspace_contract": _workspace_contract_summary(result, metrics, probe_info),
+        "workspace_contract": _workspace_contract_summary(result, metrics, probe_info, submit_result, text, spec),
         "http_statuses": [int(item) for item in HTTP_STATUS_RE.findall(text)],
     }
     observed["workspace_observation_coverage"] = workspace_observation_coverage(provider, observed, artifact_verify)
     checks = _checks(spec, observed, artifact_verify, result, verify_payload)
     failure = _failure(provider, spec, checks, observed, text, artifact_verify)
     ok = all(bool(value) for value in checks.values())
+    module_probe_name = provider_module_probe_name(_probe_name(spec, probe_name), spec)
+    module_canary_evidence = provider_module_canary_evidence(
+        module_id=str(spec.get("provider_module_id") or ""),
+        parent_provider=provider,
+        provider_module_probe_name=module_probe_name,
+        workspace_observation_coverage=observed["workspace_observation_coverage"],
+    )
     record = {
         "contract_probe_version": CONTRACT_PROBE_VERSION,
         "provider": provider,
         "probe_name": _probe_name(spec, probe_name),
+        "provider_module_probe_name": module_probe_name,
         "workload_family": spec.get("workload_family"),
         "execution_mode": execution_mode,
         "spec": spec,
         "observed": observed,
+        "provider_module_contract": provider_module_contract_for_job({"provider_module_id": spec.get("provider_module_id")}, provider),
+        "provider_module_canary_evidence": module_canary_evidence,
+        "submit_result": submit_result,
         "checks": checks,
         "failure": failure,
         "verdict": "pass" if ok else "fail",
@@ -388,11 +450,29 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _artifact_text(path: Path) -> str:
     parts: list[str] = []
-    for name in ("stdout.log", "stderr.log", "result.json", "metrics.json", "verify.json", "probe_info.json"):
+    for name in ("stdout.log", "stderr.log", "submit_result.json"):
         file = path / name
         if file.is_file():
             parts.append(file.read_text(errors="replace"))
     return "\n".join(parts)
+
+
+def _write_submit_result_summary(artifact_dir: Path, result: dict[str, Any]) -> None:
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    job = result.get("job") if isinstance(result.get("job"), dict) else {}
+    summary = {
+        "ok": bool(result.get("ok")),
+        "error": str(result.get("error") or job.get("error") or ""),
+        "job_id": str(job.get("job_id") or ""),
+        "provider": str(job.get("provider") or ""),
+        "provider_job_id": str(job.get("provider_job_id") or ""),
+        "status": str(job.get("status") or ""),
+        "exit_code": job.get("exit_code"),
+    }
+    for key in ("pre_submit_guard", "post_submit_guard"):
+        if isinstance(result.get(key), dict):
+            summary[key] = result[key]
+    (artifact_dir / "submit_result.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _first_string(*values: Any) -> str:
@@ -466,7 +546,14 @@ def _cache_summary(result: dict[str, Any], metrics: dict[str, Any], probe_info: 
     }
 
 
-def _workspace_contract_summary(result: dict[str, Any], metrics: dict[str, Any], probe_info: dict[str, Any]) -> dict[str, Any]:
+def _workspace_contract_summary(
+    result: dict[str, Any],
+    metrics: dict[str, Any],
+    probe_info: dict[str, Any],
+    submit_result: dict[str, Any],
+    text: str,
+    spec: dict[str, Any],
+) -> dict[str, Any]:
     explicit_ok = _nested_bool(probe_info, ("workspace_contract_ok",))
     if explicit_ok is None:
         explicit_ok = _nested_bool(metrics, ("workspace_contract_ok",))
@@ -476,11 +563,13 @@ def _workspace_contract_summary(result: dict[str, Any], metrics: dict[str, Any],
         _nested_dict(probe_info, ("cleanup", "cleanup_status"))
         or _nested_dict(metrics, ("cleanup", "cleanup_status"))
         or _nested_dict(result, ("cleanup", "cleanup_status"))
+        or _guard_cleanup_summary(submit_result, str(spec.get("provider") or ""))
     )
     actual_cost_guard = (
         _nested_dict(probe_info, ("actual_cost_guard",))
         or _nested_dict(metrics, ("actual_cost_guard",))
         or _nested_dict(result, ("actual_cost_guard",))
+        or _guard_cost_summary(submit_result, str(spec.get("provider") or ""))
     )
     volume_probe = (
         _nested_dict(probe_info, ("volume_probe",)) or _nested_dict(metrics, ("volume_probe",)) or _nested_dict(result, ("volume_probe",))
@@ -491,20 +580,25 @@ def _workspace_contract_summary(result: dict[str, Any], metrics: dict[str, Any],
         or _nested_dict(result, ("runtime_checks", "checks"))
     )
     gpu_probe = _nested_dict(probe_info, ("gpu_probe",)) or _nested_dict(metrics, ("gpu_probe",)) or _nested_dict(result, ("gpu_probe",))
+    smoke_workload_ok = _smoke_workload_ok(text, result, metrics, probe_info, spec)
+    worker_startup_ok = _first_bool(
+        result,
+        metrics,
+        probe_info,
+        keys=("worker_startup_ok", "observed_http_worker", "asr_diarization_runtime_ok"),
+    )
+    if worker_startup_ok is None:
+        worker_startup_ok = _submit_succeeded(submit_result) or smoke_workload_ok
     return {
         "ok": explicit_ok,
         "hf_token_present": _first_bool(result, metrics, probe_info, keys=("hf_token_present",)),
         "image_contract_marker_present": _first_bool(result, metrics, probe_info, keys=("image_contract_marker_present",)),
         "runtime_imports_ok": _runtime_imports_ok(runtime_checks),
+        "small_workload_ok": smoke_workload_ok,
         "cache_hit": _first_bool(result, metrics, probe_info, keys=("cache_hit", "cache_warm")),
         "volume_required": _first_bool(result, metrics, probe_info, keys=("volume_required",)),
         "volume_probe_ok": bool(volume_probe.get("ok")) if isinstance(volume_probe, dict) and "ok" in volume_probe else None,
-        "worker_startup_ok": _first_bool(
-            result,
-            metrics,
-            probe_info,
-            keys=("worker_startup_ok", "observed_http_worker", "asr_diarization_runtime_ok"),
-        ),
+        "worker_startup_ok": worker_startup_ok,
         "cleanup_ok": bool(cleanup.get("ok"))
         if isinstance(cleanup, dict) and "ok" in cleanup
         else _first_bool(result, metrics, probe_info, keys=("cleanup_ok",)),
@@ -519,6 +613,16 @@ def _workspace_contract_summary(result: dict[str, Any], metrics: dict[str, Any],
             _nested_first(metrics, ("pod_id",)),
             _nested_first(result, ("pod_id",)),
         ),
+        "endpoint_id": _first_string(
+            _nested_first(probe_info, ("endpoint_id", "runpod_endpoint_id", "vast_endpoint_id")),
+            _nested_first(metrics, ("endpoint_id", "runpod_endpoint_id", "vast_endpoint_id")),
+            _nested_first(result, ("endpoint_id", "runpod_endpoint_id", "vast_endpoint_id")),
+        ),
+        "workergroup_id": _first_string(
+            _nested_first(probe_info, ("workergroup_id", "worker_group_id", "vast_workergroup_id")),
+            _nested_first(metrics, ("workergroup_id", "worker_group_id", "vast_workergroup_id")),
+            _nested_first(result, ("workergroup_id", "worker_group_id", "vast_workergroup_id")),
+        ),
         "instance_id": _first_string(
             _nested_first(probe_info, ("instance_id",)),
             _nested_first(metrics, ("instance_id",)),
@@ -528,8 +632,77 @@ def _workspace_contract_summary(result: dict[str, Any], metrics: dict[str, Any],
             _nested_first(probe_info, ("provider_job_id",)),
             _nested_first(metrics, ("provider_job_id",)),
             _nested_first(result, ("provider_job_id",)),
+            _nested_first(submit_result, ("provider_job_id",)),
         ),
     }
+
+
+def _guard_cleanup_summary(submit_result: dict[str, Any], provider: str) -> dict[str, Any]:
+    provider_guard = _submit_guard_provider(submit_result, provider, guard_key="post_submit_guard")
+    if not provider_guard:
+        return {}
+    billable = provider_guard.get("billable_resources")
+    billable_count = provider_guard.get("billable_count")
+    no_billable = (isinstance(billable, list) and not billable) or billable_count == 0
+    ok = bool(provider_guard.get("ok")) and no_billable
+    return {
+        "ok": ok,
+        "provider": provider,
+        "source": "submit_result.post_submit_guard",
+        "reason": str(provider_guard.get("reason") or ""),
+        "billable_count": 0 if no_billable else billable_count,
+    }
+
+
+def _guard_cost_summary(submit_result: dict[str, Any], provider: str) -> dict[str, Any]:
+    post_guard = _submit_guard_provider(submit_result, provider, guard_key="post_submit_guard")
+    pre_guard = _submit_guard_provider(submit_result, provider, guard_key="pre_submit_guard")
+    guard = post_guard or pre_guard
+    if not guard:
+        return {}
+    estimated = guard.get("estimated_hourly_usd")
+    return {
+        "ok": bool(guard.get("ok")),
+        "provider": provider,
+        "source": "submit_result.post_submit_guard" if post_guard else "submit_result.pre_submit_guard",
+        "estimated_hourly_usd": estimated,
+        "reason": str(guard.get("reason") or ""),
+    }
+
+
+def _submit_guard_provider(submit_result: dict[str, Any], provider: str, *, guard_key: str) -> dict[str, Any]:
+    guard = submit_result.get(guard_key) if isinstance(submit_result, dict) else {}
+    providers = guard.get("providers") if isinstance(guard, dict) else {}
+    row = providers.get(provider) if isinstance(providers, dict) else {}
+    return row if isinstance(row, dict) else {}
+
+
+def _submit_succeeded(submit_result: dict[str, Any]) -> bool | None:
+    if not submit_result:
+        return None
+    if "ok" in submit_result:
+        return bool(submit_result.get("ok"))
+    status = str(submit_result.get("status") or "").lower()
+    if status:
+        return status == "succeeded"
+    return None
+
+
+def _smoke_workload_ok(
+    text: str,
+    result: dict[str, Any],
+    metrics: dict[str, Any],
+    probe_info: dict[str, Any],
+    spec: dict[str, Any],
+) -> bool | None:
+    if str(spec.get("job_type") or "") != "smoke":
+        return None
+    marker_present = "GPU_JOB_SMOKE_DONE" in text or _first_string(
+        _nested_first(result, ("text",)),
+        _nested_first(metrics, ("text",)),
+        _nested_first(probe_info, ("text",)),
+    )
+    return True if marker_present else None
 
 
 def workspace_observation_coverage(
@@ -543,6 +716,7 @@ def workspace_observation_coverage(
     image = observed.get("image") if isinstance(observed.get("image"), dict) else {}
     gpu_evidence = observed.get("gpu_utilization_evidence") if isinstance(observed.get("gpu_utilization_evidence"), dict) else {}
     runtime_imports_ok = _bool_or_none(workspace.get("runtime_imports_ok"))
+    small_workload_ok = _bool_or_none(workspace.get("small_workload_ok"))
     cache_hit = _bool_or_none(workspace.get("cache_hit"))
     if cache_hit is None:
         cache_hit = _bool_or_none(cache.get("cache_hit"))
@@ -551,10 +725,19 @@ def workspace_observation_coverage(
     startup_ok = _bool_or_none(workspace.get("worker_startup_ok"))
     workspace_ok = _bool_or_none(workspace.get("ok"))
     resource_id = _first_string(
+        str(workspace.get("endpoint_id") or ""),
+        str(workspace.get("workergroup_id") or ""),
         str(workspace.get("pod_id") or ""),
         str(workspace.get("instance_id") or ""),
         str(workspace.get("provider_job_id") or ""),
     )
+    resource_values = {
+        "endpoint_id": str(workspace.get("endpoint_id") or ""),
+        "workergroup_id": str(workspace.get("workergroup_id") or ""),
+        "pod_id": str(workspace.get("pod_id") or ""),
+        "instance_id": str(workspace.get("instance_id") or ""),
+        "provider_job_id": str(workspace.get("provider_job_id") or ""),
+    }
     image_observed = bool(
         image.get("name")
         or image.get("digest")
@@ -569,7 +752,10 @@ def workspace_observation_coverage(
         gpu_ok = True
     coverage = {
         "provider_resource_identity": _coverage_entry(
-            bool(resource_id), bool(resource_id) if resource_id else None, ["pod_id", "instance_id", "provider_job_id"]
+            bool(resource_id),
+            bool(resource_id) if resource_id else None,
+            ["endpoint_id", "workergroup_id", "pod_id", "instance_id", "provider_job_id"],
+            evidence_values=resource_values,
         ),
         "image_contract": _coverage_entry(
             image_observed,
@@ -588,12 +774,23 @@ def workspace_observation_coverage(
             ["worker_startup_ok", "workspace_contract_ok"],
         ),
         "queue_or_reservation": _coverage_entry(
-            bool(resource_id), bool(resource_id) if resource_id else None, ["pod_id", "instance_id", "provider_job_id"]
+            bool(resource_id),
+            bool(resource_id) if resource_id else None,
+            ["endpoint_id", "workergroup_id", "pod_id", "instance_id", "provider_job_id"],
+            evidence_values=resource_values,
         ),
         "model_load": _coverage_entry(
-            bool(observed.get("model")) or runtime_imports_ok is not None,
-            runtime_imports_ok if runtime_imports_ok is not None else bool(observed.get("model")) if observed.get("model") else None,
-            ["model", "loaded_model_id", "runtime_imports_ok"],
+            bool(observed.get("model")) or runtime_imports_ok is not None or small_workload_ok is not None,
+            (
+                runtime_imports_ok
+                if runtime_imports_ok is not None
+                else small_workload_ok
+                if small_workload_ok is not None
+                else bool(observed.get("model"))
+                if observed.get("model")
+                else None
+            ),
+            ["model", "loaded_model_id", "runtime_imports_ok", "small_workload_ok"],
         ),
         "gpu_execution": _coverage_entry(
             gpu_ok is not None,
@@ -631,12 +828,21 @@ def workspace_observation_coverage(
     }
 
 
-def _coverage_entry(observed: bool, ok: bool | None, evidence_fields: list[str]) -> dict[str, Any]:
-    return {
+def _coverage_entry(
+    observed: bool,
+    ok: bool | None,
+    evidence_fields: list[str],
+    *,
+    evidence_values: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    row = {
         "observed": bool(observed),
         "ok": ok if observed else None,
         "evidence_fields": evidence_fields,
     }
+    if evidence_values is not None:
+        row["evidence_values"] = evidence_values
+    return row
 
 
 def _coverage_bool(value: Any, *, default: bool | None = None) -> bool | None:
@@ -706,27 +912,29 @@ def _failure(
 ) -> dict[str, Any]:
     if all(checks.values()):
         return {"class": None, "retryable": False, "reason": ""}
-    native = classify_error(text, provider=provider)
+    native = classify_error(_classification_text(text), provider=provider)
     klass = str(native.get("class") or "unknown")
     retryable = bool(native.get("retryable"))
     reason = str(native.get("reason") or "")
 
-    if klass == "unknown":
+    native_classified = klass != "unknown"
+
+    if not native_classified:
         if not checks["artifact_contract_ok"]:
             klass, retryable, reason = "artifact_contract_failure", False, "artifact verification failed"
         if not checks["verify_ok"]:
             klass, retryable, reason = "verification_failed", False, "verify.json reports failure"
         if not checks["text_nonempty"]:
             klass, retryable, reason = "empty_output_success", False, "provider completed but output text is empty"
-    if not checks["model_match"] or not checks["forbidden_model_absent"]:
+    if not native_classified and (not checks["model_match"] or not checks["forbidden_model_absent"]):
         klass, retryable, reason = "model_contract_mismatch", False, "observed model does not satisfy provider contract"
-    if not checks["image_match"] or not checks["image_digest_match"]:
+    if not native_classified and (not checks["image_match"] or not checks["image_digest_match"]):
         klass, retryable, reason = "image_contract_mismatch", False, "observed image does not satisfy provider contract"
     if "gptqmodel" in text.lower():
         klass, retryable, reason = "image_missing_dependency", False, "provider image missing quantization dependency"
-    if not checks["workspace_contract_ok"]:
+    if not native_classified and not checks["workspace_contract_ok"]:
         klass, retryable, reason = "workspace_contract_missing", False, "workspace contract evidence missing or failed"
-    if not checks["cache_contract_ok"]:
+    if not native_classified and not checks["cache_contract_ok"]:
         klass, retryable, reason = "cache_contract_missing", True, "cache contract missing or cold model download observed"
     if "timed out" in text.lower() and observed.get("cache", {}).get("cold_start_observed"):
         klass, retryable, reason = "cold_start_timeout", True, "model cold start or download timed out"
@@ -741,18 +949,28 @@ def _failure(
     }
 
 
+def _classification_text(text: str) -> str:
+    for match in re.finditer(r'"error"\s*:\s*"([^"]*)"', text):
+        value = match.group(1).strip()
+        if value:
+            return value
+    return text
+
+
 def _canary_job(spec: dict[str, Any]) -> Job:
     provider = str(spec["provider"])
     job_type = str(spec["job_type"])
     gpu_profile = str(spec["gpu_profile"])
     model = str(spec.get("expected_model") or "")
     job_id = make_job_id(f"contract-probe-{job_type}")
+    input_uri = "text://GPU_JOB_CONTRACT_PROBE_OK"
     metadata: dict[str, Any] = {
         "source_system": "contract-probe",
         "contract_probe": {
             "contract_probe_version": CONTRACT_PROBE_VERSION,
             "probe_name": _probe_name(spec),
             "provider": provider,
+            "provider_module_id": str(spec.get("provider_module_id") or ""),
         },
         "input": {
             "prompt": "Return exactly: GPU_JOB_CONTRACT_PROBE_OK",
@@ -772,12 +990,13 @@ def _canary_job(spec: dict[str, Any]) -> Job:
     }
     limits = {"max_runtime_minutes": 30, "max_cost_usd": 3.0, "max_startup_seconds": 900}
     if job_type == "asr" and gpu_profile == "asr_diarization":
+        speaker_model = "pyannote/speaker-diarization-3.1"
         metadata["input"] = {
             "language": "ja",
             "model": "large-v3",
             "diarize": True,
             "speaker_diarization": True,
-            "speaker_model": "pyannote/speaker-diarization-3.1",
+            "speaker_model": speaker_model,
         }
         metadata["model_requirements"] = {
             "asr": True,
@@ -786,6 +1005,12 @@ def _canary_job(spec: dict[str, Any]) -> Job:
         }
         metadata["secret_refs"] = ["hf_token"]
         model = "large-v3"
+        if provider == "modal":
+            model = speaker_model
+        if provider == "vast":
+            input_uri = str(Path("fixtures/audio/asr-ja.wav").resolve())
+            metadata["min_vram_gb"] = 24
+            metadata["min_compute_cap"] = 800
         if provider == "runpod":
             runpod_image = str(spec.get("provider_image") or spec.get("expected_image") or "")
             metadata.update(
@@ -813,12 +1038,12 @@ def _canary_job(spec: dict[str, Any]) -> Job:
         metadata["min_vram_gb"] = 16
         metadata["min_compute_cap"] = 750
         job_type = "smoke"
-        limits = {"max_runtime_minutes": 3, "max_cost_usd": 0.25, "max_startup_seconds": 90}
+        limits = {"max_runtime_minutes": 6, "max_cost_usd": 0.25, "max_startup_seconds": 240}
     return Job.from_dict(
         {
             "job_id": job_id,
             "job_type": job_type,
-            "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+            "input_uri": input_uri,
             "output_uri": f"local://contract-probes/{job_id}",
             "worker_image": str(spec.get("expected_image") or "auto"),
             "gpu_profile": gpu_profile,

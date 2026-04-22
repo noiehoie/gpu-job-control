@@ -5,7 +5,10 @@ on:
     branches: [main]
     paths:
       - "docker/runpod-llm-worker.Dockerfile"
+      - "docker/runpod-asr-worker.Dockerfile"
       - "src/gpu_job/workers/runpod_llm.py"
+      - "src/gpu_job/workers/runpod_asr.py"
+      - "src/gpu_job/workers/asr.py"
       - ".github/workflows/publish-runpod-worker.yml"
   workflow_dispatch:
 
@@ -16,12 +19,18 @@ permissions:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-runpod-llm
-  DOCKERFILE: docker/runpod-llm-worker.Dockerfile
 
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        worker:
+          - name: llm
+            dockerfile: docker/runpod-llm-worker.Dockerfile
+          - name: asr
+            dockerfile: docker/runpod-asr-worker.Dockerfile
 
     steps:
       - name: Checkout
@@ -30,15 +39,15 @@ jobs:
       - name: Build local canary image
         run: |
           docker build \
-            --file "$DOCKERFILE" \
-            --tag gpu-job-runpod-llm:ci \
+            --file "${{ matrix.worker.dockerfile }}" \
+            --tag "gpu-job-runpod-${{ matrix.worker.name }}:ci" \
             .
 
       - name: Run local canary container
         run: |
           docker run --rm \
             --env GPU_JOB_RUNPOD_LOCAL_TEST=1 \
-            gpu-job-runpod-llm:ci
+            "gpu-job-runpod-${{ matrix.worker.name }}:ci"
 
       - name: Login to GHCR
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
@@ -55,15 +64,15 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           context: .
-          file: ${{ env.DOCKERFILE }}
+          file: ${{ matrix.worker.dockerfile }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:canary
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository }}-runpod-${{ matrix.worker.name }}:canary
+            ${{ env.REGISTRY }}/${{ github.repository }}-runpod-${{ matrix.worker.name }}:${{ github.sha }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.description=Deterministic RunPod canary worker for gpu-job-control
+            org.opencontainers.image.description=Deterministic RunPod ${{ matrix.worker.name }} worker for gpu-job-control
 
       - name: Print image digest
         run: |
-          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+          echo "${{ env.REGISTRY }}/${{ github.repository }}-runpod-${{ matrix.worker.name }}@${{ steps.build.outputs.digest }}"

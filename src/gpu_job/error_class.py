@@ -39,6 +39,8 @@ PROVIDER_NATIVE_RULES: dict[str, list[tuple[str, str, bool, str]]] = {
         ("no offers", "provider_backpressure", True, "Vast has no eligible offers"),
         ("unauthorized", "endpoint_unreachable", False, "Vast endpoint authorization failed"),
         ("endpoint not found", "endpoint_unreachable", True, "Vast endpoint is not reachable"),
+        ("requires registry credentials", "secret_block", False, "Vast private image registry credentials are missing"),
+        ("requires hf_token", "secret_block", False, "Vast speaker diarization Hugging Face token is missing"),
         ("no module named 'matplotlib'", "image_missing_dependency", False, "ASR diarization image missing pyannote lazy dependency"),
         ("ssh", "provider_transient", True, "Vast SSH/bootstrap transient failure"),
     ],

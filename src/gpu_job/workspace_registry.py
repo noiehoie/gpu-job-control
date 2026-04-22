@@ -8,6 +8,7 @@ import json
 from .execution_plan import build_execution_plan
 from .models import Job, app_data_dir, now_unix
 from .provider_catalog import load_provider_catalog, provider_capability
+from .provider_module_contracts import provider_module_contract_for_job, provider_module_contract_schema
 from .provider_contract_probe import recent_contract_probe_summary
 from .requirements import load_requirement_registry
 
@@ -147,6 +148,7 @@ def provider_workspace_plan(job: Job, provider: str) -> dict[str, Any]:
         "workspace_registry_version": WORKSPACE_REGISTRY_VERSION,
         "workspace_plan_id": "",
         "provider": provider,
+        "provider_module_contract": provider_module_contract_for_job(job.metadata, provider),
         "job_id": job.job_id,
         "job_type": job.job_type,
         "gpu_profile": job.gpu_profile,
@@ -194,8 +196,15 @@ def workspace_registry_schema() -> dict[str, Any]:
             "decision",
             "required_actions",
         ],
+        "optional_fields": ["provider_module_contract"],
         "decisions": ["ready", "requires_action"],
         "required_action_types": ["build_image", "run_contract_probe", "provide_secret", "register_backend"],
+        "provider_module_contract": provider_module_contract_schema(),
+        "invariants": [
+            "provider remains the parent provider adapter key until routing-by-module is implemented",
+            "provider_module_contract is additive visibility metadata and does not allocate cloud resources",
+            "provider_module_contract is excluded from workspace_plan_id hash for backward compatibility",
+        ],
         "terminal_rule": (
             "provider adapters receive a workspace_plan; production execution must not allocate cloud GPU when decision=requires_action"
         ),
@@ -247,6 +256,7 @@ def record_workspace_state(job: Job, workspace_plan: dict[str, Any], *, state: s
         "state": state,
         "status": status,
         "workspace": workspace_plan.get("workspace") or {},
+        "provider_module_contract": workspace_plan.get("provider_module_contract") or {},
         "image_contract": workspace_plan.get("image_contract") or {},
         "required_actions": workspace_plan.get("required_actions") or [],
         "provider_job_id": job.provider_job_id,
@@ -261,5 +271,6 @@ def _workspace_hash(plan: dict[str, Any]) -> str:
     stable = dict(plan)
     stable.pop("created_at", None)
     stable.pop("workspace_plan_id", None)
+    stable.pop("provider_module_contract", None)
     blob = json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode()).hexdigest()

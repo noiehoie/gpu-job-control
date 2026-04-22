@@ -33,9 +33,11 @@ from .image import (
 from .invariants import evaluate_invariants
 from .metrics_export import metrics_prometheus, metrics_snapshot
 from .intake import intake_job, intake_status, plan_intake_groups
+from .launch_gate import launch_phase_gate
 from .orphan_inventory import orphan_inventory, orphan_reaper, vast_orphan_inventory, vast_orphan_reaper
 from .policy_engine import policy_activation_record
 from .provider_stability import provider_stability_report
+from .provider_module_contracts import apply_provider_module_metadata, provider_module_validation
 from .provider_contract_probe import (
     active_contract_probe,
     list_contract_probes,
@@ -80,6 +82,15 @@ from .workflow import (
 
 def print_json(data: object) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def _apply_provider_module_args(job: Job, args: argparse.Namespace) -> Job:
+    job.metadata = apply_provider_module_metadata(
+        job.metadata,
+        provider_module_id=str(getattr(args, "provider_module_id", "") or ""),
+        provider_contract_unit=str(getattr(args, "provider_contract_unit", "") or ""),
+    )
+    return job
 
 
 CONFIG_FILES = {
@@ -139,12 +150,21 @@ def cmd_doctor(_: argparse.Namespace) -> int:
 
 def cmd_validate(args: argparse.Namespace) -> int:
     job = Job.from_file(Path(args.job))
-    print_json({"ok": True, "job": job.to_dict()})
+    _apply_provider_module_args(job, args)
+    providers = sorted(PROVIDERS) if not getattr(args, "provider", "") else [args.provider]
+    print_json(
+        {
+            "ok": True,
+            "job": job.to_dict(),
+            "provider_module_validation": {provider: provider_module_validation(job.metadata, provider) for provider in providers},
+        }
+    )
     return 0
 
 
 def cmd_plan(args: argparse.Namespace) -> int:
     job = Job.from_file(Path(args.job))
+    _apply_provider_module_args(job, args)
     provider_name = route_job(job)["selected_provider"] if args.provider == "auto" else args.provider
     provider = get_provider(provider_name)
     print_json(provider.plan(job))
@@ -153,12 +173,14 @@ def cmd_plan(args: argparse.Namespace) -> int:
 
 def cmd_route(args: argparse.Namespace) -> int:
     job = Job.from_file(Path(args.job))
+    _apply_provider_module_args(job, args)
     print_json(route_job(job))
     return 0
 
 
 def cmd_submit(args: argparse.Namespace) -> int:
     job = Job.from_file(Path(args.job))
+    _apply_provider_module_args(job, args)
     result = submit_job(job, provider_name=args.provider, execute=args.execute)
     print_json(result)
     if result.get("ok"):
@@ -172,12 +194,14 @@ def cmd_submit(args: argparse.Namespace) -> int:
 
 def cmd_enqueue(args: argparse.Namespace) -> int:
     job = Job.from_file(Path(args.job))
+    _apply_provider_module_args(job, args)
     print_json(enqueue_job(job, provider_name=args.provider))
     return 0
 
 
 def cmd_intake(args: argparse.Namespace) -> int:
     job = Job.from_file(Path(args.job))
+    _apply_provider_module_args(job, args)
     print_json(intake_job(job, provider_name=args.provider))
     return 0
 
@@ -421,7 +445,10 @@ def cmd_remediation(args: argparse.Namespace) -> int:
 
 
 def cmd_readiness(args: argparse.Namespace) -> int:
-    result = launch_readiness(limit=args.limit)
+    if getattr(args, "phase_report", False):
+        result = launch_phase_gate(limit=args.limit)
+    else:
+        result = launch_readiness(limit=args.limit)
     print_json(result)
     return 0 if result.get("ok") else 2
 
@@ -828,31 +855,44 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate = sub.add_parser("validate", help="validate a gpu-job JSON file")
     validate.add_argument("job", help="path to a gpu-job JSON file")
+    validate.add_argument("--provider", choices=sorted(PROVIDERS), default="", help="provider context for module validation")
+    validate.add_argument("--provider-module-id", default="", help="provider module contract id to record in job metadata")
+    validate.add_argument("--provider-contract-unit", default="", help="compatibility alias for --provider-module-id")
     validate.set_defaults(func=cmd_validate)
 
     plan = sub.add_parser("plan", help="show provider execution plan for a job")
     plan.add_argument("job", help="path to a gpu-job JSON file")
     plan.add_argument("--provider", choices=["auto", *sorted(PROVIDERS)], required=True, help="provider to plan for")
+    plan.add_argument("--provider-module-id", default="", help="provider module contract id to record in job metadata")
+    plan.add_argument("--provider-contract-unit", default="", help="compatibility alias for --provider-module-id")
     plan.set_defaults(func=cmd_plan)
 
     route = sub.add_parser("route", help="compute deterministic provider routing")
     route.add_argument("job", help="path to a gpu-job JSON file")
+    route.add_argument("--provider-module-id", default="", help="provider module contract id to record in job metadata")
+    route.add_argument("--provider-contract-unit", default="", help="compatibility alias for --provider-module-id")
     route.set_defaults(func=cmd_route)
 
     submit = sub.add_parser("submit", help="submit a job directly to a provider")
     submit.add_argument("job", help="path to a gpu-job JSON file")
     submit.add_argument("--provider", choices=["auto", *sorted(PROVIDERS)], required=True, help="provider to submit to")
     submit.add_argument("--execute", action="store_true", help="execute when the provider supports it")
+    submit.add_argument("--provider-module-id", default="", help="provider module contract id to record in job metadata")
+    submit.add_argument("--provider-contract-unit", default="", help="compatibility alias for --provider-module-id")
     submit.set_defaults(func=cmd_submit)
 
     enqueue = sub.add_parser("enqueue", help="put a job into the durable queue")
     enqueue.add_argument("job", help="path to a gpu-job JSON file")
     enqueue.add_argument("--provider", choices=["auto", *sorted(PROVIDERS)], required=True, help="provider to queue for")
+    enqueue.add_argument("--provider-module-id", default="", help="provider module contract id to record in job metadata")
+    enqueue.add_argument("--provider-contract-unit", default="", help="compatibility alias for --provider-module-id")
     enqueue.set_defaults(func=cmd_enqueue)
 
     intake = sub.add_parser("intake", help="buffer a job for burst-aware planning")
     intake.add_argument("job", help="path to a gpu-job JSON file")
     intake.add_argument("--provider", choices=["auto", *sorted(PROVIDERS)], default="auto", help="requested provider or auto")
+    intake.add_argument("--provider-module-id", default="", help="provider module contract id to record in job metadata")
+    intake.add_argument("--provider-contract-unit", default="", help="compatibility alias for --provider-module-id")
     intake.set_defaults(func=cmd_intake)
 
     intake_status_parser = sub.add_parser("intake-status", help="show buffered intake jobs")
@@ -1028,6 +1068,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     readiness = sub.add_parser("readiness", help="show launch readiness checks")
     readiness.add_argument("--limit", type=int, default=100, help="maximum records to inspect")
+    readiness.add_argument("--phase-report", action="store_true", help="show Phase 0-5 launch gates and stop conditions")
     readiness.set_defaults(func=cmd_readiness)
 
     invariants = sub.add_parser("invariants", help="evaluate job and provider invariants")

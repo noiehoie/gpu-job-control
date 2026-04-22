@@ -8,6 +8,7 @@ from .models import make_job_id, now_unix
 from .execution_plan import execution_plan_schema
 from .plan_quote import build_plan_quote, plan_quote_schema
 from .provider_catalog import provider_capability, save_catalog_snapshot
+from .provider_module_contracts import provider_module_contract_for_job, provider_module_contract_schema
 from .requirements import evaluate_workload_requirements, workload_gpu_profile
 from .workflow import approval_decision, resolve_budget_class
 
@@ -55,6 +56,7 @@ def workload_request(payload: dict[str, Any]) -> dict[str, Any]:
         "requirements": dict(request.get("requirements") or {}),
         "hints": dict(request.get("hints") or {}),
         "business_context": dict(request.get("business_context") or {}),
+        "provider_module_id": str(request.get("provider_module_id") or request.get("provider_contract_unit") or ""),
         "created_at": int(request.get("created_at") or now_unix()),
     }
 
@@ -87,6 +89,9 @@ def plan_workload(payload: dict[str, Any], *, catalog: dict[str, Any] | None = N
             )
             continue
         estimate = _estimate_provider_option(request, provider, gpu_profile, capability)
+        estimate["provider_module_contract"] = provider_module_contract_for_job(
+            {"provider_module_id": request.get("provider_module_id")}, provider
+        )
         options.append(estimate)
     options.sort(key=lambda item: (item["estimated_total_cost_usd_p95"], item["estimated_total_seconds_p95"], item["provider"]))
     selected = options[0] if options else None
@@ -237,6 +242,7 @@ def contract_schemas() -> dict[str, Any]:
         "contract_version": CONTRACT_VERSION,
         "execution_plan": execution_plan_schema(),
         "plan_quote": plan_quote_schema(),
+        "provider_module_contract": provider_module_contract_schema(),
         "artifact_manifest": artifact_manifest_schema(),
         "failure_taxonomy": failure_taxonomy(),
     }

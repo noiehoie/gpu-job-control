@@ -28,6 +28,11 @@
     "runpod": "external",
     "vast": "external"
   },
+  "provider_module_routing": {
+    "routing_by_module_enabled": false,
+    "activation_stage": "design_only",
+    "canary_evidence_required": true
+  },
   "circuit_breaker": {
     "window_seconds": 900,
     "min_samples": 5,

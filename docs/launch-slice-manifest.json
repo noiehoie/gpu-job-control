@@ -19,12 +19,16 @@
       "review_status": "launchable_docs_after_ci",
       "files": [
         ".gitignore",
+        "docs/architecture.md",
         "docs/cloud-gpu-provider-research.md",
+        "docs/index.md",
+        "docs/launch-decision.md",
+        "docs/launch-phase0-5-gate.md",
         "docs/launch-worktree-cleanup.md",
         "docs/launch-slice-manifest.json"
       ],
       "tests": [
-        "git diff --check -- .gitignore docs/cloud-gpu-provider-research.md docs/launch-worktree-cleanup.md docs/launch-slice-manifest.json"
+        "git diff --check -- .gitignore docs/architecture.md docs/cloud-gpu-provider-research.md docs/index.md docs/launch-decision.md docs/launch-phase0-5-gate.md docs/launch-worktree-cleanup.md docs/launch-slice-manifest.json"
       ],
       "blocks": []
     },
@@ -34,6 +38,8 @@
       "files": [
         "config/image-contracts.json",
         "config/requirement-registry.json",
+        "docs/provider-module-contracts.md",
+        "schemas/gpu-job.schema.json",
         "src/gpu_job/contracts.py",
         "src/gpu_job/execution_plan.py",
         "src/gpu_job/execution_record.py",
@@ -41,6 +47,7 @@
         "src/gpu_job/plan_quote.py",
         "src/gpu_job/provider_catalog.py",
         "src/gpu_job/provider_contract_probe.py",
+        "src/gpu_job/provider_module_contracts.py",
         "src/gpu_job/provider_probe.py",
         "src/gpu_job/requirements.py",
         "src/gpu_job/timing.py",
@@ -50,11 +57,12 @@
         "tests/test_image_contracts.py",
         "tests/test_provider_catalog_contracts.py",
         "tests/test_provider_contract_probe.py",
+        "tests/test_provider_module_contracts.py",
         "tests/test_requirement_registry.py",
         "tests/test_timing_v2.py"
       ],
       "tests": [
-        "uv run python -m pytest tests/test_asr_diarization_contract.py tests/test_execution_plan_contract.py tests/test_image_contracts.py tests/test_provider_catalog_contracts.py tests/test_provider_contract_probe.py tests/test_requirement_registry.py tests/test_timing_v2.py -q"
+        "uv run python -m pytest tests/test_asr_diarization_contract.py tests/test_execution_plan_contract.py tests/test_image_contracts.py tests/test_provider_catalog_contracts.py tests/test_provider_contract_probe.py tests/test_provider_module_contracts.py tests/test_requirement_registry.py tests/test_timing_v2.py -q"
       ],
       "blocks": [
         "provider API calls",
@@ -77,6 +85,7 @@
         "src/gpu_job/cli_public.py",
         "src/gpu_job/concurrency.py",
         "src/gpu_job/error_class.py",
+        "src/gpu_job/launch_gate.py",
         "src/gpu_job/policy.py",
         "src/gpu_job/policy_engine.py",
         "src/gpu_job/queue.py",
@@ -89,13 +98,14 @@
         "tests/test_circuit_half_open.py",
         "tests/test_cli_public_surface.py",
         "tests/test_guard_scope.py",
+        "tests/test_launch_gate.py",
         "tests/test_policy_router.py",
         "tests/test_production_contracts.py",
         "tests/test_wal_recovery.py",
         "tests/test_workflow_planner.py"
       ],
       "tests": [
-        "uv run python -m pytest tests/test_api_response_schema.py tests/test_circuit_half_open.py tests/test_cli_public_surface.py tests/test_guard_scope.py tests/test_policy_router.py tests/test_production_contracts.py tests/test_wal_recovery.py tests/test_workflow_planner.py -q",
+        "uv run python -m pytest tests/test_api_response_schema.py tests/test_circuit_half_open.py tests/test_cli_public_surface.py tests/test_guard_scope.py tests/test_launch_gate.py tests/test_policy_router.py tests/test_production_contracts.py tests/test_wal_recovery.py tests/test_workflow_planner.py -q",
         "uv run gpu-job selftest",
         "uv run gpu-job validate examples/jobs/asr.example.json"
       ],
@@ -155,7 +165,7 @@
     },
     "04_modal": {
       "goal": "Modal provider execution and canaries, isolated from RunPod/Vast behavior.",
-      "review_status": "high_risk_provider_slice",
+      "review_status": "production_primary_after_repeat_canary",
       "files": [
         "src/gpu_job/modal_asr.py",
         "src/gpu_job/modal_llm.py",
@@ -168,14 +178,14 @@
         "uv run python -m pytest tests/test_modal_llm_quality.py tests/test_modal_provider.py -q"
       ],
       "blocks": [
-        "Modal image not rebuilt after dependency changes",
-        "HF model cache not persisted where required",
-        "canary passing on tiny workload only"
+        "Modal image not rebuilt after future dependency changes",
+        "HF model cache regression after prewarm",
+        "missing repeat ASR/LLM contract probe evidence"
       ]
     },
     "04_runpod": {
       "goal": "RunPod pod/serverless provider behavior, ASR diarization workspace canary, endpoint/pod cleanup, and RunPod-specific operation records.",
-      "review_status": "high_risk_provider_slice",
+      "review_status": "conditional_batch_and_serverless_contract_path",
       "files": [
         "src/gpu_job/providers/runpod.py",
         "tests/test_runpod_config.py"
@@ -185,6 +195,7 @@
       ],
       "blocks": [
         "serverless ASR production dispatch before workspace canary parity",
+        "RunPod Serverless vLLM or Hub-template as launch blocker",
         "warm worker or endpoint residue after canary",
         "unbounded workersMax or unmanaged network volume cost"
       ]
@@ -209,15 +220,15 @@
   "provider_fast_path_order": [
     {
       "provider": "modal",
-      "next_gate": "prove rebuilt image, persistent model/cache behavior, and ASR/LLM canary with contract probe evidence"
+      "next_gate": "production_primary; keep guard clean and repeat ASR/LLM probes after future worker changes"
     },
     {
       "provider": "runpod",
-      "next_gate": "promote pod ASR workspace canary evidence, then build serverless workspace contract before production dispatch"
+      "next_gate": "runpod_pod remains conditional batch; runpod_serverless handler requires workspace canary parity before production dispatch"
     },
     {
       "provider": "vast",
-      "next_gate": "use prebuilt image plus lifecycle evidence; keep r8 as canary evidence until cleanup/residue is proven repeatedly"
+      "next_gate": "prove vast_pyworker_serverless and vast_instance as reserve/canary with prebuilt images, lifecycle evidence, and residue checks"
     }
   ],
   "global_ci_gate": [

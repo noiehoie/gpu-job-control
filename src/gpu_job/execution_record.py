@@ -133,10 +133,17 @@ def _plan_quote_from_job(job: Job) -> dict[str, Any]:
     provider = str(workspace_plan.get("provider") or job.provider or "")
     capability = workspace_plan.get("provider_capability") if isinstance(workspace_plan.get("provider_capability"), dict) else {}
     runtime = workspace_plan.get("provider_runtime") if isinstance(workspace_plan.get("provider_runtime"), dict) else {}
+    module_contract = (
+        workspace_plan.get("provider_module_contract") if isinstance(workspace_plan.get("provider_module_contract"), dict) else {}
+    )
+    module_selection = module_contract.get("selection") if isinstance(module_contract.get("selection"), dict) else {}
     required_actions = workspace_plan.get("required_actions") if isinstance(workspace_plan.get("required_actions"), list) else []
     decision = "requires_action" if workspace_plan.get("decision") == "requires_action" else "auto_execute"
     selected = {
         "provider": provider,
+        "provider_module_id": module_contract.get("active_module_id") or "",
+        "provider_module_contract_version": module_contract.get("provider_module_contract_version") or "",
+        "routing_by_module_enabled": bool(module_selection.get("routing_by_module_enabled")),
         "gpu_profile": job.gpu_profile,
         "workspace_plan_id": workspace_plan.get("workspace_plan_id") or "",
         "workspace_registry_version": workspace_plan.get("workspace_registry_version") or "",

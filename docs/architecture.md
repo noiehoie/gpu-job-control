@@ -58,3 +58,26 @@ The planner should use deterministic calculation whenever inputs are measurable:
 - artifact contract.
 
 Model reasoning may help classify tasks or estimate missing metadata, but the final execution decision must be explainable as deterministic policy over recorded inputs.
+
+## Provider Runtime Boundary
+
+`gpu-job-control` does not reimplement cloud GPU provider runtimes.
+
+RunPod Serverless workers, RunPod Pods, Vast instances, Vast PyWorker, and Modal
+functions remain provider-native execution planes. The control plane records and
+audits them through provider module contracts:
+
+```text
+runpod_serverless
+runpod_pod
+vast_instance
+vast_pyworker_serverless
+modal_function
+```
+
+The parent provider adapter keys remain `runpod`, `vast`, and `modal` until
+routing-by-module is explicitly enabled. Provider module contracts are currently
+visibility and audit metadata attached to the workspace plan and execution
+record.
+
+The boundary is documented in `docs/provider-module-contracts.md`.

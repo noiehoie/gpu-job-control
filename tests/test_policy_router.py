@@ -39,6 +39,45 @@ class PolicyAndRouterTest(unittest.TestCase):
         result = validate_policy({"provider_limits": {"modal": {"llm_heavy": 1, "asr": 2, "*": 1}}, "stale_seconds": {}})
         self.assertTrue(result["ok"])
 
+    def test_provider_module_routing_policy_is_design_only_and_must_remain_disabled(self) -> None:
+        accepted = validate_policy(
+            {
+                "provider_limits": {"runpod": {"asr": 1}},
+                "provider_module_routing": {
+                    "routing_by_module_enabled": False,
+                    "activation_stage": "design_only",
+                    "canary_evidence_required": True,
+                },
+            }
+        )
+        rejected = validate_policy(
+            {
+                "provider_limits": {"runpod": {"asr": 1}},
+                "provider_module_routing": {"routing_by_module_enabled": True},
+            }
+        )
+
+        self.assertTrue(accepted["ok"])
+        self.assertFalse(rejected["ok"])
+        self.assertIn(
+            "provider_module_routing.routing_by_module_enabled must remain false until module routing is implemented",
+            rejected["errors"],
+        )
+
+    def test_default_execution_policy_records_provider_module_routing_flag_disabled(self) -> None:
+        policy = load_execution_policy(Path("config/execution-policy.json"))
+        validation = validate_policy(policy)
+
+        self.assertTrue(validation["ok"])
+        self.assertEqual(
+            policy["provider_module_routing"],
+            {
+                "routing_by_module_enabled": False,
+                "activation_stage": "design_only",
+                "canary_evidence_required": True,
+            },
+        )
+
     def test_execution_policy_merges_private_provider_operations(self) -> None:
         with TemporaryDirectory() as tmp:
             policy_path = Path(tmp) / "execution-policy.json"

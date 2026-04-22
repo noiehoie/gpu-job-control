@@ -45,6 +45,14 @@
         "source_system": {"type": "string"},
         "source_job_id": {"type": "string"},
         "idempotency_key": {"type": "string"},
+        "provider_module_id": {
+          "type": "string",
+          "description": "Provider-native module contract id such as runpod_serverless, runpod_pod, vast_instance, vast_pyworker_serverless, or modal_function. This is recorded and validated; it does not change parent provider routing."
+        },
+        "provider_contract_unit": {
+          "type": "string",
+          "description": "Compatibility alias for provider_module_id."
+        },
         "purpose": {"type": "string"},
         "task_family": {"type": "string"},
         "priority_class": {"type": "string"},

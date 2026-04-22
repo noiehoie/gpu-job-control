@@ -15,6 +15,7 @@ MODAL_LLM_POST_INSTALL_COMMANDS: list[str] = []
 MODAL_LLM_CACHE_VOLUME_NAME = "gpu-job-modal-llm-cache"
 MODAL_LLM_CACHE_MOUNT = "/cache"
 MODAL_LLM_HF_HOME = f"{MODAL_LLM_CACHE_MOUNT}/huggingface"
+MODAL_LLM_HF_HUB_CACHE = f"{MODAL_LLM_HF_HOME}/hub"
 image = (
     modal.Image.debian_slim(python_version=MODAL_LLM_PYTHON_VERSION)
     .pip_install(*MODAL_LLM_PACKAGES)
@@ -22,7 +23,7 @@ image = (
     .env(
         {
             "HF_HOME": MODAL_LLM_HF_HOME,
-            "HF_HUB_CACHE": f"{MODAL_LLM_HF_HOME}/hub",
+            "HF_HUB_CACHE": MODAL_LLM_HF_HUB_CACHE,
             "TRANSFORMERS_CACHE": f"{MODAL_LLM_HF_HOME}/transformers",
         }
     )
@@ -125,8 +126,29 @@ def _commit_cache() -> None:
 
 
 def _hf_model_cache_exists(model_name: str) -> bool:
-    model_dir = Path(MODAL_LLM_HF_HOME) / "hub" / f"models--{model_name.replace('/', '--')}"
+    model_dir = Path(MODAL_LLM_HF_HUB_CACHE) / f"models--{model_name.replace('/', '--')}"
     return any((model_dir / "snapshots").glob("*")) if (model_dir / "snapshots").is_dir() else False
+
+
+@app.function(image=image, gpu="A100-80GB", timeout=3600, volumes={MODAL_LLM_CACHE_MOUNT: model_cache_volume})
+def warm_llm_cache(model_name: str = DEFAULT_HEAVY_MODEL) -> dict:
+    from huggingface_hub import snapshot_download
+
+    started = time.time()
+    os.makedirs(MODAL_LLM_HF_HOME, exist_ok=True)
+    cache_hit_before_download = _hf_model_cache_exists(model_name)
+    snapshot_download(model_name)
+    _commit_cache()
+    return {
+        "provider": "modal",
+        "worker_image": "gpu-job-modal-llm",
+        "model": model_name,
+        "cache_volume": MODAL_LLM_CACHE_VOLUME_NAME,
+        "hf_home": MODAL_LLM_HF_HOME,
+        "cache_hit_before_download": cache_hit_before_download,
+        "cache_hit_after_download": _hf_model_cache_exists(model_name),
+        "runtime_seconds": round(time.time() - started, 3),
+    }
 
 
 @app.function(image=image, gpu="A100-80GB", timeout=3600, volumes={MODAL_LLM_CACHE_MOUNT: model_cache_volume})
@@ -140,7 +162,7 @@ def run_llm(job: dict) -> dict:
     prompt = _prompt(job)
     max_tokens = _max_tokens(job)
     os.makedirs(MODAL_LLM_HF_HOME, exist_ok=True)
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=MODAL_LLM_HF_HOME)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     _commit_cache()
     messages = [{"role": "user", "content": prompt}]
     text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -152,13 +174,12 @@ def run_llm(job: dict) -> dict:
             f"prompt exceeds model context before weight load: input_tokens={input_tokens} "
             f"max_new_tokens={max_tokens} context_limit={context_limit} model={model_name}"
         )
-    snapshot_download(model_name, cache_dir=MODAL_LLM_HF_HOME)
+    snapshot_download(model_name)
     _commit_cache()
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype="auto",
         device_map="auto",
-        cache_dir=MODAL_LLM_HF_HOME,
     )
     _commit_cache()
     inputs = inputs.to(model.device)
@@ -255,4 +276,37 @@ def main(job_json: str, artifact_dir: str):
     (out / "probe_info.json").write_text(json.dumps(probe_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     (out / "stdout.log").write_text(stdout)
     (out / "stderr.log").write_text(stderr)
+    sys.exit(0 if ok else 1)
+
+
+@app.local_entrypoint()
+def warm_cache(model_name: str = DEFAULT_HEAVY_MODEL, artifact_dir: str = ""):
+    started = time.time()
+    try:
+        result = warm_llm_cache.remote(model_name)
+        ok = bool(result.get("cache_hit_after_download"))
+        error = ""
+    except Exception as exc:
+        result = {
+            "provider": "modal",
+            "worker_image": "gpu-job-modal-llm",
+            "model": model_name,
+            "cache_volume": MODAL_LLM_CACHE_VOLUME_NAME,
+            "hf_home": MODAL_LLM_HF_HOME,
+            "cache_hit_before_download": None,
+            "cache_hit_after_download": False,
+            "runtime_seconds": round(time.time() - started, 3),
+            "error": str(exc),
+        }
+        ok = False
+        error = str(exc)
+    if artifact_dir:
+        out = Path(artifact_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (out / "stdout.log").write_text(
+            f"modal llm warm_cache ok={ok} model={model_name} cache_hit_after_download={result.get('cache_hit_after_download')}\n"
+        )
+        (out / "stderr.log").write_text(error)
+    print(json.dumps({"ok": ok, "result": result}, ensure_ascii=False, indent=2, sort_keys=True))
     sys.exit(0 if ok else 1)
