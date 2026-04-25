@@ -1248,7 +1248,7 @@ wheels = [
 
 [[package]]
 name = "gpu-job-control"
-version = "0.1.1"
+version = "0.2.4"
 source = { editable = "." }
 
 [package.optional-dependencies]

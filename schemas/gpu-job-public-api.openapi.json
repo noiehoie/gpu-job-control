@@ -1,0 +1,171 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "gpu-job-control Public API",
+    "version": "0.2.4"
+  },
+  "paths": {
+    "/schemas/caller-request": {
+      "get": {
+        "summary": "Return the canonical caller request schema",
+        "responses": {
+          "200": {"description": "Caller request schema"}
+        }
+      }
+    },
+    "/catalog/operations": {
+      "get": {
+        "summary": "Return the closed public operation catalog",
+        "responses": {
+          "200": {"description": "Operation catalog"}
+        }
+      }
+    },
+    "/catalog/caller-prompt": {
+      "get": {
+        "summary": "Return canonical caller prompt metadata",
+        "responses": {
+          "200": {"description": "Caller prompt metadata"}
+        }
+      }
+    },
+    "/schemas/contracts": {
+      "get": {
+        "summary": "Return the public job contract schema",
+        "responses": {
+          "200": {"description": "Public job contract schema"}
+        }
+      }
+    },
+    "/schemas/plan-quote": {
+      "get": {
+        "summary": "Return the plan quote schema",
+        "responses": {
+          "200": {"description": "Plan quote schema"}
+        }
+      }
+    },
+    "/schemas/execution-record": {
+      "get": {
+        "summary": "Return the execution record schema",
+        "responses": {
+          "200": {"description": "Execution record schema"}
+        }
+      }
+    },
+    "/schemas/provider-workspace": {
+      "get": {
+        "summary": "Return the provider workspace schema",
+        "responses": {
+          "200": {"description": "Provider workspace schema"}
+        }
+      }
+    },
+    "/schemas/provider-module": {
+      "get": {
+        "summary": "Return the provider module audit schema",
+        "responses": {
+          "200": {"description": "Provider module schema"}
+        }
+      }
+    },
+    "/schemas/provider-contract-probe": {
+      "get": {
+        "summary": "Return the provider contract probe schema",
+        "responses": {
+          "200": {"description": "Provider contract probe schema"}
+        }
+      }
+    },
+    "/validate": {
+      "post": {
+        "summary": "Validate a caller request or legacy job",
+        "responses": {
+          "200": {"description": "Validation result"},
+          "400": {"description": "Malformed JSON or invalid request"}
+        }
+      }
+    },
+    "/route": {
+      "post": {
+        "summary": "Return deterministic route information without submitting work",
+        "responses": {
+          "200": {"description": "Route result"},
+          "400": {"description": "Malformed JSON or invalid request"}
+        }
+      }
+    },
+    "/plan": {
+      "post": {
+        "summary": "Return deterministic plan information without submitting work",
+        "responses": {
+          "200": {"description": "Plan result"},
+          "400": {"description": "Malformed JSON or invalid request"}
+        }
+      }
+    },
+    "/submit": {
+      "post": {
+        "summary": "Submit work; execution is controlled by query parameters and policy",
+        "responses": {
+          "200": {"description": "Synchronous submission result"},
+          "202": {"description": "Accepted for asynchronous execution"},
+          "400": {"description": "Malformed JSON or invalid request"},
+          "409": {"description": "Policy, quota, or cost conflict"},
+          "429": {"description": "Backpressure"}
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "summary": "Return public job status",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {"description": "Job status"},
+          "404": {"description": "Unknown job"}
+        }
+      }
+    },
+    "/verify/{job_id}": {
+      "get": {
+        "summary": "Verify artifacts for a job id",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {"description": "Artifact verification result"},
+          "404": {"description": "Unknown job or artifact directory"}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerToken": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "GpuJobToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-GPU-Job-Token"
+      }
+    }
+  },
+  "security": [
+    {"BearerToken": []},
+    {"GpuJobToken": []}
+  ]
+}

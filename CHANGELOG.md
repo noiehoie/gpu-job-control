@@ -4,8 +4,28 @@ All notable changes to this project will be documented in this file.
 
 This project follows a conservative pre-1.0 policy: public contracts may change, but every externally visible change should be recorded here before release.
 
-## Unreleased
+## 0.2.4 - 2026-04-25
 
+- Added the finished-product release gate with 35 acceptance conditions.
+- Added public error-code, data-lifecycle, and product-invariant documentation.
+- Added a machine-readable public OpenAPI surface document.
+- Expanded caller onboarding with validate, submit, status, verify, failure, and non-Python examples.
+
+## 0.2.3 - 2026-04-25
+
+- Added the caller-facing product contract surface.
+
+## 0.2.2 - 2026-04-25
+
+- Added deterministic public dispatch lanes.
+
+## 0.2.1 - 2026-04-25
+
+- Froze clean-clone launch guardrails.
+
+## 0.2.0 - 2026-04-25
+
+- Froze complete launch evidence.
 - Added RunPod OpenAI-compatible Public Endpoint execution mode for LLM canaries.
 - Allowed RunPod GraphQL helpers to read the existing `~/.runpod/config.toml` API key without exporting it.
 - Updated the worker systemd template so queued workers can read provider endpoint settings from the service environment file.

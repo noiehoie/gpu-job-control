@@ -38,7 +38,9 @@ GPU work becomes expensive when every application talks to every provider direct
 
 ## Repository Status
 
-This repository is an early control-plane implementation. The public surface is intentionally conservative:
+This repository is a finished-product release candidate for the conservative
+caller-facing GPU job control-plane surface. The public surface is intentionally
+closed and conservative:
 
 - provider credentials are read from environment or provider CLIs only;
 - no secrets belong in job payloads, examples, logs, or source control;
@@ -102,6 +104,12 @@ curl -sS -H "Authorization: Bearer $GPU_JOB_API_TOKEN" \
 - [Architecture](docs/architecture.md)
 - [Job Contract](docs/worker-contract.md)
 - [Routing Policy](docs/routing-policy.md)
+- [Finished Product Gate](docs/finished-product-gate.md)
+- [Public API](docs/public-api.md)
+- [Client Integration Guide](docs/client-integration-guide.md)
+- [Error Codes](docs/error-codes.md)
+- [Data Lifecycle](docs/data-lifecycle.md)
+- [Product Invariants](docs/product-invariants.md)
 - [Provider Promotion](docs/provider-promotion.md)
 - [RunPod Self-Hosted Endpoint Research](docs/runpod-self-hosted-research.md)
 - [Worker Image Distribution](docs/ghcr-publish-runbook.md)

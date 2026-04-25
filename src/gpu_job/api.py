@@ -63,6 +63,7 @@ from .workflow import (
     save_workflow,
     submit_bulk_workflow,
 )
+from . import __version__
 
 MAX_JSON_BODY_BYTES = int(os.getenv("GPU_JOB_MAX_JSON_BODY_BYTES", str(10 * 1024 * 1024)))
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -291,7 +292,7 @@ def _redact_payload(value: Any, key: str = "") -> Any:
 
 
 class GPUJobHandler(BaseHTTPRequestHandler):
-    server_version = "gpu-job-control/0.1"
+    server_version = f"gpu-job-control/{__version__}"
 
     def log_message(self, fmt: str, *args: object) -> None:
         return

@@ -21,6 +21,10 @@ Start here when evaluating or integrating `gpu-job-control`.
 - [Operation Catalog](operation-catalog.md): closed operation menu accepted by the public product surface.
 - [Public API](public-api.md): caller-facing transport surface and compatibility notes.
 - [Client Integration Guide](client-integration-guide.md): reference client and downstream integration order.
+- [Finished Product Gate](finished-product-gate.md): release-blocking acceptance criteria for calling the repository an external finished product.
+- [Error Codes](error-codes.md): public failure taxonomy, retry guidance, and provider responsibility boundary.
+- [Data Lifecycle](data-lifecycle.md): caller input, artifact, log, retention, deletion, and privacy rules.
+- [Product Invariants](product-invariants.md): release-blocking invariants that must not be relaxed.
 - [RunPod Support Question](runpod-support-question.md): reproducible evidence for the current Serverless vLLM endpoint blocker.
 - [Worker Image Distribution](ghcr-publish-runbook.md): runtime-independent image publishing and registry-mirroring guidance.
 

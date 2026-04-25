@@ -255,6 +255,61 @@ class ApiResponseSchemaTest(unittest.TestCase):
             else:
                 os.environ["GPU_JOB_API_TOKEN"] = old_token
 
+    def test_public_api_golden_validate_response_shape(self) -> None:
+        old_allow = os.environ.get("GPU_JOB_ALLOW_UNAUTHENTICATED")
+        old_token = os.environ.get("GPU_JOB_API_TOKEN")
+        os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = "1"
+        os.environ.pop("GPU_JOB_API_TOKEN", None)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), api.GPUJobHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.server_address[1]}"
+            payload = {
+                "contract_version": "gpu-job-caller-request-v1",
+                "operation": "llm.generate",
+                "input": {"uri": "text://Return exactly: ok", "parameters": {"prompt": "Return exactly: ok"}},
+                "output_expectation": {
+                    "target_uri": "local://caller-validate",
+                    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+                },
+                "limits": {"max_runtime_minutes": 5, "max_cost_usd": 1, "max_output_gb": 1},
+                "idempotency": {"key": "api-caller-golden-001"},
+                "caller": {
+                    "system": "api-test",
+                    "operation": "golden",
+                    "request_id": "api-caller-golden-001",
+                    "version": "2026.04.25",
+                },
+            }
+            request = urllib.request.Request(
+                base + "/validate",
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=5) as response:
+                result = json.loads(response.read().decode())
+            self.assertEqual(response.status, 200)
+            self.assertEqual(sorted(result.keys()), ["job", "ok", "providers"])
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["job"]["job_type"], "llm_heavy")
+            self.assertEqual(result["job"]["metadata"]["caller_request_id"], "api-caller-golden-001")
+            self.assertIn("modal", result["providers"])
+            self.assertIn("runpod", result["providers"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+            if old_allow is None:
+                os.environ.pop("GPU_JOB_ALLOW_UNAUTHENTICATED", None)
+            else:
+                os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = old_allow
+            if old_token is None:
+                os.environ.pop("GPU_JOB_API_TOKEN", None)
+            else:
+                os.environ["GPU_JOB_API_TOKEN"] = old_token
+
     def test_job_response_exposes_stable_artifact_fields(self) -> None:
         old_data_home = os.environ.get("XDG_DATA_HOME")
         with TemporaryDirectory() as tmp:
