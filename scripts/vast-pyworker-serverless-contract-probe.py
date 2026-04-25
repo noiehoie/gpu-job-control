@@ -614,8 +614,7 @@ def _extract_first_id(text: str, *, key: str) -> str:
     return ""
 
 
-def _lookup_template(template_hash: str) -> dict[str, Any]:
-    query = f"hash_id == {template_hash}"
+def _lookup_template_first(query: str) -> dict[str, Any]:
     result = _run_vast(["vastai", "search", "templates", query, "--raw"], allow_failure=True)
     payload = result.get("json")
     if isinstance(payload, list) and payload:
@@ -623,17 +622,16 @@ def _lookup_template(template_hash: str) -> dict[str, Any]:
         if isinstance(first, dict):
             return first
     return {}
+
+
+def _lookup_template(template_hash: str) -> dict[str, Any]:
+    query = f"hash_id == {template_hash}"
+    return _lookup_template_first(query)
 
 
 def _lookup_template_by_id(template_id: str) -> dict[str, Any]:
     query = f"id == {template_id}"
-    result = _run_vast(["vastai", "search", "templates", query, "--raw"], allow_failure=True)
-    payload = result.get("json")
-    if isinstance(payload, list) and payload:
-        first = payload[0]
-        if isinstance(first, dict):
-            return first
-    return {}
+    return _lookup_template_first(query)
 
 
 def _discover_templates(

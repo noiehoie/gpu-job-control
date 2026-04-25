@@ -1,0 +1,23 @@
+以下の3件の再審査結果を統合し、日本語で「serverless 2系統のリファクタリング最終計画」を作成せよ。
+対象:
+- docs/refactor-logs/20260425-serverless-lanes/04_gpt54_review.md
+- docs/refactor-logs/20260425-serverless-lanes/05_gemini_review.md
+- docs/refactor-logs/20260425-serverless-lanes/06_claude_review.md
+
+前提:
+- 対象ファイルは次の2つのみ
+  - scripts/runpod-asr-serverless-contract-probe.py
+  - scripts/vast-pyworker-serverless-contract-probe.py
+- all green 維持が最優先
+- provider adapter は触らない
+- routing_by_module_enabled=false は不変
+
+出力要件:
+1. 今回やる最小安全集合
+2. 今回やらない項目
+3. 関数単位の削減候補一覧
+4. 実装順序
+5. 検証順序
+6. 変更禁止領域
+
+関数名、ファイルパス、変更理由を明示せよ。曖昧語禁止。

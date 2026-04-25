@@ -102,6 +102,28 @@ class VastServerlessProbeScriptTests(unittest.TestCase):
 
         self.assertEqual("better", rows[0]["hash_id"])
 
+    def test_lookup_template_by_id_uses_shared_lookup_helper(self) -> None:
+        with mock.patch.object(
+            self.module,
+            "_lookup_template_first",
+            return_value={"id": "322483"},
+        ) as lookup:
+            record = self.module._lookup_template_by_id("322483")
+
+        self.assertEqual("322483", record["id"])
+        lookup.assert_called_once_with("id == 322483")
+
+    def test_lookup_template_uses_shared_lookup_helper(self) -> None:
+        with mock.patch.object(
+            self.module,
+            "_lookup_template_first",
+            return_value={"hash_id": "hash-1"},
+        ) as lookup:
+            record = self.module._lookup_template("hash-1")
+
+        self.assertEqual("hash-1", record["hash_id"])
+        lookup.assert_called_once_with("hash_id == hash-1")
+
 
 if __name__ == "__main__":
     unittest.main()

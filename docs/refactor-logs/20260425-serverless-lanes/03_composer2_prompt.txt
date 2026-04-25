@@ -1,0 +1,12 @@
+以下の2文書を精読し、serverless 2系統のリファクタリング基本計画をまとめよ。
+- docs/refactor-logs/20260425-serverless-lanes/01_gpt54_report.md
+- docs/refactor-logs/20260425-serverless-lanes/02_gemini_audit.md
+
+要件:
+- Gemini が指摘した事実誤認と危険提案を反映して訂正すること
+- runpod serverless と vast serverless について、それぞれ何行削減候補があるかを関数単位で整理すること
+- 今やるべき最小安全集合と、後回しにすべき候補を分けること
+- 変更対象ファイル、関数名、変更しない関数名、実装順、検証順を明示すること
+- 最後に、GPT-5.4 High / Gemini / Claude へ再審査させるべき論点一覧を付けること
+
+出力は日本語。曖昧語禁止。ファイルパスと関数名を明示せよ。

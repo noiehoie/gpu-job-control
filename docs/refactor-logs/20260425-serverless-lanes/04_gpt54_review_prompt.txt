@@ -1,0 +1,20 @@
+以下の基本計画を精読し、日本語で監査せよ。
+対象:
+- docs/refactor-logs/20260425-serverless-lanes/03_composer2_base_plan.md
+
+前提:
+- 対象ファイルは次の2つのみ
+  - scripts/runpod-asr-serverless-contract-probe.py
+  - scripts/vast-pyworker-serverless-contract-probe.py
+- all green 維持が最優先
+- provider adapter は触らない
+- routing_by_module_enabled=false は不変
+
+要件:
+1. 基本計画の事実誤認があれば指摘
+2. 過剰なリファクタ案があれば却下
+3. 最小安全候補だけを残して優先順位を付ける
+4. 関数名、ファイルパス、行種別を明示する
+5. 「最終計画に進めてよいか」を yes/no で結論づける
+
+曖昧語禁止。

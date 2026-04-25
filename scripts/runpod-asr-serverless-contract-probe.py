@@ -177,7 +177,7 @@ def main() -> int:
                 if args.managed_create_surface == "graphql":
                     disabled = provider._disable_endpoint(str(endpoint["id"]), template_id=str(endpoint["templateId"]))
                 else:
-                    disabled = _disable_endpoint_rest(api_key, str(endpoint["id"]), template_id=str(endpoint["templateId"]))
+                    disabled = _disable_endpoint_rest(api_key, str(endpoint["id"]))
                 cleanup["steps"].append({"disable_endpoint": disabled})
                 time.sleep(3)
             except Exception as exc:
@@ -612,7 +612,7 @@ def _delete_endpoint_rest(api_key: str, endpoint_id: str) -> dict[str, Any]:
     return {"ok": True, "endpoint_id": endpoint_id, "result": result}
 
 
-def _disable_endpoint_rest(api_key: str, endpoint_id: str, *, template_id: str) -> dict[str, Any]:
+def _disable_endpoint_rest(api_key: str, endpoint_id: str) -> dict[str, Any]:
     return _runpod_rest_request(
         api_key=api_key,
         path=f"/endpoints/{endpoint_id}",

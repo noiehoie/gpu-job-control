@@ -1,0 +1,19 @@
+対象は次の2ファイルのみ。
+- scripts/runpod-asr-serverless-contract-probe.py
+- scripts/vast-pyworker-serverless-contract-probe.py
+
+この2ファイルを1行ずつ飛ばさずに読み、以下を日本語で報告せよ。
+1. 各ファイルで削減できる行の候補
+2. 冗長分岐・重複処理・責務混在の箇所
+3. all green を壊さずに削れる最小安全候補
+4. 関数単位の削減候補一覧
+5. 絶対に触ってはいけない部分
+6. 実装順序
+
+条件:
+- provider adapter は触らない
+- routing_by_module_enabled=false は不変
+- 目的はコード量削減と可読性改善
+- ただし green 維持が最優先
+- 各関数名、分岐名、ファイルパスを明示すること
+- 曖昧語禁止
