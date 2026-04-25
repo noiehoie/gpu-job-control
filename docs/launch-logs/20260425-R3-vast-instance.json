@@ -1,0 +1,3766 @@
+{
+  "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+  "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+  "ok": true,
+  "probe_name": "vast.instance_smoke.cuda",
+  "provider": "vast",
+  "provider_module_probe_name": "vast_instance.instance_smoke.cuda",
+  "record": {
+    "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-smoke-20260425-123808-7c856645",
+    "checks": {
+      "artifact_contract_ok": true,
+      "cache_contract_ok": true,
+      "forbidden_model_absent": true,
+      "gpu_contract_ok": true,
+      "image_digest_match": true,
+      "image_match": true,
+      "model_match": true,
+      "official_template_smoke_ok": true,
+      "text_nonempty": true,
+      "verify_ok": true,
+      "workspace_contract_ok": true
+    },
+    "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+    "execution_mode": "executed",
+    "failure": {
+      "class": null,
+      "reason": "",
+      "retryable": false
+    },
+    "observed": {
+      "artifact_contract": {
+        "file_count": 9,
+        "files": [
+          {
+            "bytes": 28289,
+            "path": "execution_record.json",
+            "sha256": "5fc99154571254d80d162b54ece22ef99d6a1b104a34051a8b91371cbfb7b7c1"
+          },
+          {
+            "bytes": 1098,
+            "path": "manifest.json",
+            "sha256": "a92b1e8330e9831c982720282b2503ecb996b90109067bfb1cdd1f62e57065d5"
+          },
+          {
+            "bytes": 327,
+            "path": "metrics.json",
+            "sha256": "8ab5c96af58109f96fb6ba666f1333b94f960873a44bf67fb6e20784174ac735"
+          },
+          {
+            "bytes": 567,
+            "path": "probe_info.json",
+            "sha256": "551b92333c1fac740c01bcf068943e9eb91e88cf1ae3230786edb15abd3b5664"
+          },
+          {
+            "bytes": 500,
+            "path": "result.json",
+            "sha256": "df06efbd3b07b13d775b2c8f11e6a3ed35c49dd43ed8981263435e46f0305ccf"
+          },
+          {
+            "bytes": 0,
+            "path": "stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 1616,
+            "path": "stdout.log",
+            "sha256": "3b42a2fa5d18a4820a2de8d3f0ccef201110b4d366c85a46044a375a7f73096e"
+          },
+          {
+            "bytes": 15436,
+            "path": "submit_result.json",
+            "sha256": "8d6c12dda3c16ae4f99b31def4a5b6b1b2d1b5479437d8dc8fa91537adb1f612"
+          },
+          {
+            "bytes": 148,
+            "path": "verify.json",
+            "sha256": "7aa9426fb2eb21f23f6ad106a30c69d001825191b8caa1731b801974378decd9"
+          }
+        ],
+        "manifest_version": "gpu-job-artifact-manifest-v1",
+        "root": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-smoke-20260425-123808-7c856645",
+        "total_bytes": 47981
+      },
+      "cache": {
+        "cache_hit": null,
+        "cold_start_observed": false,
+        "cold_start_signals": [],
+        "download_seconds": null
+      },
+      "gpu_utilization_evidence": {
+        "execution_class": "gpu",
+        "matches": [
+          {
+            "key": "gpu_memory_used_mb",
+            "path": "gpu_memory_used_mb",
+            "value": 1
+          }
+        ],
+        "ok": true,
+        "reason": "gpu utilization evidence present"
+      },
+      "hardware": {
+        "gpu_count": 1,
+        "gpu_name": "NVIDIA GeForce RTX 5060 Ti, 16311 MiB, 580.95.05",
+        "vram_mb": null
+      },
+      "http_statuses": [],
+      "image": {
+        "digest": null,
+        "name": "nvidia/cuda:12.4.1-base-ubuntu22.04"
+      },
+      "model": null,
+      "workspace_contract": {
+        "actual_cost_guard": {
+          "estimated_hourly_usd": 0.0,
+          "ok": true,
+          "provider": "vast",
+          "reason": "no Vast.ai billable resources",
+          "source": "submit_result.post_submit_guard"
+        },
+        "cache_hit": null,
+        "cleanup": {
+          "billable_count": 0,
+          "ok": true,
+          "provider": "vast",
+          "reason": "no Vast.ai billable resources",
+          "source": "submit_result.post_submit_guard"
+        },
+        "cleanup_ok": true,
+        "cost_guard_ok": true,
+        "endpoint_id": "",
+        "gpu_probe": {},
+        "hf_token_present": null,
+        "image_contract_marker_present": null,
+        "instance_id": "35559640",
+        "official_template_smoke_ok": false,
+        "ok": null,
+        "pod_id": "",
+        "provider_job_id": "35559640",
+        "require_gpu": null,
+        "runtime_checks": {},
+        "runtime_imports_ok": null,
+        "small_workload_ok": true,
+        "volume_probe_ok": null,
+        "volume_required": null,
+        "worker_startup_ok": true,
+        "workergroup_id": ""
+      },
+      "workspace_observation_coverage": {
+        "categories": {
+          "artifact_contract": {
+            "evidence_fields": [
+              "artifact_contract",
+              "verify_artifacts"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "cleanup_result": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "cost_guard": {
+            "evidence_fields": [
+              "actual_cost_guard",
+              "cost_guard_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "gpu_execution": {
+            "evidence_fields": [
+              "gpu_probe",
+              "gpu_utilization_evidence",
+              "hardware"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "image_contract": {
+            "evidence_fields": [
+              "image",
+              "provider_image",
+              "image_contract_marker_present"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "model_load": {
+            "evidence_fields": [
+              "model",
+              "loaded_model_id",
+              "runtime_imports_ok",
+              "small_workload_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "provider_residue": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "provider_resource_identity": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "35559640",
+              "pod_id": "",
+              "provider_job_id": "35559640",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "queue_or_reservation": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "35559640",
+              "pod_id": "",
+              "provider_job_id": "35559640",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "secret_availability": {
+            "evidence_fields": [
+              "hf_token_present"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "startup_phases": {
+            "evidence_fields": [
+              "worker_startup_ok",
+              "workspace_contract_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "workspace_cache": {
+            "evidence_fields": [
+              "cache_hit",
+              "cache_warm"
+            ],
+            "observed": false,
+            "ok": null
+          }
+        },
+        "coverage_version": "gpu-job-workspace-observation-coverage-v1",
+        "failed_categories": [],
+        "missing_categories": [
+          "secret_availability",
+          "workspace_cache"
+        ],
+        "observed_categories": [
+          "provider_resource_identity",
+          "image_contract",
+          "startup_phases",
+          "queue_or_reservation",
+          "model_load",
+          "gpu_execution",
+          "artifact_contract",
+          "cost_guard",
+          "cleanup_result",
+          "provider_residue"
+        ],
+        "provider": "vast"
+      }
+    },
+    "ok": true,
+    "probe_name": "vast.instance_smoke.cuda",
+    "provider": "vast",
+    "provider_module_canary_evidence": {
+      "evidence_source": "record.observed.workspace_observation_coverage",
+      "failed_categories": [],
+      "missing_categories": [],
+      "module_canary_requirements": [
+        "search_offer",
+        "create_instance",
+        "ssh_ready",
+        "boot_marker_check",
+        "gpu_cuda_check",
+        "small_workload",
+        "destroy_instance",
+        "no_active_matching_instance",
+        "billing_snapshot"
+      ],
+      "module_specific_failures": [],
+      "observation_categories": {
+        "artifact_contract": {
+          "evidence_fields": [
+            "artifact_contract",
+            "verify_artifacts"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "cleanup_result": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "cost_guard": {
+          "evidence_fields": [
+            "actual_cost_guard",
+            "cost_guard_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "gpu_execution": {
+          "evidence_fields": [
+            "gpu_probe",
+            "gpu_utilization_evidence",
+            "hardware"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "image_contract": {
+          "evidence_fields": [
+            "image",
+            "provider_image",
+            "image_contract_marker_present"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "model_load": {
+          "evidence_fields": [
+            "model",
+            "loaded_model_id",
+            "runtime_imports_ok",
+            "small_workload_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "provider_residue": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "provider_resource_identity": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "35559640",
+            "pod_id": "",
+            "provider_job_id": "35559640",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "queue_or_reservation": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "35559640",
+            "pod_id": "",
+            "provider_job_id": "35559640",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "secret_availability": {
+          "evidence_fields": [
+            "hf_token_present"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "startup_phases": {
+          "evidence_fields": [
+            "worker_startup_ok",
+            "workspace_contract_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "workspace_cache": {
+          "evidence_fields": [
+            "cache_hit",
+            "cache_warm"
+          ],
+          "observed": false,
+          "ok": null
+        }
+      },
+      "observed_categories": [
+        "provider_resource_identity",
+        "image_contract",
+        "startup_phases",
+        "queue_or_reservation",
+        "model_load",
+        "gpu_execution",
+        "artifact_contract",
+        "cost_guard",
+        "cleanup_result",
+        "provider_residue"
+      ],
+      "ok": true,
+      "parent_provider": "vast",
+      "provider_module_canary_evidence_version": "gpu-job-provider-module-canary-evidence-v1",
+      "provider_module_id": "vast_instance",
+      "provider_module_probe_name": "vast_instance.instance_smoke.cuda",
+      "required_observation_categories": [
+        "provider_resource_identity",
+        "image_contract",
+        "startup_phases",
+        "queue_or_reservation",
+        "model_load",
+        "gpu_execution",
+        "artifact_contract",
+        "cost_guard",
+        "cleanup_result",
+        "provider_residue"
+      ],
+      "requirement_observation_mapping": {
+        "billing_snapshot": [
+          "cost_guard"
+        ],
+        "boot_marker_check": [
+          "startup_phases",
+          "image_contract"
+        ],
+        "create_instance": [
+          "provider_resource_identity",
+          "startup_phases"
+        ],
+        "destroy_instance": [
+          "cleanup_result",
+          "provider_residue"
+        ],
+        "gpu_cuda_check": [
+          "gpu_execution"
+        ],
+        "no_active_matching_instance": [
+          "provider_residue"
+        ],
+        "search_offer": [
+          "queue_or_reservation",
+          "cost_guard"
+        ],
+        "small_workload": [
+          "model_load",
+          "gpu_execution",
+          "artifact_contract"
+        ],
+        "ssh_ready": [
+          "startup_phases"
+        ]
+      },
+      "requirements": {
+        "billing_snapshot": {
+          "categories": [
+            "cost_guard"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "boot_marker_check": {
+          "categories": [
+            "startup_phases",
+            "image_contract"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "create_instance": {
+          "categories": [
+            "provider_resource_identity",
+            "startup_phases"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "destroy_instance": {
+          "categories": [
+            "cleanup_result",
+            "provider_residue"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "gpu_cuda_check": {
+          "categories": [
+            "gpu_execution"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "no_active_matching_instance": {
+          "categories": [
+            "provider_residue"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "search_offer": {
+          "categories": [
+            "queue_or_reservation",
+            "cost_guard"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "small_workload": {
+          "categories": [
+            "model_load",
+            "gpu_execution",
+            "artifact_contract"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "ssh_ready": {
+          "categories": [
+            "startup_phases"
+          ],
+          "observed": true,
+          "ok": true
+        }
+      }
+    },
+    "provider_module_contract": {
+      "active_module": {
+        "api_surfaces": [
+          {
+            "evidence": [
+              "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/offers.py",
+              "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/instances.py"
+            ],
+            "operations": [
+              "search_offers",
+              "create_instance",
+              "show_instances",
+              "execute",
+              "copy",
+              "destroy_instance"
+            ],
+            "surface": "vast_cli_api"
+          }
+        ],
+        "canary_requirements": [
+          "search_offer",
+          "create_instance",
+          "ssh_ready",
+          "boot_marker_check",
+          "gpu_cuda_check",
+          "small_workload",
+          "destroy_instance",
+          "no_active_matching_instance",
+          "billing_snapshot"
+        ],
+        "cost_model": [
+          "offer_dph",
+          "disk_gb",
+          "copy_transfer",
+          "billing_charge_snapshot"
+        ],
+        "execution_semantics": "offer_selected_instance_lifecycle",
+        "module_id": "vast_instance",
+        "parent_provider": "vast",
+        "resource_model": "market_instance",
+        "status_model": {
+          "boot_sequence_source": "vast base-image vast_boot.d and provisioning manifest",
+          "evidence": [
+            "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/etc/vast_boot.d",
+            "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/opt/instance-tools/lib/provisioner/manifest.py"
+          ],
+          "resource_status_source": "instance status from show_instances",
+          "terminal_states": []
+        },
+        "workspace_paths": [
+          "/workspace"
+        ]
+      },
+      "active_module_id": "vast_instance",
+      "available_module_ids": [
+        "vast_instance",
+        "vast_pyworker_serverless"
+      ],
+      "available_modules": [
+        {
+          "api_surfaces": [
+            {
+              "evidence": [
+                "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/offers.py",
+                "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/instances.py"
+              ],
+              "operations": [
+                "search_offers",
+                "create_instance",
+                "show_instances",
+                "execute",
+                "copy",
+                "destroy_instance"
+              ],
+              "surface": "vast_cli_api"
+            }
+          ],
+          "canary_requirements": [
+            "search_offer",
+            "create_instance",
+            "ssh_ready",
+            "boot_marker_check",
+            "gpu_cuda_check",
+            "small_workload",
+            "destroy_instance",
+            "no_active_matching_instance",
+            "billing_snapshot"
+          ],
+          "cost_model": [
+            "offer_dph",
+            "disk_gb",
+            "copy_transfer",
+            "billing_charge_snapshot"
+          ],
+          "execution_semantics": "offer_selected_instance_lifecycle",
+          "module_id": "vast_instance",
+          "parent_provider": "vast",
+          "resource_model": "market_instance",
+          "status_model": {
+            "boot_sequence_source": "vast base-image vast_boot.d and provisioning manifest",
+            "evidence": [
+              "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/etc/vast_boot.d",
+              "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/opt/instance-tools/lib/provisioner/manifest.py"
+            ],
+            "resource_status_source": "instance status from show_instances",
+            "terminal_states": []
+          },
+          "workspace_paths": [
+            "/workspace"
+          ]
+        },
+        {
+          "api_surfaces": [
+            {
+              "evidence": [
+                "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/endpoints.py",
+                "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/data/workergroup.py"
+              ],
+              "operations": [
+                "create_endpoint",
+                "create_workergroup",
+                "worker_status",
+                "logs",
+                "delete_workergroup",
+                "delete_endpoint"
+              ],
+              "surface": "vast_endpoint_workergroup"
+            },
+            {
+              "evidence": [
+                "tasks/research/vast-ai-org/repos/vast-ai__pyworker/workers/comfyui-json/worker.py",
+                "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/serverless/server/lib/backend.py",
+                "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/serverless/server/lib/metrics.py"
+              ],
+              "operations": [
+                "healthcheck",
+                "handler_route",
+                "benchmark",
+                "metrics",
+                "log_action_config"
+              ],
+              "surface": "pyworker"
+            }
+          ],
+          "canary_requirements": [
+            "endpoint_create",
+            "workergroup_create",
+            "worker_loading_ready",
+            "healthcheck",
+            "log_action_match",
+            "benchmark",
+            "request",
+            "delete_endpoint_workergroup",
+            "orphan_instance_check",
+            "billing_snapshot"
+          ],
+          "cost_model": [
+            "serverless_worker_runtime",
+            "endpoint_residue",
+            "workergroup_residue",
+            "billing_charge_snapshot"
+          ],
+          "execution_semantics": "endpoint_workergroup_autoscaled_worker",
+          "module_id": "vast_pyworker_serverless",
+          "parent_provider": "vast",
+          "resource_model": "endpoint_workergroup_pyworker",
+          "status_model": {
+            "evidence": [
+              "tasks/research/vast-ai-org/repos/vast-ai__docs/documentation/serverless/worker-states.mdx"
+            ],
+            "terminal_states": [],
+            "worker_states": [
+              "Ready",
+              "Loading",
+              "Inactive",
+              "Destroying",
+              "Error",
+              "Rebooting",
+              "Creating",
+              "Starting",
+              "Stopping",
+              "Updating"
+            ]
+          },
+          "workspace_paths": [
+            "/workspace"
+          ]
+        }
+      ],
+      "parent_provider": "vast",
+      "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+      "requested_module_id": "vast_instance",
+      "selection": {
+        "mode": "metadata_requested_or_parent_default",
+        "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+        "requested_module_valid": true,
+        "routing_by_module_enabled": false
+      }
+    },
+    "provider_module_probe_name": "vast_instance.instance_smoke.cuda",
+    "recorded_at": 1777088401,
+    "spec": {
+      "cache_required": false,
+      "expected_image": "nvidia/cuda:12.4.1-base-ubuntu22.04",
+      "expected_image_digest": "",
+      "expected_model": "",
+      "forbidden_models": [],
+      "gpu_profile": "smoke",
+      "job_type": "smoke",
+      "probe_name": "vast.instance_smoke.cuda",
+      "provider": "vast",
+      "provider_module_id": "vast_instance",
+      "require_gpu_utilization": true,
+      "required_files": [
+        "result.json",
+        "metrics.json",
+        "verify.json",
+        "stdout.log",
+        "stderr.log"
+      ],
+      "workload_family": "smoke"
+    },
+    "submit_result": {
+      "error": "",
+      "exit_code": 0,
+      "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+      "ok": true,
+      "post_submit_guard": {
+        "capacity": {
+          "active_total": 0,
+          "by_job_type": {
+            "asr": {
+              "failed": 30,
+              "planned": 1,
+              "succeeded": 8
+            },
+            "cpu_workflow_helper": {
+              "succeeded": 1
+            },
+            "embedding": {
+              "failed": 1,
+              "succeeded": 6
+            },
+            "llm_heavy": {
+              "cancelled": 1,
+              "failed": 148,
+              "succeeded": 100
+            },
+            "pdf_ocr": {
+              "succeeded": 2
+            },
+            "smoke": {
+              "cancelled": 1,
+              "failed": 6,
+              "succeeded": 12
+            },
+            "vlm_ocr": {
+              "failed": 74,
+              "succeeded": 38
+            }
+          },
+          "counts": {
+            "cancelled": 2,
+            "failed": 259,
+            "planned": 1,
+            "succeeded": 167
+          },
+          "flattened_provider_limits": {
+            "local:*": 1,
+            "modal:*": 1,
+            "modal:asr": 2,
+            "modal:asr_diarization": 1,
+            "modal:llm_heavy": 1,
+            "modal:vlm_ocr": 1,
+            "ollama:*": 1,
+            "ollama:embedding": 1,
+            "ollama:llm_heavy": 1,
+            "ollama:vlm_ocr": 1,
+            "runpod:*": 1,
+            "runpod:asr": 2,
+            "runpod:llm_heavy": 1,
+            "vast:*": 1,
+            "vast:asr": 1,
+            "vast:asr_diarization": 1
+          },
+          "ok": true,
+          "provider_limits": {
+            "local": {
+              "*": 1
+            },
+            "modal": {
+              "*": 1,
+              "asr": 2,
+              "asr_diarization": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "ollama": {
+              "*": 1,
+              "embedding": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "runpod": {
+              "*": 1,
+              "asr": 2,
+              "llm_heavy": 1
+            },
+            "vast": {
+              "*": 1,
+              "asr": 1,
+              "asr_diarization": 1
+            }
+          },
+          "providers": {
+            "local:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "local",
+              "provider_profile_key": "local:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:embedding": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "embedding",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:embedding",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            }
+          },
+          "queued_total": 0
+        },
+        "estimated_hourly_usd": 0.0,
+        "ok": true,
+        "providers": {
+          "vast": {
+            "billable_resources": [],
+            "estimated_hourly_usd": 0.0,
+            "ok": true,
+            "provider": "vast",
+            "reason": "no Vast.ai billable resources"
+          }
+        },
+        "resource": {
+          "ok": true,
+          "reason": "local resource guard not applicable to selected remote providers",
+          "skipped": true
+        }
+      },
+      "pre_submit_guard": {
+        "capacity": {
+          "active_total": 0,
+          "by_job_type": {
+            "asr": {
+              "failed": 30,
+              "planned": 1,
+              "succeeded": 8
+            },
+            "cpu_workflow_helper": {
+              "succeeded": 1
+            },
+            "embedding": {
+              "failed": 1,
+              "succeeded": 6
+            },
+            "llm_heavy": {
+              "cancelled": 1,
+              "failed": 147,
+              "succeeded": 100
+            },
+            "pdf_ocr": {
+              "succeeded": 2
+            },
+            "smoke": {
+              "cancelled": 1,
+              "failed": 6,
+              "succeeded": 11
+            },
+            "vlm_ocr": {
+              "failed": 74,
+              "succeeded": 38
+            }
+          },
+          "counts": {
+            "cancelled": 2,
+            "failed": 258,
+            "planned": 1,
+            "succeeded": 166
+          },
+          "flattened_provider_limits": {
+            "local:*": 1,
+            "modal:*": 1,
+            "modal:asr": 2,
+            "modal:asr_diarization": 1,
+            "modal:llm_heavy": 1,
+            "modal:vlm_ocr": 1,
+            "ollama:*": 1,
+            "ollama:embedding": 1,
+            "ollama:llm_heavy": 1,
+            "ollama:vlm_ocr": 1,
+            "runpod:*": 1,
+            "runpod:asr": 2,
+            "runpod:llm_heavy": 1,
+            "vast:*": 1,
+            "vast:asr": 1,
+            "vast:asr_diarization": 1
+          },
+          "ok": true,
+          "provider_limits": {
+            "local": {
+              "*": 1
+            },
+            "modal": {
+              "*": 1,
+              "asr": 2,
+              "asr_diarization": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "ollama": {
+              "*": 1,
+              "embedding": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "runpod": {
+              "*": 1,
+              "asr": 2,
+              "llm_heavy": 1
+            },
+            "vast": {
+              "*": 1,
+              "asr": 1,
+              "asr_diarization": 1
+            }
+          },
+          "providers": {
+            "local:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "local",
+              "provider_profile_key": "local:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:embedding": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "embedding",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:embedding",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            }
+          },
+          "queued_total": 0
+        },
+        "estimated_hourly_usd": 0.0,
+        "ok": true,
+        "providers": {
+          "vast": {
+            "billable_resources": [],
+            "estimated_hourly_usd": 0.0,
+            "ok": true,
+            "provider": "vast",
+            "reason": "no Vast.ai billable resources"
+          }
+        },
+        "resource": {
+          "ok": true,
+          "reason": "local resource guard not applicable to selected remote providers",
+          "skipped": true
+        }
+      },
+      "provider": "vast",
+      "provider_job_id": "35559640",
+      "status": "succeeded"
+    },
+    "verdict": "pass",
+    "workload_family": "smoke"
+  },
+  "submit_result": {
+    "error": "",
+    "job": {
+      "artifact_bytes": 4256,
+      "artifact_count": 7,
+      "created_at": 1777088288,
+      "error": "",
+      "exit_code": 0,
+      "finished_at": 1777088394,
+      "gpu_profile": "smoke",
+      "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+      "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+      "job_type": "smoke",
+      "limits": {
+        "max_cost_usd": 0.25,
+        "max_runtime_minutes": 6,
+        "max_startup_seconds": 240
+      },
+      "metadata": {
+        "allow_vast_direct_instance_smoke": true,
+        "capability_result": {
+          "capability": {
+            "asr": true,
+            "job_types": [
+              "smoke",
+              "asr",
+              "vlm_ocr"
+            ],
+            "max_input_tokens": 200000,
+            "provider": "vast",
+            "quality_tier": "external_gpu",
+            "vision": true
+          },
+          "capability_version": "gpu-job-capability-v1",
+          "checks": {
+            "asr_ok": true,
+            "job_type_ok": true,
+            "quality_ok": true,
+            "tokens_ok": true,
+            "vision_ok": true
+          },
+          "estimated_input_tokens": 10,
+          "model": "",
+          "model_key": "vast:default",
+          "ok": true,
+          "provider": "vast",
+          "reason": "model capability accepted",
+          "registered": true
+        },
+        "capacity_reservation": {
+          "active_before": 0,
+          "max_concurrent": 1,
+          "ok": true,
+          "provider": "vast",
+          "queued_before": 0
+        },
+        "circuit": {
+          "circuit_version": "gpu-job-circuit-v1",
+          "error_classes": {},
+          "failure_count": 0,
+          "failure_rate": 0.0,
+          "half_open_probe_allowed": false,
+          "latest_sample_status": null,
+          "latest_success_after_failure": false,
+          "latest_success_is_circuit_probe": false,
+          "ok": true,
+          "provider": "vast",
+          "rate_limit_failure_count": 0,
+          "retryable_failure_count": 0,
+          "sample_count": 0,
+          "state": "closed",
+          "window_seconds": 900
+        },
+        "compliance_result": {
+          "allowed_regions": [],
+          "compliance_version": "gpu-job-compliance-v1",
+          "data_classification": "unspecified",
+          "ok": true,
+          "prohibited_providers": [],
+          "provider": "vast",
+          "provider_ok": true,
+          "provider_region": "external",
+          "residency_ok": true
+        },
+        "contract_probe": {
+          "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+          "probe_name": "vast.instance_smoke.cuda",
+          "provider": "vast",
+          "provider_module_id": "vast_instance"
+        },
+        "cost_result": {
+          "budget_usd": 0.25,
+          "cost_version": "gpu-job-cost-v1",
+          "cross_region_transfer": false,
+          "estimated_artifact_gb": 0.0,
+          "estimated_egress_cost_usd": 0.0,
+          "estimated_runtime_cost_usd": 0.0,
+          "estimated_storage_month_cost_usd": 0.0,
+          "estimated_total_cost_usd": 0.0,
+          "ok": true
+        },
+        "decision_hash": "69fb65bf65448781e053e5d1ccee207bd4e0935959c7cc99cc4966d550d13322",
+        "execute_requested": true,
+        "execution_record": {
+          "path": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-smoke-20260425-123808-7c856645/execution_record.json",
+          "record_hash": "73b2cab1c4cb8d81ea319458bd560d83cf1aebe4b39e5c472f0f6356364aaf35",
+          "record_id": "exec-73b2cab1c4cb8d81"
+        },
+        "final_artifact_verify": {
+          "application_verify": {
+            "missing": [],
+            "ok": true,
+            "required": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ]
+          },
+          "artifact_bytes": 4256,
+          "artifact_count": 7,
+          "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-smoke-20260425-123808-7c856645",
+          "hardware_verify": {
+            "execution_class": "gpu",
+            "ok": true,
+            "reason": "gpu utilization evidence present"
+          },
+          "json_valid": {
+            "metrics.json": true,
+            "result.json": true,
+            "verify.json": true
+          },
+          "manifest": {
+            "manifest_present": true,
+            "mismatched": [],
+            "missing": [],
+            "ok": true
+          },
+          "missing": [],
+          "ok": true,
+          "require_gpu_utilization": true,
+          "require_manifest": true,
+          "required": [
+            "result.json",
+            "metrics.json",
+            "verify.json",
+            "stdout.log",
+            "stderr.log"
+          ]
+        },
+        "hardware_verification": {
+          "require_gpu_utilization": true
+        },
+        "input": {
+          "max_tokens": 32,
+          "prompt": "Return exactly: GPU_JOB_CONTRACT_PROBE_OK"
+        },
+        "min_compute_cap": 750,
+        "min_vram_gb": 16,
+        "model_requirements": {
+          "min_quality_tier": "external_gpu",
+          "smoke": true
+        },
+        "placement_result": {
+          "exclusive_gpu": false,
+          "fractional_gpu": null,
+          "fractional_ok": true,
+          "gpu_count": 1.0,
+          "multi_gpu_ok": true,
+          "ok": true,
+          "placement_version": "gpu-job-placement-v1",
+          "provider": "vast",
+          "provider_support": {
+            "fractional": false,
+            "multi_gpu": true
+          }
+        },
+        "policy_validation": {
+          "errors": [],
+          "exceptions": {
+            "active": [],
+            "errors": [],
+            "expired": [],
+            "ok": true
+          },
+          "ok": true,
+          "policy_engine_version": "gpu-job-policy-v1",
+          "policy_hash": "48a3aad19251da57994681da011e5464c611f6691a2b1a0e032e16ad34259554"
+        },
+        "post_submit_guard": {
+          "capacity": {
+            "active_total": 0,
+            "by_job_type": {
+              "asr": {
+                "failed": 30,
+                "planned": 1,
+                "succeeded": 8
+              },
+              "cpu_workflow_helper": {
+                "succeeded": 1
+              },
+              "embedding": {
+                "failed": 1,
+                "succeeded": 6
+              },
+              "llm_heavy": {
+                "cancelled": 1,
+                "failed": 148,
+                "succeeded": 100
+              },
+              "pdf_ocr": {
+                "succeeded": 2
+              },
+              "smoke": {
+                "cancelled": 1,
+                "failed": 6,
+                "succeeded": 12
+              },
+              "vlm_ocr": {
+                "failed": 74,
+                "succeeded": 38
+              }
+            },
+            "counts": {
+              "cancelled": 2,
+              "failed": 259,
+              "planned": 1,
+              "succeeded": 167
+            },
+            "flattened_provider_limits": {
+              "local:*": 1,
+              "modal:*": 1,
+              "modal:asr": 2,
+              "modal:asr_diarization": 1,
+              "modal:llm_heavy": 1,
+              "modal:vlm_ocr": 1,
+              "ollama:*": 1,
+              "ollama:embedding": 1,
+              "ollama:llm_heavy": 1,
+              "ollama:vlm_ocr": 1,
+              "runpod:*": 1,
+              "runpod:asr": 2,
+              "runpod:llm_heavy": 1,
+              "vast:*": 1,
+              "vast:asr": 1,
+              "vast:asr_diarization": 1
+            },
+            "ok": true,
+            "provider_limits": {
+              "local": {
+                "*": 1
+              },
+              "modal": {
+                "*": 1,
+                "asr": 2,
+                "asr_diarization": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "ollama": {
+                "*": 1,
+                "embedding": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "runpod": {
+                "*": 1,
+                "asr": 2,
+                "llm_heavy": 1
+              },
+              "vast": {
+                "*": 1,
+                "asr": 1,
+                "asr_diarization": 1
+              }
+            },
+            "providers": {
+              "local:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "local",
+                "provider_profile_key": "local:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:embedding": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "embedding",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:embedding",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              }
+            },
+            "queued_total": 0
+          },
+          "estimated_hourly_usd": 0.0,
+          "ok": true,
+          "providers": {
+            "vast": {
+              "billable_resources": [],
+              "estimated_hourly_usd": 0.0,
+              "ok": true,
+              "provider": "vast",
+              "reason": "no Vast.ai billable resources"
+            }
+          },
+          "resource": {
+            "ok": true,
+            "reason": "local resource guard not applicable to selected remote providers",
+            "skipped": true
+          }
+        },
+        "pre_submit_guard": {
+          "capacity": {
+            "active_total": 0,
+            "by_job_type": {
+              "asr": {
+                "failed": 30,
+                "planned": 1,
+                "succeeded": 8
+              },
+              "cpu_workflow_helper": {
+                "succeeded": 1
+              },
+              "embedding": {
+                "failed": 1,
+                "succeeded": 6
+              },
+              "llm_heavy": {
+                "cancelled": 1,
+                "failed": 147,
+                "succeeded": 100
+              },
+              "pdf_ocr": {
+                "succeeded": 2
+              },
+              "smoke": {
+                "cancelled": 1,
+                "failed": 6,
+                "succeeded": 11
+              },
+              "vlm_ocr": {
+                "failed": 74,
+                "succeeded": 38
+              }
+            },
+            "counts": {
+              "cancelled": 2,
+              "failed": 258,
+              "planned": 1,
+              "succeeded": 166
+            },
+            "flattened_provider_limits": {
+              "local:*": 1,
+              "modal:*": 1,
+              "modal:asr": 2,
+              "modal:asr_diarization": 1,
+              "modal:llm_heavy": 1,
+              "modal:vlm_ocr": 1,
+              "ollama:*": 1,
+              "ollama:embedding": 1,
+              "ollama:llm_heavy": 1,
+              "ollama:vlm_ocr": 1,
+              "runpod:*": 1,
+              "runpod:asr": 2,
+              "runpod:llm_heavy": 1,
+              "vast:*": 1,
+              "vast:asr": 1,
+              "vast:asr_diarization": 1
+            },
+            "ok": true,
+            "provider_limits": {
+              "local": {
+                "*": 1
+              },
+              "modal": {
+                "*": 1,
+                "asr": 2,
+                "asr_diarization": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "ollama": {
+                "*": 1,
+                "embedding": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "runpod": {
+                "*": 1,
+                "asr": 2,
+                "llm_heavy": 1
+              },
+              "vast": {
+                "*": 1,
+                "asr": 1,
+                "asr_diarization": 1
+              }
+            },
+            "providers": {
+              "local:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "local",
+                "provider_profile_key": "local:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:embedding": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "embedding",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:embedding",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              }
+            },
+            "queued_total": 0
+          },
+          "estimated_hourly_usd": 0.0,
+          "ok": true,
+          "providers": {
+            "vast": {
+              "billable_resources": [],
+              "estimated_hourly_usd": 0.0,
+              "ok": true,
+              "provider": "vast",
+              "reason": "no Vast.ai billable resources"
+            }
+          },
+          "resource": {
+            "ok": true,
+            "reason": "local resource guard not applicable to selected remote providers",
+            "skipped": true
+          }
+        },
+        "preemption_result": {
+          "checkpoint_artifact": null,
+          "checkpoint_ok": false,
+          "checkpoint_path": null,
+          "ok": true,
+          "preemptible": false,
+          "preemption_version": "gpu-job-preemption-v1",
+          "resume_allowed": false
+        },
+        "provenance_result": {
+          "attestation": {
+            "ok": true,
+            "reason": "attestation not required",
+            "required": false
+          },
+          "attestation_required": false,
+          "image_digest": null,
+          "image_pinned": false,
+          "model_pinned": true,
+          "model_weights_hash": null,
+          "ok": true,
+          "provenance_version": "gpu-job-provenance-v1",
+          "strict": false
+        },
+        "provider_plan": {
+          "execution_plan": {
+            "artifact_contract": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ],
+            "command": [
+              "gpu-job-worker",
+              "--job-id",
+              "contract-probe-smoke-20260425-123808-7c856645",
+              "--artifact-dir",
+              "/workspace/artifacts",
+              "--gpu-profile",
+              "smoke",
+              "--input-uri",
+              "<staged-input-path>",
+              "--provider",
+              "vast"
+            ],
+            "command_shape": {
+              "entrypoint_is_command_argv0": true,
+              "tokenized": true
+            },
+            "entrypoint": "gpu-job-worker",
+            "execution_plan_version": "gpu-job-execution-plan-v1",
+            "gpu_profile": "smoke",
+            "image_contract": {
+              "contract": {},
+              "contract_id": "",
+              "ok": true,
+              "reason": "",
+              "required_backends": [],
+              "status": "not_required"
+            },
+            "image_distribution": {},
+            "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+            "job_type": "smoke",
+            "provider": "vast",
+            "provider_image": "",
+            "provider_support_contract": {
+              "basis": {
+                "canary_executable": "provider is allowed only for explicit canary or controlled routes unless promoted",
+                "catalog_routable": "provider has at least one catalog-supported job type",
+                "production_route": "provider may be selected by normal planning for its supported job types",
+                "registered": "adapter or policy entry is present in the generated provider catalog"
+              },
+              "highest_support_level": "canary_executable",
+              "is_cloud_gpu_provider": true,
+              "levels": {
+                "canary_executable": true,
+                "catalog_routable": true,
+                "production_route": false,
+                "registered": true
+              },
+              "provider_region": "external",
+              "support_contract_version": "gpu-job-provider-support-contract-v1"
+            },
+            "required_backends": [],
+            "secret_refs": [],
+            "staging": {
+              "artifact_dir_binding": "provider_adapter_must_bind_to_workspace_plan_or_store_artifact_dir",
+              "artifact_dir_placeholder": "/workspace/artifacts",
+              "input_mode": "staged_input_path",
+              "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+              "staged_input_placeholder": "<staged-input-path>"
+            },
+            "worker_image": "nvidia/cuda:12.4.1-base-ubuntu22.04"
+          },
+          "gpu_profile": "smoke",
+          "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+          "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+          "mode": "instance/serverless plan",
+          "notes": [
+            "v0 does not launch paid instances automatically.",
+            "Serverless creation still creates account resources; guard must be clean before and after.",
+            "Use docker/asr-worker.Dockerfile for ASR templates unless a provider-specific image is supplied.",
+            "Prefer explicit max dollars per hour and max runtime guards."
+          ],
+          "output_uri": "local://contract-probes/contract-probe-smoke-20260425-123808-7c856645",
+          "provider": "vast",
+          "serverless": {
+            "configured_contract": {
+              "cold_workers": 0,
+              "endpoint_name": "gpu-job-smoke-smoke",
+              "expected_image": "nvidia/cuda:12.4.1-base-ubuntu22.04",
+              "expected_model": "",
+              "max_workers": 1,
+              "template_hash": "",
+              "test_workers": 0,
+              "workergroup_id": ""
+            },
+            "cost_guard_policy": [
+              "cold_workers must be 0 for no-warm-capacity canaries.",
+              "max_workers must start at 1.",
+              "gpu-job guard treats any endpoint/workergroup as a blocking resource until it is deleted."
+            ],
+            "create_endpoint_command": [
+              "vastai",
+              "create",
+              "endpoint",
+              "--endpoint_name",
+              "gpu-job-smoke-smoke",
+              "--cold_workers",
+              "0",
+              "--max_workers",
+              "1",
+              "--inactivity_timeout",
+              "60",
+              "--max_queue_time",
+              "30",
+              "--target_queue_time",
+              "10",
+              "--raw"
+            ],
+            "create_workergroup_command_template": [
+              "vastai",
+              "create",
+              "workergroup",
+              "--endpoint_name",
+              "gpu-job-smoke-smoke",
+              "--template_hash",
+              "<template-hash-required>",
+              "--test_workers",
+              "0",
+              "--cold_workers",
+              "0",
+              "--search_params",
+              "gpu_ram>=16 compute_cap>=750 num_gpus=1 rented=False reliability>0.95",
+              "--raw"
+            ],
+            "endpoint_name": "gpu-job-smoke-smoke",
+            "worker_contract": {
+              "artifact_contract": [
+                "result.json",
+                "metrics.json",
+                "verify.json",
+                "stdout.log",
+                "stderr.log"
+              ],
+              "command_template": [
+                "gpu-job-worker",
+                "--job-id",
+                "contract-probe-smoke-20260425-123808-7c856645",
+                "--artifact-dir",
+                "/workspace/artifacts",
+                "--gpu-profile",
+                "smoke",
+                "--input-uri",
+                "<staged-input-path>",
+                "--provider",
+                "vast"
+              ],
+              "dockerfile": "docker/asr-worker.Dockerfile",
+              "entrypoint": "gpu-job-worker"
+            }
+          },
+          "worker_image": "nvidia/cuda:12.4.1-base-ubuntu22.04"
+        },
+        "quota_result": {
+          "estimated_cost_usd": 0.0,
+          "global_budget_usd": 50.0,
+          "global_ok": true,
+          "global_remaining_usd": 50.0,
+          "global_used_usd": 0.0,
+          "ok": true,
+          "quota_version": "gpu-job-quota-v1",
+          "source_budget_usd": 10.0,
+          "source_ok": true,
+          "source_remaining_usd": 10.0,
+          "source_system": "contract-probe",
+          "source_used_usd": 0.0
+        },
+        "route_explanation": "selected provider 'vast' for gpu_profile 'smoke' from candidates [vast]. reason: provider explicitly requested",
+        "route_result": {
+          "selected_provider": "vast"
+        },
+        "routing": {
+          "estimated_gpu_runtime_seconds": 120,
+          "quality_requires_gpu": true
+        },
+        "secret_result": {
+          "allowed_secret_refs": [],
+          "denied_secret_refs": [],
+          "ok": true,
+          "requested_secret_refs": [],
+          "scope": "vast:contract-probe:smoke",
+          "secret_policy_version": "gpu-job-secret-policy-v1"
+        },
+        "selected_provider": "vast",
+        "source_system": "contract-probe",
+        "startup_started_at": 1777088297,
+        "timeout_contract": {
+          "max_runtime_seconds": 360,
+          "ok": true,
+          "source": "job.limits",
+          "timeout_version": "gpu-job-timeout-v1"
+        },
+        "timeout_result": {
+          "error": "",
+          "max_runtime_seconds": 360,
+          "ok": true,
+          "runtime_seconds": 91,
+          "timeout_version": "gpu-job-timeout-v1"
+        },
+        "timing_v2": {
+          "append_only": true,
+          "clock": "unix_time_seconds",
+          "events": [
+            {
+              "at": 1777088288.0,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000001",
+              "phase": "received",
+              "seq": 1
+            },
+            {
+              "at": 1777088288.697,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000002",
+              "phase": "validated",
+              "provider": "vast",
+              "seq": 2
+            },
+            {
+              "at": 1777088289.25,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000003",
+              "phase": "validated",
+              "provider": "vast",
+              "seq": 3,
+              "status": "ok"
+            },
+            {
+              "at": 1777088289.25,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000004",
+              "phase": "planned",
+              "provider": "vast",
+              "seq": 4,
+              "status": "ok"
+            },
+            {
+              "at": 1777088296.467,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000005",
+              "phase": "reserving_workspace",
+              "provider": "vast",
+              "seq": 5
+            },
+            {
+              "at": 1777088296.758,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000006",
+              "phase": "reserving_workspace",
+              "provider": "vast",
+              "seq": 6,
+              "status": "ok"
+            },
+            {
+              "at": 1777088297.756,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000007",
+              "phase": "reserving_workspace",
+              "provider": "vast",
+              "seq": 7
+            },
+            {
+              "at": 1777088298.726,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000008",
+              "phase": "reserving_workspace",
+              "provider": "vast",
+              "seq": 8,
+              "status": "ok"
+            },
+            {
+              "at": 1777088298.727,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000009",
+              "phase": "image_materialization",
+              "provider": "vast",
+              "seq": 9
+            },
+            {
+              "at": 1777088303.348,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000010",
+              "phase": "image_materialization",
+              "provider": "vast",
+              "seq": 10,
+              "status": "ready"
+            },
+            {
+              "at": 1777088303.349,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000011",
+              "phase": "starting_worker",
+              "provider": "vast",
+              "seq": 11,
+              "status": "ok"
+            },
+            {
+              "at": 1777088303.35,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000012",
+              "phase": "running_worker",
+              "provider": "vast",
+              "seq": 12
+            },
+            {
+              "at": 1777088391.8,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000013",
+              "phase": "running_worker",
+              "provider": "vast",
+              "seq": 13,
+              "status": "ok"
+            },
+            {
+              "at": 1777088391.801,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000014",
+              "phase": "collecting_artifacts",
+              "provider": "vast",
+              "seq": 14
+            },
+            {
+              "at": 1777088391.802,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000015",
+              "phase": "collecting_artifacts",
+              "provider": "vast",
+              "seq": 15,
+              "status": "ok"
+            },
+            {
+              "at": 1777088391.803,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000016",
+              "phase": "cleaning_up",
+              "provider": "vast",
+              "seq": 16
+            },
+            {
+              "at": 1777088394.123,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000017",
+              "phase": "cleaning_up",
+              "provider": "vast",
+              "seq": 17,
+              "status": "ok"
+            },
+            {
+              "at": 1777088401.044,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000018",
+              "phase": "verifying",
+              "provider": "vast",
+              "seq": 18
+            },
+            {
+              "at": 1777088401.045,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000019",
+              "phase": "verifying",
+              "provider": "vast",
+              "seq": 19,
+              "status": "ok"
+            },
+            {
+              "at": 1777088401.046,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000020",
+              "phase": "succeeded",
+              "provider": "vast",
+              "seq": 20,
+              "status": "succeeded"
+            }
+          ],
+          "version": "gpu-job-timing-v2"
+        },
+        "total_elapsed_seconds": 97,
+        "trace": {
+          "span_id": "38c679f147374a5f",
+          "telemetry_schema_version": "gpu-job-telemetry-v1",
+          "trace_id": "ce25dd91f29d4e90bc847d40ffb0da03"
+        },
+        "vast_created_ids": [
+          "35559640"
+        ],
+        "vast_destroy_results": [
+          {
+            "exit_code": 0,
+            "id": "35559640",
+            "stderr": "",
+            "stdout": ""
+          }
+        ],
+        "vast_instance_label": "gpu-job:contract-probe-smoke-20260425-123808-7c856645",
+        "vast_lifecycle_evidence": {
+          "create_detection": "label_poll",
+          "instance_id": "35559640",
+          "label": "gpu-job:contract-probe-smoke-20260425-123808-7c856645",
+          "last_known_vast_state": "running",
+          "offer_id": "28576017"
+        },
+        "vast_offer": {
+          "compute_cap": 1200,
+          "cuda_max_good": 13.0,
+          "disk_space_gb": 335.8625,
+          "dph_total": 0.07611111111111112,
+          "geolocation": "California, US",
+          "gpu_name": "RTX 5060 Ti",
+          "gpu_ram_mb": 16311,
+          "id": 28576017,
+          "reliability": 0.9981523
+        },
+        "worker_started_at": 1777088303,
+        "workspace_plan": {
+          "catalog_snapshot_id": "cat-1f8eb449c91a623f",
+          "catalog_version": "gpu-job-provider-catalog-v1",
+          "created_at": 1777088289,
+          "decision": "ready",
+          "execution_plan": {
+            "artifact_contract": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ],
+            "command": [
+              "gpu-job-worker",
+              "--job-id",
+              "contract-probe-smoke-20260425-123808-7c856645",
+              "--artifact-dir",
+              "/workspace/artifacts",
+              "--gpu-profile",
+              "smoke",
+              "--input-uri",
+              "<staged-input-path>",
+              "--provider",
+              "vast"
+            ],
+            "command_shape": {
+              "entrypoint_is_command_argv0": true,
+              "tokenized": true
+            },
+            "entrypoint": "gpu-job-worker",
+            "execution_plan_version": "gpu-job-execution-plan-v1",
+            "gpu_profile": "smoke",
+            "image_contract": {
+              "contract": {},
+              "contract_id": "",
+              "ok": true,
+              "reason": "",
+              "required_backends": [],
+              "status": "not_required"
+            },
+            "image_distribution": {},
+            "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+            "job_type": "smoke",
+            "provider": "vast",
+            "provider_image": "",
+            "provider_support_contract": {
+              "basis": {
+                "canary_executable": "provider is allowed only for explicit canary or controlled routes unless promoted",
+                "catalog_routable": "provider has at least one catalog-supported job type",
+                "production_route": "provider may be selected by normal planning for its supported job types",
+                "registered": "adapter or policy entry is present in the generated provider catalog"
+              },
+              "highest_support_level": "canary_executable",
+              "is_cloud_gpu_provider": true,
+              "levels": {
+                "canary_executable": true,
+                "catalog_routable": true,
+                "production_route": false,
+                "registered": true
+              },
+              "provider_region": "external",
+              "support_contract_version": "gpu-job-provider-support-contract-v1"
+            },
+            "required_backends": [],
+            "secret_refs": [],
+            "staging": {
+              "artifact_dir_binding": "provider_adapter_must_bind_to_workspace_plan_or_store_artifact_dir",
+              "artifact_dir_placeholder": "/workspace/artifacts",
+              "input_mode": "staged_input_path",
+              "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+              "staged_input_placeholder": "<staged-input-path>"
+            },
+            "worker_image": "nvidia/cuda:12.4.1-base-ubuntu22.04"
+          },
+          "gpu_profile": "smoke",
+          "image_contract": {
+            "contract": {},
+            "contract_id": "",
+            "ok": true,
+            "reason": "",
+            "required_backends": [],
+            "status": "not_required"
+          },
+          "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+          "job_type": "smoke",
+          "provider": "vast",
+          "provider_capability": {
+            "cache_state": null,
+            "estimated_startup_seconds": null,
+            "provider": "vast",
+            "supported_job_types": [
+              "asr",
+              "smoke"
+            ],
+            "warm_state": null
+          },
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "evidence": [
+                    "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/offers.py",
+                    "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/instances.py"
+                  ],
+                  "operations": [
+                    "search_offers",
+                    "create_instance",
+                    "show_instances",
+                    "execute",
+                    "copy",
+                    "destroy_instance"
+                  ],
+                  "surface": "vast_cli_api"
+                }
+              ],
+              "canary_requirements": [
+                "search_offer",
+                "create_instance",
+                "ssh_ready",
+                "boot_marker_check",
+                "gpu_cuda_check",
+                "small_workload",
+                "destroy_instance",
+                "no_active_matching_instance",
+                "billing_snapshot"
+              ],
+              "cost_model": [
+                "offer_dph",
+                "disk_gb",
+                "copy_transfer",
+                "billing_charge_snapshot"
+              ],
+              "execution_semantics": "offer_selected_instance_lifecycle",
+              "module_id": "vast_instance",
+              "parent_provider": "vast",
+              "resource_model": "market_instance",
+              "status_model": {
+                "boot_sequence_source": "vast base-image vast_boot.d and provisioning manifest",
+                "evidence": [
+                  "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/etc/vast_boot.d",
+                  "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/opt/instance-tools/lib/provisioner/manifest.py"
+                ],
+                "resource_status_source": "instance status from show_instances",
+                "terminal_states": []
+              },
+              "workspace_paths": [
+                "/workspace"
+              ]
+            },
+            "active_module_id": "vast_instance",
+            "available_module_ids": [
+              "vast_instance",
+              "vast_pyworker_serverless"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/offers.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/instances.py"
+                    ],
+                    "operations": [
+                      "search_offers",
+                      "create_instance",
+                      "show_instances",
+                      "execute",
+                      "copy",
+                      "destroy_instance"
+                    ],
+                    "surface": "vast_cli_api"
+                  }
+                ],
+                "canary_requirements": [
+                  "search_offer",
+                  "create_instance",
+                  "ssh_ready",
+                  "boot_marker_check",
+                  "gpu_cuda_check",
+                  "small_workload",
+                  "destroy_instance",
+                  "no_active_matching_instance",
+                  "billing_snapshot"
+                ],
+                "cost_model": [
+                  "offer_dph",
+                  "disk_gb",
+                  "copy_transfer",
+                  "billing_charge_snapshot"
+                ],
+                "execution_semantics": "offer_selected_instance_lifecycle",
+                "module_id": "vast_instance",
+                "parent_provider": "vast",
+                "resource_model": "market_instance",
+                "status_model": {
+                  "boot_sequence_source": "vast base-image vast_boot.d and provisioning manifest",
+                  "evidence": [
+                    "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/etc/vast_boot.d",
+                    "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/opt/instance-tools/lib/provisioner/manifest.py"
+                  ],
+                  "resource_status_source": "instance status from show_instances",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace"
+                ]
+              },
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/endpoints.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/data/workergroup.py"
+                    ],
+                    "operations": [
+                      "create_endpoint",
+                      "create_workergroup",
+                      "worker_status",
+                      "logs",
+                      "delete_workergroup",
+                      "delete_endpoint"
+                    ],
+                    "surface": "vast_endpoint_workergroup"
+                  },
+                  {
+                    "evidence": [
+                      "tasks/research/vast-ai-org/repos/vast-ai__pyworker/workers/comfyui-json/worker.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/serverless/server/lib/backend.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/serverless/server/lib/metrics.py"
+                    ],
+                    "operations": [
+                      "healthcheck",
+                      "handler_route",
+                      "benchmark",
+                      "metrics",
+                      "log_action_config"
+                    ],
+                    "surface": "pyworker"
+                  }
+                ],
+                "canary_requirements": [
+                  "endpoint_create",
+                  "workergroup_create",
+                  "worker_loading_ready",
+                  "healthcheck",
+                  "log_action_match",
+                  "benchmark",
+                  "request",
+                  "delete_endpoint_workergroup",
+                  "orphan_instance_check",
+                  "billing_snapshot"
+                ],
+                "cost_model": [
+                  "serverless_worker_runtime",
+                  "endpoint_residue",
+                  "workergroup_residue",
+                  "billing_charge_snapshot"
+                ],
+                "execution_semantics": "endpoint_workergroup_autoscaled_worker",
+                "module_id": "vast_pyworker_serverless",
+                "parent_provider": "vast",
+                "resource_model": "endpoint_workergroup_pyworker",
+                "status_model": {
+                  "evidence": [
+                    "tasks/research/vast-ai-org/repos/vast-ai__docs/documentation/serverless/worker-states.mdx"
+                  ],
+                  "terminal_states": [],
+                  "worker_states": [
+                    "Ready",
+                    "Loading",
+                    "Inactive",
+                    "Destroying",
+                    "Error",
+                    "Rebooting",
+                    "Creating",
+                    "Starting",
+                    "Stopping",
+                    "Updating"
+                  ]
+                },
+                "workspace_paths": [
+                  "/workspace"
+                ]
+              }
+            ],
+            "parent_provider": "vast",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "provider_runtime": {},
+          "required_actions": [],
+          "required_backends": [],
+          "runtime_contract_probe": {
+            "contract_probe": "",
+            "ok": true,
+            "required": false,
+            "self_probe": false
+          },
+          "workspace": {
+            "artifact_dir": "/workspace/gpu-job-asr/out",
+            "cleanup_contract": "destroy_instance_or_serverless_scale_to_zero",
+            "input_staging": "scp_or_provider_payload",
+            "official_docs": [
+              "https://docs.vast.ai/documentation/instances/docker-environment"
+            ],
+            "workspace_kind": "direct_instance_or_serverless",
+            "workspace_modes": {
+              "direct_instance": {
+                "disk_rule": "disk allocation is static at creation time",
+                "entrypoint_warning": "ssh and jupyter launch modes inject setup scripts and replace the original image entrypoint",
+                "launch_modes": [
+                  "entrypoint",
+                  "ssh",
+                  "jupyter"
+                ],
+                "residue_check": "post-cleanup provider read must show no active matching instance",
+                "resource_model": "market_instance",
+                "timing_fields": [
+                  "offer_select_seconds",
+                  "reserve_seconds",
+                  "image_materialization_seconds",
+                  "ssh_ready_seconds",
+                  "execution_seconds",
+                  "cleanup_seconds"
+                ]
+              }
+            },
+            "workspace_root": "/workspace/gpu-job-asr"
+          },
+          "workspace_plan_id": "workspace-82db913f57393923",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        },
+        "workspace_record": {
+          "gpu_profile": "smoke",
+          "image_contract": {
+            "contract": {},
+            "contract_id": "",
+            "ok": true,
+            "reason": "",
+            "required_backends": [],
+            "status": "not_required"
+          },
+          "job_id": "contract-probe-smoke-20260425-123808-7c856645",
+          "path": "/home/admin/.local/share/gpu-job-control/workspaces/workspace-82db913f57393923.json",
+          "provider": "vast",
+          "provider_job_id": "35559640",
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "evidence": [
+                    "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/offers.py",
+                    "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/instances.py"
+                  ],
+                  "operations": [
+                    "search_offers",
+                    "create_instance",
+                    "show_instances",
+                    "execute",
+                    "copy",
+                    "destroy_instance"
+                  ],
+                  "surface": "vast_cli_api"
+                }
+              ],
+              "canary_requirements": [
+                "search_offer",
+                "create_instance",
+                "ssh_ready",
+                "boot_marker_check",
+                "gpu_cuda_check",
+                "small_workload",
+                "destroy_instance",
+                "no_active_matching_instance",
+                "billing_snapshot"
+              ],
+              "cost_model": [
+                "offer_dph",
+                "disk_gb",
+                "copy_transfer",
+                "billing_charge_snapshot"
+              ],
+              "execution_semantics": "offer_selected_instance_lifecycle",
+              "module_id": "vast_instance",
+              "parent_provider": "vast",
+              "resource_model": "market_instance",
+              "status_model": {
+                "boot_sequence_source": "vast base-image vast_boot.d and provisioning manifest",
+                "evidence": [
+                  "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/etc/vast_boot.d",
+                  "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/opt/instance-tools/lib/provisioner/manifest.py"
+                ],
+                "resource_status_source": "instance status from show_instances",
+                "terminal_states": []
+              },
+              "workspace_paths": [
+                "/workspace"
+              ]
+            },
+            "active_module_id": "vast_instance",
+            "available_module_ids": [
+              "vast_instance",
+              "vast_pyworker_serverless"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/offers.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/instances.py"
+                    ],
+                    "operations": [
+                      "search_offers",
+                      "create_instance",
+                      "show_instances",
+                      "execute",
+                      "copy",
+                      "destroy_instance"
+                    ],
+                    "surface": "vast_cli_api"
+                  }
+                ],
+                "canary_requirements": [
+                  "search_offer",
+                  "create_instance",
+                  "ssh_ready",
+                  "boot_marker_check",
+                  "gpu_cuda_check",
+                  "small_workload",
+                  "destroy_instance",
+                  "no_active_matching_instance",
+                  "billing_snapshot"
+                ],
+                "cost_model": [
+                  "offer_dph",
+                  "disk_gb",
+                  "copy_transfer",
+                  "billing_charge_snapshot"
+                ],
+                "execution_semantics": "offer_selected_instance_lifecycle",
+                "module_id": "vast_instance",
+                "parent_provider": "vast",
+                "resource_model": "market_instance",
+                "status_model": {
+                  "boot_sequence_source": "vast base-image vast_boot.d and provisioning manifest",
+                  "evidence": [
+                    "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/etc/vast_boot.d",
+                    "tasks/research/vast-ai-org/repos/vast-ai__base-image/ROOT/opt/instance-tools/lib/provisioner/manifest.py"
+                  ],
+                  "resource_status_source": "instance status from show_instances",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace"
+                ]
+              },
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/api/endpoints.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/data/workergroup.py"
+                    ],
+                    "operations": [
+                      "create_endpoint",
+                      "create_workergroup",
+                      "worker_status",
+                      "logs",
+                      "delete_workergroup",
+                      "delete_endpoint"
+                    ],
+                    "surface": "vast_endpoint_workergroup"
+                  },
+                  {
+                    "evidence": [
+                      "tasks/research/vast-ai-org/repos/vast-ai__pyworker/workers/comfyui-json/worker.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/serverless/server/lib/backend.py",
+                      "tasks/research/vast-ai-org/repos/vast-ai__vast-cli/vastai/serverless/server/lib/metrics.py"
+                    ],
+                    "operations": [
+                      "healthcheck",
+                      "handler_route",
+                      "benchmark",
+                      "metrics",
+                      "log_action_config"
+                    ],
+                    "surface": "pyworker"
+                  }
+                ],
+                "canary_requirements": [
+                  "endpoint_create",
+                  "workergroup_create",
+                  "worker_loading_ready",
+                  "healthcheck",
+                  "log_action_match",
+                  "benchmark",
+                  "request",
+                  "delete_endpoint_workergroup",
+                  "orphan_instance_check",
+                  "billing_snapshot"
+                ],
+                "cost_model": [
+                  "serverless_worker_runtime",
+                  "endpoint_residue",
+                  "workergroup_residue",
+                  "billing_charge_snapshot"
+                ],
+                "execution_semantics": "endpoint_workergroup_autoscaled_worker",
+                "module_id": "vast_pyworker_serverless",
+                "parent_provider": "vast",
+                "resource_model": "endpoint_workergroup_pyworker",
+                "status_model": {
+                  "evidence": [
+                    "tasks/research/vast-ai-org/repos/vast-ai__docs/documentation/serverless/worker-states.mdx"
+                  ],
+                  "terminal_states": [],
+                  "worker_states": [
+                    "Ready",
+                    "Loading",
+                    "Inactive",
+                    "Destroying",
+                    "Error",
+                    "Rebooting",
+                    "Creating",
+                    "Starting",
+                    "Stopping",
+                    "Updating"
+                  ]
+                },
+                "workspace_paths": [
+                  "/workspace"
+                ]
+              }
+            ],
+            "parent_provider": "vast",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "required_actions": [],
+          "state": "terminal",
+          "status": "succeeded",
+          "updated_at": 1777088401,
+          "workspace": {
+            "artifact_dir": "/workspace/gpu-job-asr/out",
+            "cleanup_contract": "destroy_instance_or_serverless_scale_to_zero",
+            "input_staging": "scp_or_provider_payload",
+            "official_docs": [
+              "https://docs.vast.ai/documentation/instances/docker-environment"
+            ],
+            "workspace_kind": "direct_instance_or_serverless",
+            "workspace_modes": {
+              "direct_instance": {
+                "disk_rule": "disk allocation is static at creation time",
+                "entrypoint_warning": "ssh and jupyter launch modes inject setup scripts and replace the original image entrypoint",
+                "launch_modes": [
+                  "entrypoint",
+                  "ssh",
+                  "jupyter"
+                ],
+                "residue_check": "post-cleanup provider read must show no active matching instance",
+                "resource_model": "market_instance",
+                "timing_fields": [
+                  "offer_select_seconds",
+                  "reserve_seconds",
+                  "image_materialization_seconds",
+                  "ssh_ready_seconds",
+                  "execution_seconds",
+                  "cleanup_seconds"
+                ]
+              }
+            },
+            "workspace_root": "/workspace/gpu-job-asr"
+          },
+          "workspace_plan_id": "workspace-82db913f57393923",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        }
+      },
+      "model": "",
+      "output_uri": "local://contract-probes/contract-probe-smoke-20260425-123808-7c856645",
+      "provider": "vast",
+      "provider_job_id": "35559640",
+      "runtime_seconds": 91,
+      "started_at": 1777088303,
+      "status": "succeeded",
+      "updated_at": 1777088401,
+      "verify": {},
+      "worker_image": "nvidia/cuda:12.4.1-base-ubuntu22.04"
+    },
+    "ok": true,
+    "path": "/home/admin/.local/share/gpu-job-control/jobs/contract-probe-smoke-20260425-123808-7c856645.json",
+    "post_submit_guard": {
+      "capacity": {
+        "active_total": 0,
+        "by_job_type": {
+          "asr": {
+            "failed": 30,
+            "planned": 1,
+            "succeeded": 8
+          },
+          "cpu_workflow_helper": {
+            "succeeded": 1
+          },
+          "embedding": {
+            "failed": 1,
+            "succeeded": 6
+          },
+          "llm_heavy": {
+            "cancelled": 1,
+            "failed": 148,
+            "succeeded": 100
+          },
+          "pdf_ocr": {
+            "succeeded": 2
+          },
+          "smoke": {
+            "cancelled": 1,
+            "failed": 6,
+            "succeeded": 12
+          },
+          "vlm_ocr": {
+            "failed": 74,
+            "succeeded": 38
+          }
+        },
+        "counts": {
+          "cancelled": 2,
+          "failed": 259,
+          "planned": 1,
+          "succeeded": 167
+        },
+        "flattened_provider_limits": {
+          "local:*": 1,
+          "modal:*": 1,
+          "modal:asr": 2,
+          "modal:asr_diarization": 1,
+          "modal:llm_heavy": 1,
+          "modal:vlm_ocr": 1,
+          "ollama:*": 1,
+          "ollama:embedding": 1,
+          "ollama:llm_heavy": 1,
+          "ollama:vlm_ocr": 1,
+          "runpod:*": 1,
+          "runpod:asr": 2,
+          "runpod:llm_heavy": 1,
+          "vast:*": 1,
+          "vast:asr": 1,
+          "vast:asr_diarization": 1
+        },
+        "ok": true,
+        "provider_limits": {
+          "local": {
+            "*": 1
+          },
+          "modal": {
+            "*": 1,
+            "asr": 2,
+            "asr_diarization": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "ollama": {
+            "*": 1,
+            "embedding": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "runpod": {
+            "*": 1,
+            "asr": 2,
+            "llm_heavy": 1
+          },
+          "vast": {
+            "*": 1,
+            "asr": 1,
+            "asr_diarization": 1
+          }
+        },
+        "providers": {
+          "local:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "local",
+            "provider_profile_key": "local:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:embedding": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "embedding",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:embedding",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          }
+        },
+        "queued_total": 0
+      },
+      "estimated_hourly_usd": 0.0,
+      "ok": true,
+      "providers": {
+        "vast": {
+          "billable_resources": [],
+          "estimated_hourly_usd": 0.0,
+          "ok": true,
+          "provider": "vast",
+          "reason": "no Vast.ai billable resources"
+        }
+      },
+      "resource": {
+        "ok": true,
+        "reason": "local resource guard not applicable to selected remote providers",
+        "skipped": true
+      }
+    },
+    "pre_submit_guard": {
+      "capacity": {
+        "active_total": 0,
+        "by_job_type": {
+          "asr": {
+            "failed": 30,
+            "planned": 1,
+            "succeeded": 8
+          },
+          "cpu_workflow_helper": {
+            "succeeded": 1
+          },
+          "embedding": {
+            "failed": 1,
+            "succeeded": 6
+          },
+          "llm_heavy": {
+            "cancelled": 1,
+            "failed": 147,
+            "succeeded": 100
+          },
+          "pdf_ocr": {
+            "succeeded": 2
+          },
+          "smoke": {
+            "cancelled": 1,
+            "failed": 6,
+            "succeeded": 11
+          },
+          "vlm_ocr": {
+            "failed": 74,
+            "succeeded": 38
+          }
+        },
+        "counts": {
+          "cancelled": 2,
+          "failed": 258,
+          "planned": 1,
+          "succeeded": 166
+        },
+        "flattened_provider_limits": {
+          "local:*": 1,
+          "modal:*": 1,
+          "modal:asr": 2,
+          "modal:asr_diarization": 1,
+          "modal:llm_heavy": 1,
+          "modal:vlm_ocr": 1,
+          "ollama:*": 1,
+          "ollama:embedding": 1,
+          "ollama:llm_heavy": 1,
+          "ollama:vlm_ocr": 1,
+          "runpod:*": 1,
+          "runpod:asr": 2,
+          "runpod:llm_heavy": 1,
+          "vast:*": 1,
+          "vast:asr": 1,
+          "vast:asr_diarization": 1
+        },
+        "ok": true,
+        "provider_limits": {
+          "local": {
+            "*": 1
+          },
+          "modal": {
+            "*": 1,
+            "asr": 2,
+            "asr_diarization": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "ollama": {
+            "*": 1,
+            "embedding": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "runpod": {
+            "*": 1,
+            "asr": 2,
+            "llm_heavy": 1
+          },
+          "vast": {
+            "*": 1,
+            "asr": 1,
+            "asr_diarization": 1
+          }
+        },
+        "providers": {
+          "local:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "local",
+            "provider_profile_key": "local:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:embedding": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "embedding",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:embedding",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          }
+        },
+        "queued_total": 0
+      },
+      "estimated_hourly_usd": 0.0,
+      "ok": true,
+      "providers": {
+        "vast": {
+          "billable_resources": [],
+          "estimated_hourly_usd": 0.0,
+          "ok": true,
+          "provider": "vast",
+          "reason": "no Vast.ai billable resources"
+        }
+      },
+      "resource": {
+        "ok": true,
+        "reason": "local resource guard not applicable to selected remote providers",
+        "skipped": true
+      }
+    }
+  }
+}

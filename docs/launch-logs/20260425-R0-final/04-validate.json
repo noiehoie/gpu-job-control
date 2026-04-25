@@ -1,0 +1,41 @@
+{
+  "job": {
+    "artifact_bytes": null,
+    "artifact_count": null,
+    "created_at": 1777087298,
+    "error": "",
+    "exit_code": null,
+    "finished_at": null,
+    "gpu_profile": "asr_fast",
+    "input_uri": "s3://example-input/asr/sample-30min.mp4",
+    "job_id": "asr-20260425-122138-30c158c3",
+    "job_type": "asr",
+    "limits": {
+      "max_cost_usd": 10,
+      "max_output_gb": 20,
+      "max_runtime_minutes": 120
+    },
+    "metadata": {
+      "purpose": "ASR canary job definition"
+    },
+    "model": "whisper-large-v3",
+    "output_uri": "s3://example-output/asr/sample-30min/",
+    "provider": "",
+    "provider_job_id": "",
+    "runtime_seconds": null,
+    "started_at": null,
+    "status": "created",
+    "updated_at": 1777087298,
+    "verify": {
+      "required_files": [
+        "result.json",
+        "metrics.json",
+        "verify.json",
+        "stdout.log",
+        "stderr.log"
+      ]
+    },
+    "worker_image": "ghcr.io/example/gpu-asr-worker:canary"
+  },
+  "ok": true
+}

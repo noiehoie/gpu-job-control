@@ -1,0 +1,30 @@
+{
+  "checks": [
+    {
+      "name": "route_score_components",
+      "ok": true
+    },
+    {
+      "name": "local_submit",
+      "ok": true
+    },
+    {
+      "name": "artifact_manifest",
+      "ok": true
+    },
+    {
+      "name": "secret_gate_blocks",
+      "ok": true
+    },
+    {
+      "name": "wal_fail_closed",
+      "ok": true
+    },
+    {
+      "name": "readiness_detects_wal",
+      "ok": true
+    }
+  ],
+  "ok": true,
+  "selftest_version": "gpu-job-selftest-v1"
+}

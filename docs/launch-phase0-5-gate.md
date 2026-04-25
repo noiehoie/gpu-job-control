@@ -1,6 +1,6 @@
 # Launch Phase 0-5 Gate
 
-Date: 2026-04-22 JST
+Date: 2026-04-25 JST
 
 This gate records the launch path from contract freeze through provider
 canaries. It is intentionally conservative: provider canaries cannot start
@@ -33,9 +33,9 @@ The launch target is five execution systems:
 | System | Module id | Current launch status |
 | --- | --- | --- |
 | Modal function execution | `modal_function` | production primary after repeat LLM and ASR canaries |
-| Vast serverless pyworker execution | `vast_pyworker_serverless` | reserve/canary pending live endpoint/workergroup evidence; direct instance evidence is rejected |
+| Vast serverless pyworker execution | `vast_pyworker_serverless` | reserve/canary with endpoint/workergroup evidence fixed on netcup |
 | Vast direct instance execution | `vast_instance` | reserve/canary with direct smoke lifecycle evidence |
-| RunPod serverless handler execution | `runpod_serverless` | contracted canary path pending endpoint evidence; RunPod Serverless vLLM/Hub-template deferred |
+| RunPod serverless handler execution | `runpod_serverless` | contracted canary path with approved endpoint evidence on netcup; RunPod Serverless vLLM/Hub-template deferred |
 | RunPod bounded Pod execution | `runpod_pod` | conditional batch route with explicit create/verify/terminate lifecycle |
 
 These module IDs are not routing keys yet. They are contract and audit metadata
@@ -49,8 +49,8 @@ until a separate routing feature flag is designed and approved.
 | Phase 1 | `01_contract_core=locally_verified`, `02_runtime_binding=locally_verified_after_ci`, `03_lifecycle_reconciliation=locally_verified_conservative_only` | contract core launch candidate |
 | Phase 2 | `05_runtime_configuration=needs_provider_slice_cross_check`, unverified provider-image routing remains blocked, module routing false | runtime config is planning-only until provider canaries pass |
 | Phase 3 | guard clean, Modal LLM and ASR contract probe evidence present, Modal slice remains high-risk until repeat live canary | Modal production primary evidence |
-| Phase 4 | no RunPod billable resources, bounded Pod canary evidence separated from serverless endpoint evidence, RunPod slice remains high-risk, Serverless vLLM deferred | RunPod remains bounded Pod/conditional route only; serverless stays pending until endpoint evidence passes |
-| Phase 5 | guard clean, Vast direct instance evidence separated from Vast pyworker endpoint/workergroup evidence, Vast slice remains high-risk, Vast primary forbidden | Vast remains reserve/canary only |
+| Phase 4 | no RunPod billable resources, bounded Pod canary evidence separated from serverless endpoint evidence, RunPod slice remains high-risk, Serverless vLLM deferred | RunPod remains bounded Pod/conditional route; approved serverless endpoint evidence is present but still conservative |
+| Phase 5 | guard clean, Vast direct instance evidence separated from Vast pyworker endpoint/workergroup evidence, Vast slice remains high-risk, Vast primary forbidden | Vast remains reserve/canary only, with pyworker endpoint/workergroup evidence fixed |
 
 ## Stop Conditions
 
@@ -78,8 +78,78 @@ for each target:
 
 ## Current Run Result
 
-The first live `readiness --phase-report` after adding this gate reported the
-following before stale RunPod Pods were terminated:
+The netcup clean clone run on commit `492310e9949552bdb407c1666cc873cdfbca1e31`
+produced two relevant checkpoints.
+
+`R0` (code-quality baseline) reported:
+
+```text
+phase_0_current_diff_fixed=true
+phase_1_contract_core_launch_candidate=true
+phase_2_runtime_config_cross_check=true
+phase_3_modal_canary=true
+phase_4_runpod_bounded_canary=false
+phase_5_vast_reserve_canary=false
+provider_adapter_diff=[]
+routing_by_module_enabled=false
+stop_conditions=[]
+pytest=349 passed, 14 subtests passed
+selftest.ok=true
+validate.ok=true
+ruff check=All checks passed!
+ruff format --check=125 files already formatted
+```
+
+`R1` (serverless identity freeze) then reported:
+
+```text
+phase_0_current_diff_fixed=true
+phase_1_contract_core_launch_candidate=true
+phase_2_runtime_config_cross_check=true
+phase_3_modal_canary=true
+phase_4_runpod_bounded_canary=true
+phase_5_vast_reserve_canary=true
+provider_adapter_diff=[]
+routing_by_module_enabled=false
+stop_conditions=[]
+```
+
+The specific serverless artifacts accepted by `R1` were:
+
+```text
+runpod.asr.official_whisper_smoke
+log=docs/launch-logs/20260425-R1-runpod-serverless.out
+provider_module_canary_evidence.ok=true
+
+vast.asr.serverless_template
+log=docs/launch-logs/20260425-R1-vast-serverless.out
+provider_module_canary_evidence.ok=true
+```
+
+The `R3` repeat cycle then ended with:
+
+```text
+phase_0_current_diff_fixed=true
+phase_1_contract_core_launch_candidate=true
+phase_2_runtime_config_cross_check=true
+phase_3_modal_canary=true
+phase_4_runpod_bounded_canary=true
+phase_5_vast_reserve_canary=true
+provider_adapter_diff=[]
+routing_by_module_enabled=false
+stop_conditions=[]
+```
+
+Repo-tracked repeat logs:
+
+- `docs/launch-logs/20260425-R3-modal-llm.json`
+- `docs/launch-logs/20260425-R3-modal-asr.json`
+- `docs/launch-logs/20260425-R3-runpod-pod.json`
+- `docs/launch-logs/20260425-R3-vast-instance.json`
+- `docs/launch-logs/20260425-R3-readiness-fixed.json`
+
+The historical first live `readiness --phase-report` after adding this gate
+reported the following before stale RunPod Pods were terminated:
 
 ```text
 ok=false

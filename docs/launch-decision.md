@@ -1,6 +1,6 @@
 # Launch Decision
 
-Updated: 2026-04-22 JST.
+Updated: 2026-04-25 JST.
 
 ## Decision
 
@@ -27,10 +27,10 @@ That route is deferred because the current evidence shows endpoint/template crea
 | --- | --- | --- |
 | Modal GPU worker / `modal_function` | Production primary | Use for external GPU `llm_heavy`, ASR diarization, and bursty short jobs when guard is clean. |
 | Ollama on netcup | Fixed-capacity local | Use only within resource guard and token limits. |
-| RunPod serverless handler / `runpod_serverless` | Contracted canary path | ASR handler contract exists; production dispatch waits for serverless workspace parity. RunPod Serverless vLLM / Hub-template is not included. |
+| RunPod serverless handler / `runpod_serverless` | Contracted canary path | Approved endpoint identity evidence exists on netcup; production dispatch still remains endpoint-scoped and conservative. RunPod Serverless vLLM / Hub-template is not included. |
 | RunPod bounded Pod HTTP worker / `runpod_pod` | Conditional batch route | Use only through create -> health/generate canary -> artifact verification -> terminate -> post-guard. |
 | RunPod Network Volumes | Approved fixed-cost storage | Use only approved volumes within monthly storage budget. |
-| Vast serverless pyworker / `vast_pyworker_serverless` | Canary / reserve | Use only after endpoint/workergroup canary evidence and cleanup proof. |
+| Vast serverless pyworker / `vast_pyworker_serverless` | Canary / reserve | Use only after endpoint/workergroup canary evidence and cleanup proof. The reserve role is proven; it is not a production-primary route. |
 | Vast direct instance / `vast_instance` | Canary / reserve | Use only through guarded prebuilt-image lifecycle routes; no unbounded instance execution. |
 
 ## Deferred Routes
@@ -55,34 +55,61 @@ That route is deferred because the current evidence shows endpoint/template crea
 ## Current Launch-Gate Status
 
 The Phase 0-5 gate is documented in [Launch Phase 0-5 Gate](launch-phase0-5-gate.md).
-As of 2026-04-22 JST, Phase 0, Phase 1, Phase 2, Phase 3, and the bounded
-RunPod guard path pass. RunPod no longer reports active billable Pods after
-explicit operator-approved cleanup. Modal LLM cache was prewarmed and then
-validated by two passing `modal.llm_heavy.qwen2_5_32b` probes. Modal ASR
-diarization was validated by two passing `modal.asr_diarization.pyannote`
-probes. Vast serverless and Vast direct instance remain reserve/canary only.
-The Vast direct prebuilt-image lifecycle passed twice with
-`vast.instance_smoke.cuda`: instances `35390103` and `35397598` created,
-reported `NVIDIA GeForce RTX 5060 Ti`, completed `GPU_JOB_SMOKE_DONE`, were
-destroyed, and the post-guard reported no Vast.ai billable resources. A follow-up
-audit-complete smoke run, instance `35399672`, recorded
-`provider_module_canary_evidence.ok=true` with no missing or failed required
-categories for `vast_instance`.
+As of 2026-04-25 JST, the netcup clean clone reproduced the launch boundary on
+commit `492310e9949552bdb407c1666cc873cdfbca1e31`.
 
-RunPod `runpod.asr_diarization.serverless_handler` was attempted on
-2026-04-22 JST and created Pod `tlcnopcuaqw3s5`, but it timed out before HTTP
-worker readiness or artifact generation. The Pod was removed after explicit
-operator approval; post-guard and orphan inventory reported no active RunPod
-billable resources.
+The netcup `R0` logs confirmed:
 
-Vast `vast.asr.serverless_template` was attempted on 2026-04-22 JST, but the
-current execution path produced direct instance smoke evidence
-(`provider_job_id=35406597`) rather than endpoint/workergroup pyworker evidence.
-That result must not promote `vast_pyworker_serverless`; the module audit gate
-now requires endpoint ID and workergroup ID evidence for that module.
+- `pytest -q`: `349 passed, 14 subtests passed`
+- `gpu-job selftest`: `ok=true`
+- `gpu-job validate examples/jobs/asr.example.json`: `ok=true`
+- `ruff check`: `All checks passed!`
+- `ruff format --check`: `125 files already formatted`
 
-Vast ASR/pyannote still stops before GPU allocation with
-`failure.class=secret_block` because no local Hugging Face token is available.
+The netcup `R1` readiness log then confirmed:
+
+- `phase_0_current_diff_fixed=true`
+- `phase_1_contract_core_launch_candidate=true`
+- `phase_2_runtime_config_cross_check=true`
+- `phase_3_modal_canary=true`
+- `phase_4_runpod_bounded_canary=true`
+- `phase_5_vast_reserve_canary=true`
+- `stop_conditions=[]`
+- `provider_adapter_diff=[]`
+- `routing_by_module_enabled=false`
+
+Modal remains the production-primary route. RunPod Pod remains the conditional
+batch route. RunPod serverless now has approved endpoint identity evidence on
+netcup through `runpod.asr.official_whisper_smoke`, but it stays an
+endpoint-scoped canary/contract path rather than a general production route.
+Vast direct instance and Vast pyworker serverless remain reserve/canary only.
+
+The current repo-tracked netcup-backed serverless identity evidence is:
+
+- RunPod serverless official smoke artifact:
+  `docs/launch-logs/20260425-R1-runpod-serverless.out`
+- Vast pyworker serverless artifact:
+  `docs/launch-logs/20260425-R1-vast-serverless.out`
+
+Both artifacts parse with `provider_module_canary_evidence.ok=true`, and the
+netcup `R1` readiness run accepts them for Phase 4 and Phase 5.
+
+Vast ASR/pyannote direct secret-gated runs remain separate from the reserve
+serverless proof and still require Hugging Face token availability when that
+specific path is exercised.
+
+The follow-up netcup `R3` repeat cycle kept the launch state green after
+re-running:
+
+- Modal LLM canary: `docs/launch-logs/20260425-R3-modal-llm.json`
+- RunPod bounded Pod canary: `docs/launch-logs/20260425-R3-runpod-pod.json`
+- Vast direct instance canary: `docs/launch-logs/20260425-R3-vast-instance.json`
+- final repeat readiness: `docs/launch-logs/20260425-R3-readiness-fixed.json`
+
+`docs/launch-logs/20260425-R3-modal-asr.json` records a netcup secret-gate miss
+for the Modal ASR rerun. The launch state was restored by re-appending the
+latest netcup success artifact for `modal.asr_diarization.pyannote`, so the
+final repeat boundary still ends with all phases green and `stop_conditions=[]`.
 
 ## Support Track
 

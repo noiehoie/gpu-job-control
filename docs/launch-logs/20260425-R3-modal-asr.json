@@ -1,0 +1,1476 @@
+{
+  "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+  "job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+  "ok": false,
+  "probe_name": "modal.asr_diarization.pyannote",
+  "provider": "modal",
+  "provider_module_probe_name": "modal_function.asr_diarization.pyannote",
+  "record": {
+    "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-asr-20260425-123709-b3a90a5f",
+    "checks": {
+      "artifact_contract_ok": false,
+      "cache_contract_ok": true,
+      "forbidden_model_absent": true,
+      "gpu_contract_ok": true,
+      "image_digest_match": true,
+      "image_match": false,
+      "model_match": false,
+      "official_template_smoke_ok": true,
+      "text_nonempty": false,
+      "verify_ok": false,
+      "workspace_contract_ok": true
+    },
+    "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+    "execution_mode": "executed",
+    "failure": {
+      "artifact_verify": {
+        "application_verify": null,
+        "artifact_bytes": 201,
+        "artifact_count": 1,
+        "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-asr-20260425-123709-b3a90a5f",
+        "hardware_verify": null,
+        "json_valid": {},
+        "manifest": {
+          "manifest_present": false,
+          "mismatched": [],
+          "missing": [],
+          "ok": true
+        },
+        "missing": [
+          "result.json",
+          "metrics.json",
+          "verify.json",
+          "stdout.log",
+          "stderr.log"
+        ],
+        "ok": false,
+        "require_gpu_utilization": false,
+        "require_manifest": false,
+        "required": [
+          "result.json",
+          "metrics.json",
+          "verify.json",
+          "stdout.log",
+          "stderr.log"
+        ]
+      },
+      "class": "secret_block",
+      "provider_message": "{ \"error\": \"secret gate failed\", \"exit_code\": null, \"job_id\": \"contract-probe-asr-20260425-123709-b3a90a5f\", \"ok\": false, \"provider\": \"modal\", \"provider_job_id\": \"\", \"status\": \"failed\" }",
+      "reason": "secret policy hard gate blocked execution",
+      "retryable": false
+    },
+    "observed": {
+      "artifact_contract": {
+        "file_count": 1,
+        "files": [
+          {
+            "bytes": 201,
+            "path": "submit_result.json",
+            "sha256": "4864c53208dd70fc2da85c01af07b633c1af04d8aeb5f45bb6b4b9faf87f0e4f"
+          }
+        ],
+        "manifest_version": "gpu-job-artifact-manifest-v1",
+        "root": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-asr-20260425-123709-b3a90a5f",
+        "total_bytes": 201
+      },
+      "cache": {
+        "cache_hit": null,
+        "cold_start_observed": false,
+        "cold_start_signals": [],
+        "download_seconds": null
+      },
+      "gpu_utilization_evidence": {
+        "execution_class": "gpu",
+        "matches": [],
+        "ok": false,
+        "reason": "metrics.json missing"
+      },
+      "hardware": {
+        "gpu_count": null,
+        "gpu_name": "",
+        "vram_mb": null
+      },
+      "http_statuses": [],
+      "image": {
+        "digest": null,
+        "name": null
+      },
+      "model": null,
+      "workspace_contract": {
+        "actual_cost_guard": {},
+        "cache_hit": null,
+        "cleanup": {},
+        "cleanup_ok": null,
+        "cost_guard_ok": null,
+        "endpoint_id": "",
+        "gpu_probe": {},
+        "hf_token_present": null,
+        "image_contract_marker_present": null,
+        "instance_id": "",
+        "official_template_smoke_ok": false,
+        "ok": null,
+        "pod_id": "",
+        "provider_job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+        "require_gpu": null,
+        "runtime_checks": {},
+        "runtime_imports_ok": null,
+        "small_workload_ok": null,
+        "volume_probe_ok": null,
+        "volume_required": null,
+        "worker_startup_ok": null,
+        "workergroup_id": ""
+      },
+      "workspace_observation_coverage": {
+        "categories": {
+          "artifact_contract": {
+            "evidence_fields": [
+              "artifact_contract",
+              "verify_artifacts"
+            ],
+            "observed": true,
+            "ok": false
+          },
+          "cleanup_result": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "cost_guard": {
+            "evidence_fields": [
+              "actual_cost_guard",
+              "cost_guard_ok"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "gpu_execution": {
+            "evidence_fields": [
+              "gpu_probe",
+              "gpu_utilization_evidence",
+              "hardware"
+            ],
+            "observed": true,
+            "ok": false
+          },
+          "image_contract": {
+            "evidence_fields": [
+              "image",
+              "provider_image",
+              "image_contract_marker_present"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "model_load": {
+            "evidence_fields": [
+              "model",
+              "loaded_model_id",
+              "runtime_imports_ok",
+              "small_workload_ok"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "provider_residue": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "provider_resource_identity": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "",
+              "pod_id": "",
+              "provider_job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "queue_or_reservation": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "",
+              "pod_id": "",
+              "provider_job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "secret_availability": {
+            "evidence_fields": [
+              "hf_token_present"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "startup_phases": {
+            "evidence_fields": [
+              "worker_startup_ok",
+              "workspace_contract_ok"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "workspace_cache": {
+            "evidence_fields": [
+              "cache_hit",
+              "cache_warm"
+            ],
+            "observed": false,
+            "ok": null
+          }
+        },
+        "coverage_version": "gpu-job-workspace-observation-coverage-v1",
+        "failed_categories": [
+          "gpu_execution",
+          "artifact_contract"
+        ],
+        "missing_categories": [
+          "image_contract",
+          "secret_availability",
+          "workspace_cache",
+          "startup_phases",
+          "model_load",
+          "cost_guard",
+          "cleanup_result",
+          "provider_residue"
+        ],
+        "observed_categories": [
+          "provider_resource_identity",
+          "queue_or_reservation",
+          "gpu_execution",
+          "artifact_contract"
+        ],
+        "provider": "modal"
+      }
+    },
+    "ok": false,
+    "probe_name": "modal.asr_diarization.pyannote",
+    "provider": "modal",
+    "provider_module_canary_evidence": {
+      "evidence_source": "record.observed.workspace_observation_coverage",
+      "failed_categories": [
+        "gpu_execution",
+        "artifact_contract"
+      ],
+      "missing_categories": [
+        "startup_phases",
+        "cost_guard",
+        "provider_residue"
+      ],
+      "module_canary_requirements": [
+        "function_invoke",
+        "artifact_verify",
+        "volume_visibility",
+        "cost_snapshot"
+      ],
+      "module_specific_failures": [],
+      "observation_categories": {
+        "artifact_contract": {
+          "evidence_fields": [
+            "artifact_contract",
+            "verify_artifacts"
+          ],
+          "observed": true,
+          "ok": false
+        },
+        "cleanup_result": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "cost_guard": {
+          "evidence_fields": [
+            "actual_cost_guard",
+            "cost_guard_ok"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "gpu_execution": {
+          "evidence_fields": [
+            "gpu_probe",
+            "gpu_utilization_evidence",
+            "hardware"
+          ],
+          "observed": true,
+          "ok": false
+        },
+        "image_contract": {
+          "evidence_fields": [
+            "image",
+            "provider_image",
+            "image_contract_marker_present"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "model_load": {
+          "evidence_fields": [
+            "model",
+            "loaded_model_id",
+            "runtime_imports_ok",
+            "small_workload_ok"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "provider_residue": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "provider_resource_identity": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "",
+            "pod_id": "",
+            "provider_job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "queue_or_reservation": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "",
+            "pod_id": "",
+            "provider_job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "secret_availability": {
+          "evidence_fields": [
+            "hf_token_present"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "startup_phases": {
+          "evidence_fields": [
+            "worker_startup_ok",
+            "workspace_contract_ok"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "workspace_cache": {
+          "evidence_fields": [
+            "cache_hit",
+            "cache_warm"
+          ],
+          "observed": false,
+          "ok": null
+        }
+      },
+      "observed_categories": [
+        "provider_resource_identity",
+        "gpu_execution",
+        "artifact_contract"
+      ],
+      "ok": false,
+      "parent_provider": "modal",
+      "provider_module_canary_evidence_version": "gpu-job-provider-module-canary-evidence-v1",
+      "provider_module_id": "modal_function",
+      "provider_module_probe_name": "modal_function.asr_diarization.pyannote",
+      "required_observation_categories": [
+        "provider_resource_identity",
+        "startup_phases",
+        "gpu_execution",
+        "artifact_contract",
+        "cost_guard",
+        "provider_residue"
+      ],
+      "requirement_observation_mapping": {
+        "artifact_verify": [
+          "artifact_contract"
+        ],
+        "cost_snapshot": [
+          "cost_guard",
+          "provider_residue"
+        ],
+        "function_invoke": [
+          "provider_resource_identity",
+          "startup_phases",
+          "gpu_execution"
+        ],
+        "volume_visibility": [
+          "artifact_contract"
+        ]
+      },
+      "requirements": {
+        "artifact_verify": {
+          "categories": [
+            "artifact_contract"
+          ],
+          "observed": true,
+          "ok": false
+        },
+        "cost_snapshot": {
+          "categories": [
+            "cost_guard",
+            "provider_residue"
+          ],
+          "observed": false,
+          "ok": false
+        },
+        "function_invoke": {
+          "categories": [
+            "provider_resource_identity",
+            "startup_phases",
+            "gpu_execution"
+          ],
+          "observed": false,
+          "ok": false
+        },
+        "volume_visibility": {
+          "categories": [
+            "artifact_contract"
+          ],
+          "observed": true,
+          "ok": false
+        }
+      }
+    },
+    "provider_module_contract": {
+      "active_module": {
+        "api_surfaces": [
+          {
+            "evidence": [
+              "docs/cloud-gpu-provider-research.md"
+            ],
+            "operations": [
+              "invoke_function",
+              "image_build",
+              "volume_mount",
+              "logs"
+            ],
+            "surface": "modal_function"
+          }
+        ],
+        "canary_requirements": [
+          "function_invoke",
+          "artifact_verify",
+          "volume_visibility",
+          "cost_snapshot"
+        ],
+        "cost_model": [
+          "function_runtime",
+          "idle_container_seconds",
+          "volume_storage"
+        ],
+        "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+        "module_id": "modal_function",
+        "parent_provider": "modal",
+        "resource_model": "modal_function",
+        "status_model": {
+          "resource_status_source": "modal function invocation lifecycle",
+          "terminal_states": []
+        },
+        "workspace_paths": [
+          "/workspace",
+          "/mnt"
+        ]
+      },
+      "active_module_id": "modal_function",
+      "available_module_ids": [
+        "modal_function"
+      ],
+      "available_modules": [
+        {
+          "api_surfaces": [
+            {
+              "evidence": [
+                "docs/cloud-gpu-provider-research.md"
+              ],
+              "operations": [
+                "invoke_function",
+                "image_build",
+                "volume_mount",
+                "logs"
+              ],
+              "surface": "modal_function"
+            }
+          ],
+          "canary_requirements": [
+            "function_invoke",
+            "artifact_verify",
+            "volume_visibility",
+            "cost_snapshot"
+          ],
+          "cost_model": [
+            "function_runtime",
+            "idle_container_seconds",
+            "volume_storage"
+          ],
+          "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+          "module_id": "modal_function",
+          "parent_provider": "modal",
+          "resource_model": "modal_function",
+          "status_model": {
+            "resource_status_source": "modal function invocation lifecycle",
+            "terminal_states": []
+          },
+          "workspace_paths": [
+            "/workspace",
+            "/mnt"
+          ]
+        }
+      ],
+      "parent_provider": "modal",
+      "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+      "requested_module_id": "modal_function",
+      "selection": {
+        "mode": "metadata_requested_or_parent_default",
+        "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+        "requested_module_valid": true,
+        "routing_by_module_enabled": false
+      }
+    },
+    "provider_module_probe_name": "modal_function.asr_diarization.pyannote",
+    "recorded_at": 1777088230,
+    "spec": {
+      "cache_required": false,
+      "expected_image": "gpu-job-modal-asr",
+      "expected_image_digest": "",
+      "expected_model": "pyannote/speaker-diarization-3.1",
+      "forbidden_models": [],
+      "gpu_profile": "asr_diarization",
+      "job_type": "asr",
+      "probe_name": "modal.asr_diarization.pyannote",
+      "provider": "modal",
+      "provider_module_id": "modal_function",
+      "require_gpu_utilization": false,
+      "required_files": [
+        "result.json",
+        "metrics.json",
+        "verify.json",
+        "stdout.log",
+        "stderr.log"
+      ],
+      "workload_family": "asr"
+    },
+    "submit_result": {
+      "error": "secret gate failed",
+      "exit_code": null,
+      "job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+      "ok": false,
+      "provider": "modal",
+      "provider_job_id": "",
+      "status": "failed"
+    },
+    "verdict": "fail",
+    "workload_family": "asr"
+  },
+  "submit_result": {
+    "error": "secret gate failed",
+    "job": {
+      "artifact_bytes": null,
+      "artifact_count": null,
+      "created_at": 1777088229,
+      "error": "secret gate failed",
+      "exit_code": null,
+      "finished_at": null,
+      "gpu_profile": "asr_diarization",
+      "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+      "job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+      "job_type": "asr",
+      "limits": {
+        "max_cost_usd": 3.0,
+        "max_runtime_minutes": 30,
+        "max_startup_seconds": 900
+      },
+      "metadata": {
+        "capability_result": {
+          "capability": {
+            "asr": true,
+            "job_types": [
+              "smoke",
+              "asr",
+              "llm_heavy",
+              "pdf_ocr",
+              "vlm_ocr"
+            ],
+            "max_input_tokens": 32768,
+            "provider": "modal",
+            "quality_tier": "external_gpu",
+            "vision": true
+          },
+          "capability_version": "gpu-job-capability-v1",
+          "checks": {
+            "asr_ok": true,
+            "job_type_ok": true,
+            "quality_ok": true,
+            "tokens_ok": true,
+            "vision_ok": true
+          },
+          "estimated_input_tokens": 6,
+          "model": "pyannote/speaker-diarization-3.1",
+          "model_key": "modal:pyannote/speaker-diarization-3.1",
+          "ok": true,
+          "provider": "modal",
+          "reason": "model capability accepted",
+          "registered": true
+        },
+        "circuit": {
+          "circuit_version": "gpu-job-circuit-v1",
+          "error_classes": {},
+          "failure_count": 0,
+          "failure_rate": 0.0,
+          "half_open_probe_allowed": false,
+          "latest_sample_status": "succeeded",
+          "latest_success_after_failure": false,
+          "latest_success_is_circuit_probe": false,
+          "ok": true,
+          "provider": "modal",
+          "rate_limit_failure_count": 0,
+          "retryable_failure_count": 0,
+          "sample_count": 1,
+          "state": "closed",
+          "window_seconds": 900
+        },
+        "compliance_result": {
+          "allowed_regions": [],
+          "compliance_version": "gpu-job-compliance-v1",
+          "data_classification": "unspecified",
+          "ok": true,
+          "prohibited_providers": [],
+          "provider": "modal",
+          "provider_ok": true,
+          "provider_region": "external",
+          "residency_ok": true
+        },
+        "contract_probe": {
+          "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+          "probe_name": "modal.asr_diarization.pyannote",
+          "provider": "modal",
+          "provider_module_id": "modal_function"
+        },
+        "cost_result": {
+          "budget_usd": 3.0,
+          "cost_version": "gpu-job-cost-v1",
+          "cross_region_transfer": false,
+          "estimated_artifact_gb": 0.0,
+          "estimated_egress_cost_usd": 0.0,
+          "estimated_runtime_cost_usd": 0.0,
+          "estimated_storage_month_cost_usd": 0.0,
+          "estimated_total_cost_usd": 0.0,
+          "ok": true
+        },
+        "error_class": {
+          "class": "secret_block",
+          "error_class_version": "gpu-job-error-class-v1",
+          "ok": true,
+          "permanent": true,
+          "provider": "modal",
+          "reason": "secret policy hard gate blocked execution",
+          "retryable": false,
+          "status_code": null
+        },
+        "hardware_verification": {
+          "require_gpu_utilization": false
+        },
+        "input": {
+          "diarize": true,
+          "language": "ja",
+          "model": "large-v3",
+          "speaker_diarization": true,
+          "speaker_model": "pyannote/speaker-diarization-3.1"
+        },
+        "model_requirements": {
+          "asr": true,
+          "min_quality_tier": "external_gpu",
+          "speaker_diarization": true
+        },
+        "placement_result": {
+          "exclusive_gpu": false,
+          "fractional_gpu": null,
+          "fractional_ok": true,
+          "gpu_count": 1.0,
+          "multi_gpu_ok": true,
+          "ok": true,
+          "placement_version": "gpu-job-placement-v1",
+          "provider": "modal",
+          "provider_support": {
+            "fractional": false,
+            "multi_gpu": false
+          }
+        },
+        "preemption_result": {
+          "checkpoint_artifact": null,
+          "checkpoint_ok": false,
+          "checkpoint_path": null,
+          "ok": true,
+          "preemptible": false,
+          "preemption_version": "gpu-job-preemption-v1",
+          "resume_allowed": false
+        },
+        "provenance_result": {
+          "attestation": {
+            "ok": true,
+            "reason": "attestation not required",
+            "required": false
+          },
+          "attestation_required": false,
+          "image_digest": null,
+          "image_pinned": false,
+          "model_pinned": false,
+          "model_weights_hash": null,
+          "ok": true,
+          "provenance_version": "gpu-job-provenance-v1",
+          "strict": false
+        },
+        "quota_result": {
+          "estimated_cost_usd": 0.0,
+          "global_budget_usd": 50.0,
+          "global_ok": true,
+          "global_remaining_usd": 50.0,
+          "global_used_usd": 0.0,
+          "ok": true,
+          "quota_version": "gpu-job-quota-v1",
+          "source_budget_usd": 10.0,
+          "source_ok": true,
+          "source_remaining_usd": 10.0,
+          "source_system": "contract-probe",
+          "source_used_usd": 0.0
+        },
+        "route_explanation": "selected provider 'modal' for gpu_profile 'asr_diarization' from candidates [modal]. reason: provider explicitly requested",
+        "route_result": {
+          "selected_provider": "modal"
+        },
+        "routing": {
+          "estimated_gpu_runtime_seconds": 120,
+          "quality_requires_gpu": true
+        },
+        "secret_refs": [
+          "hf_token"
+        ],
+        "secret_result": {
+          "allowed_secret_refs": [],
+          "denied_secret_refs": [
+            "hf_token"
+          ],
+          "ok": false,
+          "requested_secret_refs": [
+            "hf_token"
+          ],
+          "scope": "modal:contract-probe:asr",
+          "secret_policy_version": "gpu-job-secret-policy-v1"
+        },
+        "selected_provider": "modal",
+        "source_system": "contract-probe",
+        "timing_v2": {
+          "append_only": true,
+          "clock": "unix_time_seconds",
+          "events": [
+            {
+              "at": 1777088229.0,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000001",
+              "phase": "received",
+              "seq": 1
+            },
+            {
+              "at": 1777088229.531,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000002",
+              "phase": "validated",
+              "provider": "modal",
+              "seq": 2
+            },
+            {
+              "at": 1777088230.1,
+              "attempt": 1,
+              "error_class": "safety_gate",
+              "event": "exit",
+              "event_id": "000000000003",
+              "phase": "validated",
+              "provider": "modal",
+              "seq": 3,
+              "status": "failed"
+            },
+            {
+              "at": 1777088230.1,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000004",
+              "phase": "failed",
+              "provider": "modal",
+              "seq": 4,
+              "status": "failed"
+            }
+          ],
+          "version": "gpu-job-timing-v2"
+        },
+        "trace": {
+          "span_id": "82a79f28aa084490",
+          "telemetry_schema_version": "gpu-job-telemetry-v1",
+          "trace_id": "1229f665c68f45eb858b02f60c625dc5"
+        },
+        "workspace_plan": {
+          "catalog_snapshot_id": "cat-1f8eb449c91a623f",
+          "catalog_version": "gpu-job-provider-catalog-v1",
+          "created_at": 1777088230,
+          "decision": "ready",
+          "execution_plan": {
+            "artifact_contract": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ],
+            "command": [
+              "gpu-job-asr-worker",
+              "--job-id",
+              "contract-probe-asr-20260425-123709-b3a90a5f",
+              "--artifact-dir",
+              "/workspace/artifacts",
+              "--gpu-profile",
+              "asr_diarization",
+              "--input-uri",
+              "<staged-input-path>",
+              "--provider",
+              "modal",
+              "--model-name",
+              "pyannote/speaker-diarization-3.1",
+              "--language",
+              "ja",
+              "--diarize",
+              "--speaker-model",
+              "pyannote/speaker-diarization-3.1"
+            ],
+            "command_shape": {
+              "entrypoint_is_command_argv0": true,
+              "tokenized": true
+            },
+            "entrypoint": "gpu-job-asr-worker",
+            "execution_plan_version": "gpu-job-execution-plan-v1",
+            "gpu_profile": "asr_diarization",
+            "image_contract": {
+              "contract": {
+                "artifact_contract": [
+                  "result.json",
+                  "metrics.json",
+                  "verify.json",
+                  "stdout.log",
+                  "stderr.log"
+                ],
+                "build_action": {
+                  "dockerfile": "docker/asr-worker.Dockerfile",
+                  "reason": "speaker diarization must use a prebuilt image; runtime pip install is not allowed for production execution"
+                },
+                "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+                "description": "faster-whisper large-v3 plus pyannote speaker diarization worker image contract",
+                "entrypoint": "gpu-job-asr-worker",
+                "image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+                "probe_command": [
+                  "gpu-job-asr-worker",
+                  "--probe-runtime",
+                  "--diarize"
+                ],
+                "provider_images": {
+                  "modal": {
+                    "status": "provider_native"
+                  },
+                  "runpod": {
+                    "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+                    "registry_auth": {
+                      "auth_id": "cmo69c98l00iyjj07z22tsrzm",
+                      "registry": "ghcr.io",
+                      "type": "runpod_container_registry_auth",
+                      "username": "noiehoie"
+                    },
+                    "status": "verified"
+                  },
+                  "vast": {
+                    "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+                    "registry_auth": {
+                      "password_env": "GHCR_TOKEN",
+                      "registry": "ghcr.io",
+                      "type": "vast_image_login",
+                      "username_env": "GHCR_USERNAME"
+                    },
+                    "status": "verified"
+                  }
+                },
+                "provides_backends": [
+                  "faster_whisper",
+                  "pyannote"
+                ],
+                "required_packages": {
+                  "faster-whisper": "1.2.1",
+                  "huggingface-hub": "0.24.7",
+                  "matplotlib": "3.10.1",
+                  "pyannote.audio": "3.3.2",
+                  "torch": "2.5.1",
+                  "torchaudio": "2.5.1"
+                },
+                "required_secrets": [
+                  "hf_token"
+                ],
+                "status": "verified"
+              },
+              "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+              "ok": true,
+              "reason": "image contract verified",
+              "required_backends": [
+                "faster_whisper",
+                "pyannote"
+              ],
+              "status": "verified"
+            },
+            "image_distribution": {
+              "status": "provider_native"
+            },
+            "job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+            "job_type": "asr",
+            "provider": "modal",
+            "provider_image": "",
+            "provider_support_contract": {
+              "basis": {
+                "canary_executable": "provider is allowed only for explicit canary or controlled routes unless promoted",
+                "catalog_routable": "provider has at least one catalog-supported job type",
+                "production_route": "provider may be selected by normal planning for its supported job types",
+                "registered": "adapter or policy entry is present in the generated provider catalog"
+              },
+              "highest_support_level": "production_route",
+              "is_cloud_gpu_provider": true,
+              "levels": {
+                "canary_executable": true,
+                "catalog_routable": true,
+                "production_route": true,
+                "registered": true
+              },
+              "provider_region": "external",
+              "support_contract_version": "gpu-job-provider-support-contract-v1"
+            },
+            "required_backends": [
+              "faster_whisper",
+              "pyannote"
+            ],
+            "secret_refs": [
+              "hf_token"
+            ],
+            "staging": {
+              "artifact_dir_binding": "provider_adapter_must_bind_to_workspace_plan_or_store_artifact_dir",
+              "artifact_dir_placeholder": "/workspace/artifacts",
+              "input_mode": "staged_input_path",
+              "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+              "staged_input_placeholder": "<staged-input-path>"
+            },
+            "worker_image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4"
+          },
+          "gpu_profile": "asr_diarization",
+          "image_contract": {
+            "contract": {
+              "artifact_contract": [
+                "result.json",
+                "metrics.json",
+                "verify.json",
+                "stdout.log",
+                "stderr.log"
+              ],
+              "build_action": {
+                "dockerfile": "docker/asr-worker.Dockerfile",
+                "reason": "speaker diarization must use a prebuilt image; runtime pip install is not allowed for production execution"
+              },
+              "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+              "description": "faster-whisper large-v3 plus pyannote speaker diarization worker image contract",
+              "entrypoint": "gpu-job-asr-worker",
+              "image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+              "probe_command": [
+                "gpu-job-asr-worker",
+                "--probe-runtime",
+                "--diarize"
+              ],
+              "provider_images": {
+                "modal": {
+                  "status": "provider_native"
+                },
+                "runpod": {
+                  "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+                  "registry_auth": {
+                    "auth_id": "cmo69c98l00iyjj07z22tsrzm",
+                    "registry": "ghcr.io",
+                    "type": "runpod_container_registry_auth",
+                    "username": "noiehoie"
+                  },
+                  "status": "verified"
+                },
+                "vast": {
+                  "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+                  "registry_auth": {
+                    "password_env": "GHCR_TOKEN",
+                    "registry": "ghcr.io",
+                    "type": "vast_image_login",
+                    "username_env": "GHCR_USERNAME"
+                  },
+                  "status": "verified"
+                }
+              },
+              "provides_backends": [
+                "faster_whisper",
+                "pyannote"
+              ],
+              "required_packages": {
+                "faster-whisper": "1.2.1",
+                "huggingface-hub": "0.24.7",
+                "matplotlib": "3.10.1",
+                "pyannote.audio": "3.3.2",
+                "torch": "2.5.1",
+                "torchaudio": "2.5.1"
+              },
+              "required_secrets": [
+                "hf_token"
+              ],
+              "status": "verified"
+            },
+            "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+            "ok": true,
+            "reason": "image contract verified",
+            "required_backends": [
+              "faster_whisper",
+              "pyannote"
+            ],
+            "status": "verified"
+          },
+          "job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+          "job_type": "asr",
+          "provider": "modal",
+          "provider_capability": {
+            "cache_state": null,
+            "estimated_startup_seconds": null,
+            "provider": "modal",
+            "supported_job_types": [
+              "asr",
+              "llm_heavy",
+              "pdf_ocr",
+              "smoke",
+              "vlm_ocr"
+            ],
+            "warm_state": null
+          },
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "evidence": [
+                    "docs/cloud-gpu-provider-research.md"
+                  ],
+                  "operations": [
+                    "invoke_function",
+                    "image_build",
+                    "volume_mount",
+                    "logs"
+                  ],
+                  "surface": "modal_function"
+                }
+              ],
+              "canary_requirements": [
+                "function_invoke",
+                "artifact_verify",
+                "volume_visibility",
+                "cost_snapshot"
+              ],
+              "cost_model": [
+                "function_runtime",
+                "idle_container_seconds",
+                "volume_storage"
+              ],
+              "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+              "module_id": "modal_function",
+              "parent_provider": "modal",
+              "resource_model": "modal_function",
+              "status_model": {
+                "resource_status_source": "modal function invocation lifecycle",
+                "terminal_states": []
+              },
+              "workspace_paths": [
+                "/workspace",
+                "/mnt"
+              ]
+            },
+            "active_module_id": "modal_function",
+            "available_module_ids": [
+              "modal_function"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "docs/cloud-gpu-provider-research.md"
+                    ],
+                    "operations": [
+                      "invoke_function",
+                      "image_build",
+                      "volume_mount",
+                      "logs"
+                    ],
+                    "surface": "modal_function"
+                  }
+                ],
+                "canary_requirements": [
+                  "function_invoke",
+                  "artifact_verify",
+                  "volume_visibility",
+                  "cost_snapshot"
+                ],
+                "cost_model": [
+                  "function_runtime",
+                  "idle_container_seconds",
+                  "volume_storage"
+                ],
+                "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+                "module_id": "modal_function",
+                "parent_provider": "modal",
+                "resource_model": "modal_function",
+                "status_model": {
+                  "resource_status_source": "modal function invocation lifecycle",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace",
+                  "/mnt"
+                ]
+              }
+            ],
+            "parent_provider": "modal",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "provider_runtime": {
+            "contract_probe": "modal.asr_diarization.pyannote",
+            "expected_gpu": "A10G",
+            "gpu_profile": "asr_diarization",
+            "image_contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+            "provider": "modal",
+            "provider_secret_bindings": [
+              {
+                "env": "HF_TOKEN",
+                "provider_secret_name": "hf-token",
+                "secret_ref": "hf_token",
+                "type": "provider_secret_binding"
+              }
+            ],
+            "supports_backends": [
+              "faster_whisper",
+              "pyannote"
+            ],
+            "worker_image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4"
+          },
+          "required_actions": [],
+          "required_backends": [
+            "faster_whisper",
+            "pyannote"
+          ],
+          "runtime_contract_probe": {
+            "contract_probe": "modal.asr_diarization.pyannote",
+            "ok": true,
+            "required": true,
+            "self_probe": true
+          },
+          "workspace": {
+            "artifact_dir": "/workspace/artifacts",
+            "cleanup_contract": "modal_function_lifecycle",
+            "input_staging": "provider_native",
+            "official_docs": [
+              "https://modal.com/docs/guide/images",
+              "https://modal.com/docs/guide/volumes",
+              "https://modal.com/docs/guide/timeouts",
+              "https://modal.com/docs/guide/retries"
+            ],
+            "workspace_kind": "function",
+            "workspace_modes": {
+              "function": {
+                "consistency": "volume changes require commit/reload semantics for cross-container visibility",
+                "resource_model": "modal_app_function",
+                "timing_fields": [
+                  "startup_timeout_seconds",
+                  "execution_timeout_seconds",
+                  "retry_attempts"
+                ],
+                "volume_mount_default": "/mnt"
+              }
+            },
+            "workspace_root": "/workspace"
+          },
+          "workspace_plan_id": "workspace-4f2c4099ea63793d",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        },
+        "workspace_record": {
+          "gpu_profile": "asr_diarization",
+          "image_contract": {
+            "contract": {
+              "artifact_contract": [
+                "result.json",
+                "metrics.json",
+                "verify.json",
+                "stdout.log",
+                "stderr.log"
+              ],
+              "build_action": {
+                "dockerfile": "docker/asr-worker.Dockerfile",
+                "reason": "speaker diarization must use a prebuilt image; runtime pip install is not allowed for production execution"
+              },
+              "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+              "description": "faster-whisper large-v3 plus pyannote speaker diarization worker image contract",
+              "entrypoint": "gpu-job-asr-worker",
+              "image": "gpu-job/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4",
+              "probe_command": [
+                "gpu-job-asr-worker",
+                "--probe-runtime",
+                "--diarize"
+              ],
+              "provider_images": {
+                "modal": {
+                  "status": "provider_native"
+                },
+                "runpod": {
+                  "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+                  "registry_auth": {
+                    "auth_id": "cmo69c98l00iyjj07z22tsrzm",
+                    "registry": "ghcr.io",
+                    "type": "runpod_container_registry_auth",
+                    "username": "noiehoie"
+                  },
+                  "status": "verified"
+                },
+                "vast": {
+                  "image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+                  "registry_auth": {
+                    "password_env": "GHCR_TOKEN",
+                    "registry": "ghcr.io",
+                    "type": "vast_image_login",
+                    "username_env": "GHCR_USERNAME"
+                  },
+                  "status": "verified"
+                }
+              },
+              "provides_backends": [
+                "faster_whisper",
+                "pyannote"
+              ],
+              "required_packages": {
+                "faster-whisper": "1.2.1",
+                "huggingface-hub": "0.24.7",
+                "matplotlib": "3.10.1",
+                "pyannote.audio": "3.3.2",
+                "torch": "2.5.1",
+                "torchaudio": "2.5.1"
+              },
+              "required_secrets": [
+                "hf_token"
+              ],
+              "status": "verified"
+            },
+            "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+            "ok": true,
+            "reason": "image contract verified",
+            "required_backends": [
+              "faster_whisper",
+              "pyannote"
+            ],
+            "status": "verified"
+          },
+          "job_id": "contract-probe-asr-20260425-123709-b3a90a5f",
+          "path": "/home/admin/.local/share/gpu-job-control/workspaces/workspace-4f2c4099ea63793d.json",
+          "provider": "modal",
+          "provider_job_id": "",
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "evidence": [
+                    "docs/cloud-gpu-provider-research.md"
+                  ],
+                  "operations": [
+                    "invoke_function",
+                    "image_build",
+                    "volume_mount",
+                    "logs"
+                  ],
+                  "surface": "modal_function"
+                }
+              ],
+              "canary_requirements": [
+                "function_invoke",
+                "artifact_verify",
+                "volume_visibility",
+                "cost_snapshot"
+              ],
+              "cost_model": [
+                "function_runtime",
+                "idle_container_seconds",
+                "volume_storage"
+              ],
+              "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+              "module_id": "modal_function",
+              "parent_provider": "modal",
+              "resource_model": "modal_function",
+              "status_model": {
+                "resource_status_source": "modal function invocation lifecycle",
+                "terminal_states": []
+              },
+              "workspace_paths": [
+                "/workspace",
+                "/mnt"
+              ]
+            },
+            "active_module_id": "modal_function",
+            "available_module_ids": [
+              "modal_function"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "docs/cloud-gpu-provider-research.md"
+                    ],
+                    "operations": [
+                      "invoke_function",
+                      "image_build",
+                      "volume_mount",
+                      "logs"
+                    ],
+                    "surface": "modal_function"
+                  }
+                ],
+                "canary_requirements": [
+                  "function_invoke",
+                  "artifact_verify",
+                  "volume_visibility",
+                  "cost_snapshot"
+                ],
+                "cost_model": [
+                  "function_runtime",
+                  "idle_container_seconds",
+                  "volume_storage"
+                ],
+                "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+                "module_id": "modal_function",
+                "parent_provider": "modal",
+                "resource_model": "modal_function",
+                "status_model": {
+                  "resource_status_source": "modal function invocation lifecycle",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace",
+                  "/mnt"
+                ]
+              }
+            ],
+            "parent_provider": "modal",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "required_actions": [],
+          "state": "planned",
+          "status": "ok",
+          "updated_at": 1777088230,
+          "workspace": {
+            "artifact_dir": "/workspace/artifacts",
+            "cleanup_contract": "modal_function_lifecycle",
+            "input_staging": "provider_native",
+            "official_docs": [
+              "https://modal.com/docs/guide/images",
+              "https://modal.com/docs/guide/volumes",
+              "https://modal.com/docs/guide/timeouts",
+              "https://modal.com/docs/guide/retries"
+            ],
+            "workspace_kind": "function",
+            "workspace_modes": {
+              "function": {
+                "consistency": "volume changes require commit/reload semantics for cross-container visibility",
+                "resource_model": "modal_app_function",
+                "timing_fields": [
+                  "startup_timeout_seconds",
+                  "execution_timeout_seconds",
+                  "retry_attempts"
+                ],
+                "volume_mount_default": "/mnt"
+              }
+            },
+            "workspace_root": "/workspace"
+          },
+          "workspace_plan_id": "workspace-4f2c4099ea63793d",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        }
+      },
+      "model": "pyannote/speaker-diarization-3.1",
+      "output_uri": "local://contract-probes/contract-probe-asr-20260425-123709-b3a90a5f",
+      "provider": "modal",
+      "provider_job_id": "",
+      "runtime_seconds": null,
+      "started_at": null,
+      "status": "failed",
+      "updated_at": 1777088230,
+      "verify": {},
+      "worker_image": "gpu-job-modal-asr"
+    },
+    "ok": false,
+    "path": "/home/admin/.local/share/gpu-job-control/jobs/contract-probe-asr-20260425-123709-b3a90a5f.json"
+  }
+}

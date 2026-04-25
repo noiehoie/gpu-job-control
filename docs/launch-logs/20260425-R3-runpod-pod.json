@@ -1,0 +1,4658 @@
+{
+  "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+  "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+  "ok": false,
+  "probe_name": "runpod.llm_heavy.pod_http",
+  "provider": "runpod",
+  "provider_module_probe_name": "runpod_pod.llm_heavy.pod_http",
+  "record": {
+    "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123808-1a94cd11",
+    "checks": {
+      "artifact_contract_ok": true,
+      "cache_contract_ok": true,
+      "forbidden_model_absent": true,
+      "gpu_contract_ok": true,
+      "image_digest_match": true,
+      "image_match": true,
+      "model_match": true,
+      "official_template_smoke_ok": true,
+      "text_nonempty": true,
+      "verify_ok": true,
+      "workspace_contract_ok": true
+    },
+    "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+    "execution_mode": "executed",
+    "failure": {
+      "class": null,
+      "reason": "",
+      "retryable": false
+    },
+    "observed": {
+      "artifact_contract": {
+        "file_count": 9,
+        "files": [
+          {
+            "bytes": 24109,
+            "path": "execution_record.json",
+            "sha256": "b117a3a4e5abdcb677e59484037666342399a78fde7d082cc7e8cc3e3643d439"
+          },
+          {
+            "bytes": 1102,
+            "path": "manifest.json",
+            "sha256": "ee483604554401e4c92300f51da93941c6e2651c3a0c747cba5a50e1d116f85c"
+          },
+          {
+            "bytes": 414,
+            "path": "metrics.json",
+            "sha256": "7ec7d5f4b560bbb78f07572641fccf489469683a93f7dfe05e5a902bfe05fd0d"
+          },
+          {
+            "bytes": 476,
+            "path": "probe_info.json",
+            "sha256": "177ffaa71ccfab066162b0eea93b7141b7d130754b26c73b6ccd9100436d1908"
+          },
+          {
+            "bytes": 2584,
+            "path": "result.json",
+            "sha256": "a032a72b0a522053f761854386968c60ce35511e3e2bb73b41e1661ac520f768"
+          },
+          {
+            "bytes": 0,
+            "path": "stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 357,
+            "path": "stdout.log",
+            "sha256": "eab9195a50cb3a96f5868a92ca0ae5ab6646659c3086a9ade4e5cbb161f3a474"
+          },
+          {
+            "bytes": 21202,
+            "path": "submit_result.json",
+            "sha256": "6edcd6ec027a62788383efb4e3983d2c6b649860fe0e4b8d52b35531993af259"
+          },
+          {
+            "bytes": 770,
+            "path": "verify.json",
+            "sha256": "3f451a0eb0814b78b22f4ba94f456d2556b5ab86443dc082633640cc59172180"
+          }
+        ],
+        "manifest_version": "gpu-job-artifact-manifest-v1",
+        "root": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123808-1a94cd11",
+        "total_bytes": 51014
+      },
+      "cache": {
+        "cache_hit": false,
+        "cold_start_observed": false,
+        "cold_start_signals": [],
+        "download_seconds": null
+      },
+      "gpu_utilization_evidence": {
+        "execution_class": "gpu",
+        "matches": [
+          {
+            "key": "gpu_memory_used_mb",
+            "path": "gpu_memory_used_mb",
+            "value": 1
+          }
+        ],
+        "ok": true,
+        "reason": "gpu utilization evidence present"
+      },
+      "hardware": {
+        "gpu_count": null,
+        "gpu_name": "NVIDIA GeForce RTX 3090, 24576 MiB",
+        "vram_mb": null
+      },
+      "http_statuses": [],
+      "image": {
+        "digest": null,
+        "name": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
+      },
+      "model": null,
+      "workspace_contract": {
+        "actual_cost_guard": {
+          "cost_per_hour": 0.46,
+          "max_cost_usd": 0.038333,
+          "max_estimated_cost_usd": 0.25,
+          "max_uptime_seconds": 300,
+          "ok": true
+        },
+        "cache_hit": false,
+        "cleanup": {
+          "ok": true,
+          "result": {
+            "costPerHr": 0.46,
+            "desiredStatus": "EXITED",
+            "gpuCount": 1,
+            "id": "cs3wp3y6ehvomd",
+            "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+            "machine": {
+              "gpuDisplayName": "RTX 3090",
+              "podHostId": "cs3wp3y6ehvomd-64411dd3"
+            },
+            "machineId": "z0b0y2v5947y",
+            "name": "gpu-job-pod-canary-20260425123823",
+            "uptimeSeconds": 0
+          }
+        },
+        "cleanup_ok": true,
+        "cost_guard_ok": true,
+        "endpoint_id": "",
+        "gpu_probe": {
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "NVIDIA GeForce RTX 3090, 24576 MiB"
+        },
+        "hf_token_present": null,
+        "image_contract_marker_present": null,
+        "instance_id": "",
+        "official_template_smoke_ok": false,
+        "ok": null,
+        "pod_id": "cs3wp3y6ehvomd",
+        "provider_job_id": "cs3wp3y6ehvomd",
+        "require_gpu": null,
+        "runtime_checks": {},
+        "runtime_imports_ok": null,
+        "small_workload_ok": null,
+        "volume_probe_ok": false,
+        "volume_required": null,
+        "worker_startup_ok": true,
+        "workergroup_id": ""
+      },
+      "workspace_observation_coverage": {
+        "categories": {
+          "artifact_contract": {
+            "evidence_fields": [
+              "artifact_contract",
+              "verify_artifacts"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "cleanup_result": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "cost_guard": {
+            "evidence_fields": [
+              "actual_cost_guard",
+              "cost_guard_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "gpu_execution": {
+            "evidence_fields": [
+              "gpu_probe",
+              "gpu_utilization_evidence",
+              "hardware"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "image_contract": {
+            "evidence_fields": [
+              "image",
+              "provider_image",
+              "image_contract_marker_present"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "model_load": {
+            "evidence_fields": [
+              "model",
+              "loaded_model_id",
+              "runtime_imports_ok",
+              "small_workload_ok"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "provider_residue": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "provider_resource_identity": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "",
+              "pod_id": "cs3wp3y6ehvomd",
+              "provider_job_id": "cs3wp3y6ehvomd",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "queue_or_reservation": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "",
+              "pod_id": "cs3wp3y6ehvomd",
+              "provider_job_id": "cs3wp3y6ehvomd",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "secret_availability": {
+            "evidence_fields": [
+              "hf_token_present"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "startup_phases": {
+            "evidence_fields": [
+              "worker_startup_ok",
+              "workspace_contract_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "workspace_cache": {
+            "evidence_fields": [
+              "cache_hit",
+              "cache_warm"
+            ],
+            "observed": true,
+            "ok": false
+          }
+        },
+        "coverage_version": "gpu-job-workspace-observation-coverage-v1",
+        "failed_categories": [
+          "workspace_cache"
+        ],
+        "missing_categories": [
+          "secret_availability",
+          "model_load"
+        ],
+        "observed_categories": [
+          "provider_resource_identity",
+          "image_contract",
+          "workspace_cache",
+          "startup_phases",
+          "queue_or_reservation",
+          "gpu_execution",
+          "artifact_contract",
+          "cost_guard",
+          "cleanup_result",
+          "provider_residue"
+        ],
+        "provider": "runpod"
+      }
+    },
+    "ok": true,
+    "probe_name": "runpod.llm_heavy.pod_http",
+    "provider": "runpod",
+    "provider_module_canary_evidence": {
+      "evidence_source": "record.observed.workspace_observation_coverage",
+      "failed_categories": [
+        "workspace_cache"
+      ],
+      "missing_categories": [],
+      "module_canary_requirements": [
+        "gpu_stock_query",
+        "create_pod",
+        "proxy_url_ready",
+        "ssh_ready",
+        "workspace_path_check",
+        "stop_resume",
+        "terminate",
+        "billing_residue_check"
+      ],
+      "module_specific_failures": [],
+      "observation_categories": {
+        "artifact_contract": {
+          "evidence_fields": [
+            "artifact_contract",
+            "verify_artifacts"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "cleanup_result": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "cost_guard": {
+          "evidence_fields": [
+            "actual_cost_guard",
+            "cost_guard_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "gpu_execution": {
+          "evidence_fields": [
+            "gpu_probe",
+            "gpu_utilization_evidence",
+            "hardware"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "image_contract": {
+          "evidence_fields": [
+            "image",
+            "provider_image",
+            "image_contract_marker_present"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "model_load": {
+          "evidence_fields": [
+            "model",
+            "loaded_model_id",
+            "runtime_imports_ok",
+            "small_workload_ok"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "provider_residue": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "provider_resource_identity": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "",
+            "pod_id": "cs3wp3y6ehvomd",
+            "provider_job_id": "cs3wp3y6ehvomd",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "queue_or_reservation": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "",
+            "pod_id": "cs3wp3y6ehvomd",
+            "provider_job_id": "cs3wp3y6ehvomd",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "secret_availability": {
+          "evidence_fields": [
+            "hf_token_present"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "startup_phases": {
+          "evidence_fields": [
+            "worker_startup_ok",
+            "workspace_contract_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "workspace_cache": {
+          "evidence_fields": [
+            "cache_hit",
+            "cache_warm"
+          ],
+          "observed": true,
+          "ok": false
+        }
+      },
+      "observed_categories": [
+        "provider_resource_identity",
+        "image_contract",
+        "workspace_cache",
+        "startup_phases",
+        "queue_or_reservation",
+        "cost_guard",
+        "cleanup_result",
+        "provider_residue"
+      ],
+      "ok": false,
+      "parent_provider": "runpod",
+      "provider_module_canary_evidence_version": "gpu-job-provider-module-canary-evidence-v1",
+      "provider_module_id": "runpod_pod",
+      "provider_module_probe_name": "runpod_pod.llm_heavy.pod_http",
+      "required_observation_categories": [
+        "provider_resource_identity",
+        "image_contract",
+        "workspace_cache",
+        "startup_phases",
+        "queue_or_reservation",
+        "cost_guard",
+        "cleanup_result",
+        "provider_residue"
+      ],
+      "requirement_observation_mapping": {
+        "billing_residue_check": [
+          "cost_guard",
+          "provider_residue"
+        ],
+        "create_pod": [
+          "provider_resource_identity",
+          "startup_phases"
+        ],
+        "gpu_stock_query": [
+          "queue_or_reservation"
+        ],
+        "proxy_url_ready": [
+          "startup_phases"
+        ],
+        "ssh_ready": [
+          "startup_phases"
+        ],
+        "stop_resume": [
+          "startup_phases",
+          "cleanup_result"
+        ],
+        "terminate": [
+          "cleanup_result",
+          "provider_residue"
+        ],
+        "workspace_path_check": [
+          "image_contract",
+          "workspace_cache"
+        ]
+      },
+      "requirements": {
+        "billing_residue_check": {
+          "categories": [
+            "cost_guard",
+            "provider_residue"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "create_pod": {
+          "categories": [
+            "provider_resource_identity",
+            "startup_phases"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "gpu_stock_query": {
+          "categories": [
+            "queue_or_reservation"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "proxy_url_ready": {
+          "categories": [
+            "startup_phases"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "ssh_ready": {
+          "categories": [
+            "startup_phases"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "stop_resume": {
+          "categories": [
+            "startup_phases",
+            "cleanup_result"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "terminate": {
+          "categories": [
+            "cleanup_result",
+            "provider_residue"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "workspace_path_check": {
+          "categories": [
+            "image_contract",
+            "workspace_cache"
+          ],
+          "observed": true,
+          "ok": false
+        }
+      }
+    },
+    "provider_module_contract": {
+      "active_module": {
+        "api_surfaces": [
+          {
+            "base_url": "https://rest.runpod.io/v1",
+            "evidence": [
+              "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/client.go"
+            ],
+            "operations": [
+              "pods",
+              "endpoints",
+              "billing_pods",
+              "billing_endpoints",
+              "billing_networkvolumes"
+            ],
+            "surface": "rest_v1"
+          },
+          {
+            "base_url": "https://api.runpod.io/graphql",
+            "evidence": [
+              "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/graphql.go",
+              "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/api/mutations/pods.py"
+            ],
+            "operations": [
+              "myself",
+              "gpuTypes",
+              "networkVolumes",
+              "podFindAndDeployOnDemand"
+            ],
+            "surface": "graphql"
+          }
+        ],
+        "canary_requirements": [
+          "gpu_stock_query",
+          "create_pod",
+          "proxy_url_ready",
+          "ssh_ready",
+          "workspace_path_check",
+          "stop_resume",
+          "terminate",
+          "billing_residue_check"
+        ],
+        "cost_model": [
+          "pod_cost_per_hr",
+          "stopped_storage_cost",
+          "network_volume_gb_month"
+        ],
+        "execution_semantics": "persistent_pod_lifecycle",
+        "module_id": "runpod_pod",
+        "parent_provider": "runpod",
+        "resource_model": "direct_pod",
+        "status_model": {
+          "evidence": [
+            "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/pods.go"
+          ],
+          "resource_status_source": "pod status and desiredStatus",
+          "terminal_states": []
+        },
+        "workspace_paths": [
+          "/workspace",
+          "/runpod-volume"
+        ]
+      },
+      "active_module_id": "runpod_pod",
+      "available_module_ids": [
+        "runpod_serverless",
+        "runpod_pod"
+      ],
+      "available_modules": [
+        {
+          "api_surfaces": [
+            {
+              "base_url": "https://api.runpod.ai/v2",
+              "evidence": [
+                "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/runner.py",
+                "tasks/research/runpod-org/repos/runpod__js-sdk/src/index.ts"
+              ],
+              "operations": [
+                "run",
+                "runsync",
+                "status",
+                "stream",
+                "cancel",
+                "health",
+                "purge_queue"
+              ],
+              "surface": "serverless_v2"
+            }
+          ],
+          "canary_requirements": [
+            "endpoint_health",
+            "minimal_run",
+            "status_poll",
+            "cancel",
+            "result_retention",
+            "artifact_upload",
+            "billing_surface_snapshot"
+          ],
+          "cost_model": [
+            "compute_seconds",
+            "active_worker_idle_seconds",
+            "network_volume_gb_month"
+          ],
+          "execution_semantics": "queued_request_to_autoscaled_worker",
+          "module_id": "runpod_serverless",
+          "parent_provider": "runpod",
+          "resource_model": "serverless_endpoint_worker",
+          "status_model": {
+            "evidence": [
+              "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/helpers.py"
+            ],
+            "known_inconsistency": "Python SDK FINAL_STATES omits CANCELLED while is_completed includes it",
+            "terminal_states": [
+              "COMPLETED",
+              "FAILED",
+              "TIMED_OUT",
+              "CANCELLED"
+            ]
+          },
+          "workspace_paths": [
+            "/runpod/cache",
+            "/runpod-volume"
+          ]
+        },
+        {
+          "api_surfaces": [
+            {
+              "base_url": "https://rest.runpod.io/v1",
+              "evidence": [
+                "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/client.go"
+              ],
+              "operations": [
+                "pods",
+                "endpoints",
+                "billing_pods",
+                "billing_endpoints",
+                "billing_networkvolumes"
+              ],
+              "surface": "rest_v1"
+            },
+            {
+              "base_url": "https://api.runpod.io/graphql",
+              "evidence": [
+                "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/graphql.go",
+                "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/api/mutations/pods.py"
+              ],
+              "operations": [
+                "myself",
+                "gpuTypes",
+                "networkVolumes",
+                "podFindAndDeployOnDemand"
+              ],
+              "surface": "graphql"
+            }
+          ],
+          "canary_requirements": [
+            "gpu_stock_query",
+            "create_pod",
+            "proxy_url_ready",
+            "ssh_ready",
+            "workspace_path_check",
+            "stop_resume",
+            "terminate",
+            "billing_residue_check"
+          ],
+          "cost_model": [
+            "pod_cost_per_hr",
+            "stopped_storage_cost",
+            "network_volume_gb_month"
+          ],
+          "execution_semantics": "persistent_pod_lifecycle",
+          "module_id": "runpod_pod",
+          "parent_provider": "runpod",
+          "resource_model": "direct_pod",
+          "status_model": {
+            "evidence": [
+              "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/pods.go"
+            ],
+            "resource_status_source": "pod status and desiredStatus",
+            "terminal_states": []
+          },
+          "workspace_paths": [
+            "/workspace",
+            "/runpod-volume"
+          ]
+        }
+      ],
+      "parent_provider": "runpod",
+      "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+      "requested_module_id": "runpod_pod",
+      "selection": {
+        "mode": "metadata_requested_or_parent_default",
+        "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+        "requested_module_valid": true,
+        "routing_by_module_enabled": false
+      }
+    },
+    "provider_module_probe_name": "runpod_pod.llm_heavy.pod_http",
+    "recorded_at": 1777088343,
+    "spec": {
+      "cache_required": false,
+      "expected_image": "",
+      "expected_image_digest": "",
+      "expected_model": "",
+      "forbidden_models": [],
+      "gpu_profile": "llm_heavy",
+      "job_type": "llm_heavy",
+      "probe_name": "runpod.llm_heavy.pod_http",
+      "provider": "runpod",
+      "provider_module_id": "runpod_pod",
+      "require_gpu_utilization": true,
+      "required_files": [
+        "result.json",
+        "metrics.json",
+        "verify.json",
+        "stdout.log",
+        "stderr.log"
+      ],
+      "workload_family": "llm_heavy"
+    },
+    "submit_result": {
+      "error": "post-submit cost guard failed",
+      "exit_code": 0,
+      "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+      "ok": false,
+      "post_submit_guard": {
+        "capacity": {
+          "active_total": 1,
+          "by_job_type": {
+            "asr": {
+              "failed": 30,
+              "planned": 1,
+              "succeeded": 8
+            },
+            "cpu_workflow_helper": {
+              "succeeded": 1
+            },
+            "embedding": {
+              "failed": 1,
+              "succeeded": 6
+            },
+            "llm_heavy": {
+              "cancelled": 1,
+              "failed": 147,
+              "succeeded": 101
+            },
+            "pdf_ocr": {
+              "succeeded": 2
+            },
+            "smoke": {
+              "cancelled": 1,
+              "failed": 6,
+              "running": 1,
+              "succeeded": 11
+            },
+            "vlm_ocr": {
+              "failed": 74,
+              "succeeded": 38
+            }
+          },
+          "counts": {
+            "cancelled": 2,
+            "failed": 258,
+            "planned": 1,
+            "running": 1,
+            "succeeded": 167
+          },
+          "flattened_provider_limits": {
+            "local:*": 1,
+            "modal:*": 1,
+            "modal:asr": 2,
+            "modal:asr_diarization": 1,
+            "modal:llm_heavy": 1,
+            "modal:vlm_ocr": 1,
+            "ollama:*": 1,
+            "ollama:embedding": 1,
+            "ollama:llm_heavy": 1,
+            "ollama:vlm_ocr": 1,
+            "runpod:*": 1,
+            "runpod:asr": 2,
+            "runpod:llm_heavy": 1,
+            "vast:*": 1,
+            "vast:asr": 1,
+            "vast:asr_diarization": 1
+          },
+          "ok": true,
+          "provider_limits": {
+            "local": {
+              "*": 1
+            },
+            "modal": {
+              "*": 1,
+              "asr": 2,
+              "asr_diarization": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "ollama": {
+              "*": 1,
+              "embedding": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "runpod": {
+              "*": 1,
+              "asr": 2,
+              "llm_heavy": 1
+            },
+            "vast": {
+              "*": 1,
+              "asr": 1,
+              "asr_diarization": 1
+            }
+          },
+          "providers": {
+            "local:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "local",
+              "provider_profile_key": "local:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:embedding": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "embedding",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:embedding",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:smoke": {
+              "active": 1,
+              "available_slots": 0,
+              "expected_wait_seconds": 30,
+              "gpu_profile": "smoke",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:smoke",
+              "queued": 0,
+              "saturated": true
+            }
+          },
+          "queued_total": 0
+        },
+        "estimated_hourly_usd": 0.46,
+        "ok": false,
+        "providers": {
+          "runpod": {
+            "billable_resources": [
+              {
+                "costPerHr": 0.46,
+                "desiredStatus": "EXITED",
+                "gpuCount": 1,
+                "id": "cs3wp3y6ehvomd",
+                "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+                "name": "gpu-job-pod-canary-20260425123823"
+              }
+            ],
+            "estimated_hourly_usd": 0.46,
+            "ok": false,
+            "persistent_resources": [
+              {
+                "dataCenterId": "US-NC-1",
+                "id": "le9b9gqqu6",
+                "name": "news-llm-models",
+                "size_gb": 80,
+                "type": "network_volume"
+              },
+              {
+                "dataCenterId": "EU-NL-1",
+                "id": "vb25y1avw1",
+                "name": "news-llm-models-nl",
+                "size_gb": 50,
+                "type": "network_volume"
+              }
+            ],
+            "persistent_storage": {
+              "allowed_monthly_usd": null,
+              "allowed_persistent_resources": [
+                {
+                  "allowed_size_gb": 80.0,
+                  "dataCenterId": "US-NC-1",
+                  "estimated_monthly_usd": 5.6,
+                  "id": "le9b9gqqu6",
+                  "name": "news-llm-models",
+                  "purpose": "approved model and worker asset storage",
+                  "size_gb": 80,
+                  "type": "network_volume"
+                },
+                {
+                  "allowed_size_gb": 50.0,
+                  "dataCenterId": "EU-NL-1",
+                  "estimated_monthly_usd": 3.5,
+                  "id": "vb25y1avw1",
+                  "name": "news-llm-models-nl",
+                  "purpose": "approved model and worker asset storage",
+                  "size_gb": 50,
+                  "type": "network_volume"
+                }
+              ],
+              "estimated_monthly_usd": 9.1,
+              "fail_monthly_usd": 0.0,
+              "ok": true,
+              "price_usd_per_gb_month": 0.07,
+              "reason": "RunPod persistent storage is within approved fixed-cost budget",
+              "size_mismatch_persistent_resources": [],
+              "total_gb": 130.0,
+              "unknown_persistent_resources": [],
+              "warning": false,
+              "warning_monthly_usd": 0.0
+            },
+            "provider": "runpod",
+            "reason": "RunPod active pods or warm serverless workers present",
+            "serverless_queue": [
+              {
+                "id": "vllm-623t63akmshaoi",
+                "jobs": {
+                  "completed": 0,
+                  "failed": 0,
+                  "inProgress": 0,
+                  "inQueue": 0,
+                  "retried": 0
+                },
+                "name": "gpu-job-disabled",
+                "ok": true,
+                "workers": {
+                  "idle": 0,
+                  "initializing": 0,
+                  "ready": 0,
+                  "running": 0,
+                  "throttled": 0,
+                  "unhealthy": 0
+                }
+              }
+            ]
+          }
+        },
+        "resource": {
+          "ok": true,
+          "reason": "local resource guard not applicable to selected remote providers",
+          "skipped": true
+        }
+      },
+      "pre_submit_guard": {
+        "capacity": {
+          "active_total": 1,
+          "by_job_type": {
+            "asr": {
+              "failed": 30,
+              "planned": 1,
+              "succeeded": 8
+            },
+            "cpu_workflow_helper": {
+              "succeeded": 1
+            },
+            "embedding": {
+              "failed": 1,
+              "succeeded": 6
+            },
+            "llm_heavy": {
+              "cancelled": 1,
+              "failed": 147,
+              "succeeded": 100
+            },
+            "pdf_ocr": {
+              "succeeded": 2
+            },
+            "smoke": {
+              "cancelled": 1,
+              "failed": 6,
+              "starting": 1,
+              "succeeded": 11
+            },
+            "vlm_ocr": {
+              "failed": 74,
+              "succeeded": 38
+            }
+          },
+          "counts": {
+            "cancelled": 2,
+            "failed": 258,
+            "planned": 1,
+            "starting": 1,
+            "succeeded": 166
+          },
+          "flattened_provider_limits": {
+            "local:*": 1,
+            "modal:*": 1,
+            "modal:asr": 2,
+            "modal:asr_diarization": 1,
+            "modal:llm_heavy": 1,
+            "modal:vlm_ocr": 1,
+            "ollama:*": 1,
+            "ollama:embedding": 1,
+            "ollama:llm_heavy": 1,
+            "ollama:vlm_ocr": 1,
+            "runpod:*": 1,
+            "runpod:asr": 2,
+            "runpod:llm_heavy": 1,
+            "vast:*": 1,
+            "vast:asr": 1,
+            "vast:asr_diarization": 1
+          },
+          "ok": true,
+          "provider_limits": {
+            "local": {
+              "*": 1
+            },
+            "modal": {
+              "*": 1,
+              "asr": 2,
+              "asr_diarization": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "ollama": {
+              "*": 1,
+              "embedding": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "runpod": {
+              "*": 1,
+              "asr": 2,
+              "llm_heavy": 1
+            },
+            "vast": {
+              "*": 1,
+              "asr": 1,
+              "asr_diarization": 1
+            }
+          },
+          "providers": {
+            "local:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "local",
+              "provider_profile_key": "local:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:embedding": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "embedding",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:embedding",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:smoke": {
+              "active": 1,
+              "available_slots": 0,
+              "expected_wait_seconds": 30,
+              "gpu_profile": "smoke",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:smoke",
+              "queued": 0,
+              "saturated": true
+            }
+          },
+          "queued_total": 0
+        },
+        "estimated_hourly_usd": 0.0,
+        "ok": true,
+        "providers": {
+          "runpod": {
+            "billable_resources": [],
+            "estimated_hourly_usd": 0,
+            "ok": true,
+            "persistent_resources": [
+              {
+                "dataCenterId": "US-NC-1",
+                "id": "le9b9gqqu6",
+                "name": "news-llm-models",
+                "size_gb": 80,
+                "type": "network_volume"
+              },
+              {
+                "dataCenterId": "EU-NL-1",
+                "id": "vb25y1avw1",
+                "name": "news-llm-models-nl",
+                "size_gb": 50,
+                "type": "network_volume"
+              }
+            ],
+            "persistent_storage": {
+              "allowed_monthly_usd": null,
+              "allowed_persistent_resources": [
+                {
+                  "allowed_size_gb": 80.0,
+                  "dataCenterId": "US-NC-1",
+                  "estimated_monthly_usd": 5.6,
+                  "id": "le9b9gqqu6",
+                  "name": "news-llm-models",
+                  "purpose": "approved model and worker asset storage",
+                  "size_gb": 80,
+                  "type": "network_volume"
+                },
+                {
+                  "allowed_size_gb": 50.0,
+                  "dataCenterId": "EU-NL-1",
+                  "estimated_monthly_usd": 3.5,
+                  "id": "vb25y1avw1",
+                  "name": "news-llm-models-nl",
+                  "purpose": "approved model and worker asset storage",
+                  "size_gb": 50,
+                  "type": "network_volume"
+                }
+              ],
+              "estimated_monthly_usd": 9.1,
+              "fail_monthly_usd": 0.0,
+              "ok": true,
+              "price_usd_per_gb_month": 0.07,
+              "reason": "RunPod persistent storage is within approved fixed-cost budget",
+              "size_mismatch_persistent_resources": [],
+              "total_gb": 130.0,
+              "unknown_persistent_resources": [],
+              "warning": false,
+              "warning_monthly_usd": 0.0
+            },
+            "provider": "runpod",
+            "reason": "no RunPod active pods or warm serverless workers; persistent storage within approved fixed-cost budget",
+            "serverless_queue": [
+              {
+                "id": "vllm-623t63akmshaoi",
+                "jobs": {
+                  "completed": 0,
+                  "failed": 0,
+                  "inProgress": 0,
+                  "inQueue": 0,
+                  "retried": 0
+                },
+                "name": "gpu-job-disabled",
+                "ok": true,
+                "workers": {
+                  "idle": 0,
+                  "initializing": 0,
+                  "ready": 0,
+                  "running": 0,
+                  "throttled": 0,
+                  "unhealthy": 0
+                }
+              }
+            ]
+          }
+        },
+        "resource": {
+          "ok": true,
+          "reason": "local resource guard not applicable to selected remote providers",
+          "skipped": true
+        }
+      },
+      "provider": "runpod",
+      "provider_job_id": "cs3wp3y6ehvomd",
+      "status": "failed"
+    },
+    "verdict": "pass",
+    "workload_family": "llm_heavy"
+  },
+  "submit_result": {
+    "error": "",
+    "job": {
+      "artifact_bytes": 5703,
+      "artifact_count": 7,
+      "created_at": 1777088288,
+      "error": "post-submit cost guard failed",
+      "exit_code": 0,
+      "finished_at": 1777088334,
+      "gpu_profile": "llm_heavy",
+      "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+      "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+      "job_type": "llm_heavy",
+      "limits": {
+        "max_cost_usd": 0.25,
+        "max_runtime_minutes": 10,
+        "max_startup_seconds": 300
+      },
+      "metadata": {
+        "capability_result": {
+          "capability": {
+            "asr": true,
+            "job_types": [
+              "smoke",
+              "llm_heavy",
+              "asr",
+              "vlm_ocr",
+              "avatar_video",
+              "image_generation"
+            ],
+            "max_input_tokens": 200000,
+            "provider": "runpod",
+            "quality_tier": "external_gpu",
+            "vision": true
+          },
+          "capability_version": "gpu-job-capability-v1",
+          "checks": {
+            "asr_ok": true,
+            "job_type_ok": true,
+            "quality_ok": true,
+            "tokens_ok": true,
+            "vision_ok": true
+          },
+          "estimated_input_tokens": 10,
+          "model": "",
+          "model_key": "runpod:default",
+          "ok": true,
+          "provider": "runpod",
+          "reason": "model capability accepted",
+          "registered": true
+        },
+        "capacity_reservation": {
+          "active_before": 0,
+          "max_concurrent": 1,
+          "ok": true,
+          "provider": "runpod",
+          "queued_before": 0
+        },
+        "circuit": {
+          "circuit_version": "gpu-job-circuit-v1",
+          "error_classes": {},
+          "failure_count": 0,
+          "failure_rate": 0.0,
+          "half_open_probe_allowed": false,
+          "latest_sample_status": null,
+          "latest_success_after_failure": false,
+          "latest_success_is_circuit_probe": false,
+          "ok": true,
+          "provider": "runpod",
+          "rate_limit_failure_count": 0,
+          "retryable_failure_count": 0,
+          "sample_count": 0,
+          "state": "closed",
+          "window_seconds": 900
+        },
+        "compliance_result": {
+          "allowed_regions": [],
+          "compliance_version": "gpu-job-compliance-v1",
+          "data_classification": "unspecified",
+          "ok": true,
+          "prohibited_providers": [],
+          "provider": "runpod",
+          "provider_ok": true,
+          "provider_region": "external",
+          "residency_ok": true
+        },
+        "contract_probe": {
+          "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+          "probe_name": "runpod.llm_heavy.pod_http",
+          "provider": "runpod",
+          "provider_module_id": "runpod_pod"
+        },
+        "cost_result": {
+          "budget_usd": 0.25,
+          "cost_version": "gpu-job-cost-v1",
+          "cross_region_transfer": false,
+          "estimated_artifact_gb": 0.0,
+          "estimated_egress_cost_usd": 0.0,
+          "estimated_runtime_cost_usd": 0.0,
+          "estimated_storage_month_cost_usd": 0.0,
+          "estimated_total_cost_usd": 0.0,
+          "ok": true
+        },
+        "decision_hash": "8563c70f9c0cfb96083bd4f94c84023423fa35f44cb5fa37fa12e5d4ddf27c7f",
+        "error_class": {
+          "class": "cost_block",
+          "error_class_version": "gpu-job-error-class-v1",
+          "ok": true,
+          "permanent": true,
+          "provider": "runpod",
+          "reason": "cost hard gate blocked execution",
+          "retryable": false,
+          "status_code": null
+        },
+        "execute_requested": true,
+        "execution_record": {
+          "path": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123808-1a94cd11/execution_record.json",
+          "record_hash": "921a0e9a3bfdf359a092b652e60dd6d56bdcca154833d44eb2a920d7cfc9289a",
+          "record_id": "exec-921a0e9a3bfdf359"
+        },
+        "final_artifact_verify": {
+          "application_verify": {
+            "checks": {
+              "no_error": true,
+              "result_is_object": true,
+              "text_nonempty": true
+            },
+            "ok": true
+          },
+          "artifact_bytes": 5703,
+          "artifact_count": 7,
+          "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123808-1a94cd11",
+          "hardware_verify": {
+            "execution_class": "gpu",
+            "ok": true,
+            "reason": "gpu utilization evidence present"
+          },
+          "json_valid": {
+            "metrics.json": true,
+            "result.json": true,
+            "verify.json": true
+          },
+          "manifest": {
+            "manifest_present": true,
+            "mismatched": [],
+            "missing": [],
+            "ok": true
+          },
+          "missing": [],
+          "ok": true,
+          "require_gpu_utilization": true,
+          "require_manifest": true,
+          "required": [
+            "result.json",
+            "metrics.json",
+            "verify.json",
+            "stdout.log",
+            "stderr.log"
+          ]
+        },
+        "hardware_verification": {
+          "require_gpu_utilization": true
+        },
+        "input": {
+          "max_tokens": 32,
+          "prompt": "Return exactly: GPU_JOB_CONTRACT_PROBE_OK"
+        },
+        "model_requirements": {
+          "llm_heavy": true,
+          "min_quality_tier": "external_gpu"
+        },
+        "placement_result": {
+          "exclusive_gpu": false,
+          "fractional_gpu": null,
+          "fractional_ok": true,
+          "gpu_count": 1.0,
+          "multi_gpu_ok": true,
+          "ok": true,
+          "placement_version": "gpu-job-placement-v1",
+          "provider": "runpod",
+          "provider_support": {
+            "fractional": false,
+            "multi_gpu": true
+          }
+        },
+        "policy_validation": {
+          "errors": [],
+          "exceptions": {
+            "active": [],
+            "errors": [],
+            "expired": [],
+            "ok": true
+          },
+          "ok": true,
+          "policy_engine_version": "gpu-job-policy-v1",
+          "policy_hash": "48a3aad19251da57994681da011e5464c611f6691a2b1a0e032e16ad34259554"
+        },
+        "post_submit_guard": {
+          "capacity": {
+            "active_total": 1,
+            "by_job_type": {
+              "asr": {
+                "failed": 30,
+                "planned": 1,
+                "succeeded": 8
+              },
+              "cpu_workflow_helper": {
+                "succeeded": 1
+              },
+              "embedding": {
+                "failed": 1,
+                "succeeded": 6
+              },
+              "llm_heavy": {
+                "cancelled": 1,
+                "failed": 147,
+                "succeeded": 101
+              },
+              "pdf_ocr": {
+                "succeeded": 2
+              },
+              "smoke": {
+                "cancelled": 1,
+                "failed": 6,
+                "running": 1,
+                "succeeded": 11
+              },
+              "vlm_ocr": {
+                "failed": 74,
+                "succeeded": 38
+              }
+            },
+            "counts": {
+              "cancelled": 2,
+              "failed": 258,
+              "planned": 1,
+              "running": 1,
+              "succeeded": 167
+            },
+            "flattened_provider_limits": {
+              "local:*": 1,
+              "modal:*": 1,
+              "modal:asr": 2,
+              "modal:asr_diarization": 1,
+              "modal:llm_heavy": 1,
+              "modal:vlm_ocr": 1,
+              "ollama:*": 1,
+              "ollama:embedding": 1,
+              "ollama:llm_heavy": 1,
+              "ollama:vlm_ocr": 1,
+              "runpod:*": 1,
+              "runpod:asr": 2,
+              "runpod:llm_heavy": 1,
+              "vast:*": 1,
+              "vast:asr": 1,
+              "vast:asr_diarization": 1
+            },
+            "ok": true,
+            "provider_limits": {
+              "local": {
+                "*": 1
+              },
+              "modal": {
+                "*": 1,
+                "asr": 2,
+                "asr_diarization": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "ollama": {
+                "*": 1,
+                "embedding": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "runpod": {
+                "*": 1,
+                "asr": 2,
+                "llm_heavy": 1
+              },
+              "vast": {
+                "*": 1,
+                "asr": 1,
+                "asr_diarization": 1
+              }
+            },
+            "providers": {
+              "local:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "local",
+                "provider_profile_key": "local:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:embedding": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "embedding",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:embedding",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:smoke": {
+                "active": 1,
+                "available_slots": 0,
+                "expected_wait_seconds": 30,
+                "gpu_profile": "smoke",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:smoke",
+                "queued": 0,
+                "saturated": true
+              }
+            },
+            "queued_total": 0
+          },
+          "estimated_hourly_usd": 0.46,
+          "ok": false,
+          "providers": {
+            "runpod": {
+              "billable_resources": [
+                {
+                  "costPerHr": 0.46,
+                  "desiredStatus": "EXITED",
+                  "gpuCount": 1,
+                  "id": "cs3wp3y6ehvomd",
+                  "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+                  "name": "gpu-job-pod-canary-20260425123823"
+                }
+              ],
+              "estimated_hourly_usd": 0.46,
+              "ok": false,
+              "persistent_resources": [
+                {
+                  "dataCenterId": "US-NC-1",
+                  "id": "le9b9gqqu6",
+                  "name": "news-llm-models",
+                  "size_gb": 80,
+                  "type": "network_volume"
+                },
+                {
+                  "dataCenterId": "EU-NL-1",
+                  "id": "vb25y1avw1",
+                  "name": "news-llm-models-nl",
+                  "size_gb": 50,
+                  "type": "network_volume"
+                }
+              ],
+              "persistent_storage": {
+                "allowed_monthly_usd": null,
+                "allowed_persistent_resources": [
+                  {
+                    "allowed_size_gb": 80.0,
+                    "dataCenterId": "US-NC-1",
+                    "estimated_monthly_usd": 5.6,
+                    "id": "le9b9gqqu6",
+                    "name": "news-llm-models",
+                    "purpose": "approved model and worker asset storage",
+                    "size_gb": 80,
+                    "type": "network_volume"
+                  },
+                  {
+                    "allowed_size_gb": 50.0,
+                    "dataCenterId": "EU-NL-1",
+                    "estimated_monthly_usd": 3.5,
+                    "id": "vb25y1avw1",
+                    "name": "news-llm-models-nl",
+                    "purpose": "approved model and worker asset storage",
+                    "size_gb": 50,
+                    "type": "network_volume"
+                  }
+                ],
+                "estimated_monthly_usd": 9.1,
+                "fail_monthly_usd": 0.0,
+                "ok": true,
+                "price_usd_per_gb_month": 0.07,
+                "reason": "RunPod persistent storage is within approved fixed-cost budget",
+                "size_mismatch_persistent_resources": [],
+                "total_gb": 130.0,
+                "unknown_persistent_resources": [],
+                "warning": false,
+                "warning_monthly_usd": 0.0
+              },
+              "provider": "runpod",
+              "reason": "RunPod active pods or warm serverless workers present",
+              "serverless_queue": [
+                {
+                  "id": "vllm-623t63akmshaoi",
+                  "jobs": {
+                    "completed": 0,
+                    "failed": 0,
+                    "inProgress": 0,
+                    "inQueue": 0,
+                    "retried": 0
+                  },
+                  "name": "gpu-job-disabled",
+                  "ok": true,
+                  "workers": {
+                    "idle": 0,
+                    "initializing": 0,
+                    "ready": 0,
+                    "running": 0,
+                    "throttled": 0,
+                    "unhealthy": 0
+                  }
+                }
+              ]
+            }
+          },
+          "resource": {
+            "ok": true,
+            "reason": "local resource guard not applicable to selected remote providers",
+            "skipped": true
+          }
+        },
+        "pre_submit_guard": {
+          "capacity": {
+            "active_total": 1,
+            "by_job_type": {
+              "asr": {
+                "failed": 30,
+                "planned": 1,
+                "succeeded": 8
+              },
+              "cpu_workflow_helper": {
+                "succeeded": 1
+              },
+              "embedding": {
+                "failed": 1,
+                "succeeded": 6
+              },
+              "llm_heavy": {
+                "cancelled": 1,
+                "failed": 147,
+                "succeeded": 100
+              },
+              "pdf_ocr": {
+                "succeeded": 2
+              },
+              "smoke": {
+                "cancelled": 1,
+                "failed": 6,
+                "starting": 1,
+                "succeeded": 11
+              },
+              "vlm_ocr": {
+                "failed": 74,
+                "succeeded": 38
+              }
+            },
+            "counts": {
+              "cancelled": 2,
+              "failed": 258,
+              "planned": 1,
+              "starting": 1,
+              "succeeded": 166
+            },
+            "flattened_provider_limits": {
+              "local:*": 1,
+              "modal:*": 1,
+              "modal:asr": 2,
+              "modal:asr_diarization": 1,
+              "modal:llm_heavy": 1,
+              "modal:vlm_ocr": 1,
+              "ollama:*": 1,
+              "ollama:embedding": 1,
+              "ollama:llm_heavy": 1,
+              "ollama:vlm_ocr": 1,
+              "runpod:*": 1,
+              "runpod:asr": 2,
+              "runpod:llm_heavy": 1,
+              "vast:*": 1,
+              "vast:asr": 1,
+              "vast:asr_diarization": 1
+            },
+            "ok": true,
+            "provider_limits": {
+              "local": {
+                "*": 1
+              },
+              "modal": {
+                "*": 1,
+                "asr": 2,
+                "asr_diarization": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "ollama": {
+                "*": 1,
+                "embedding": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "runpod": {
+                "*": 1,
+                "asr": 2,
+                "llm_heavy": 1
+              },
+              "vast": {
+                "*": 1,
+                "asr": 1,
+                "asr_diarization": 1
+              }
+            },
+            "providers": {
+              "local:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "local",
+                "provider_profile_key": "local:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:embedding": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "embedding",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:embedding",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:smoke": {
+                "active": 1,
+                "available_slots": 0,
+                "expected_wait_seconds": 30,
+                "gpu_profile": "smoke",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:smoke",
+                "queued": 0,
+                "saturated": true
+              }
+            },
+            "queued_total": 0
+          },
+          "estimated_hourly_usd": 0.0,
+          "ok": true,
+          "providers": {
+            "runpod": {
+              "billable_resources": [],
+              "estimated_hourly_usd": 0,
+              "ok": true,
+              "persistent_resources": [
+                {
+                  "dataCenterId": "US-NC-1",
+                  "id": "le9b9gqqu6",
+                  "name": "news-llm-models",
+                  "size_gb": 80,
+                  "type": "network_volume"
+                },
+                {
+                  "dataCenterId": "EU-NL-1",
+                  "id": "vb25y1avw1",
+                  "name": "news-llm-models-nl",
+                  "size_gb": 50,
+                  "type": "network_volume"
+                }
+              ],
+              "persistent_storage": {
+                "allowed_monthly_usd": null,
+                "allowed_persistent_resources": [
+                  {
+                    "allowed_size_gb": 80.0,
+                    "dataCenterId": "US-NC-1",
+                    "estimated_monthly_usd": 5.6,
+                    "id": "le9b9gqqu6",
+                    "name": "news-llm-models",
+                    "purpose": "approved model and worker asset storage",
+                    "size_gb": 80,
+                    "type": "network_volume"
+                  },
+                  {
+                    "allowed_size_gb": 50.0,
+                    "dataCenterId": "EU-NL-1",
+                    "estimated_monthly_usd": 3.5,
+                    "id": "vb25y1avw1",
+                    "name": "news-llm-models-nl",
+                    "purpose": "approved model and worker asset storage",
+                    "size_gb": 50,
+                    "type": "network_volume"
+                  }
+                ],
+                "estimated_monthly_usd": 9.1,
+                "fail_monthly_usd": 0.0,
+                "ok": true,
+                "price_usd_per_gb_month": 0.07,
+                "reason": "RunPod persistent storage is within approved fixed-cost budget",
+                "size_mismatch_persistent_resources": [],
+                "total_gb": 130.0,
+                "unknown_persistent_resources": [],
+                "warning": false,
+                "warning_monthly_usd": 0.0
+              },
+              "provider": "runpod",
+              "reason": "no RunPod active pods or warm serverless workers; persistent storage within approved fixed-cost budget",
+              "serverless_queue": [
+                {
+                  "id": "vllm-623t63akmshaoi",
+                  "jobs": {
+                    "completed": 0,
+                    "failed": 0,
+                    "inProgress": 0,
+                    "inQueue": 0,
+                    "retried": 0
+                  },
+                  "name": "gpu-job-disabled",
+                  "ok": true,
+                  "workers": {
+                    "idle": 0,
+                    "initializing": 0,
+                    "ready": 0,
+                    "running": 0,
+                    "throttled": 0,
+                    "unhealthy": 0
+                  }
+                }
+              ]
+            }
+          },
+          "resource": {
+            "ok": true,
+            "reason": "local resource guard not applicable to selected remote providers",
+            "skipped": true
+          }
+        },
+        "preemption_result": {
+          "checkpoint_artifact": null,
+          "checkpoint_ok": false,
+          "checkpoint_path": null,
+          "ok": true,
+          "preemptible": false,
+          "preemption_version": "gpu-job-preemption-v1",
+          "resume_allowed": false
+        },
+        "provenance_result": {
+          "attestation": {
+            "ok": true,
+            "reason": "attestation not required",
+            "required": false
+          },
+          "attestation_required": false,
+          "image_digest": null,
+          "image_pinned": false,
+          "model_pinned": true,
+          "model_weights_hash": null,
+          "ok": true,
+          "provenance_version": "gpu-job-provenance-v1",
+          "strict": false
+        },
+        "provider_plan": {
+          "execution_plan": {
+            "artifact_contract": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ],
+            "command": [
+              "gpu-job-worker",
+              "--job-id",
+              "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+              "--artifact-dir",
+              "/workspace/artifacts",
+              "--gpu-profile",
+              "llm_heavy",
+              "--input-uri",
+              "<staged-input-path>",
+              "--provider",
+              "runpod"
+            ],
+            "command_shape": {
+              "entrypoint_is_command_argv0": true,
+              "tokenized": true
+            },
+            "entrypoint": "gpu-job-worker",
+            "execution_plan_version": "gpu-job-execution-plan-v1",
+            "gpu_profile": "llm_heavy",
+            "image_contract": {
+              "contract": {},
+              "contract_id": "",
+              "ok": true,
+              "reason": "",
+              "required_backends": [],
+              "status": "not_required"
+            },
+            "image_distribution": {},
+            "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+            "job_type": "llm_heavy",
+            "provider": "runpod",
+            "provider_image": "",
+            "provider_support_contract": {
+              "basis": {
+                "canary_executable": "provider is allowed only for explicit canary or controlled routes unless promoted",
+                "catalog_routable": "provider has at least one catalog-supported job type",
+                "production_route": "provider may be selected by normal planning for its supported job types",
+                "registered": "adapter or policy entry is present in the generated provider catalog"
+              },
+              "highest_support_level": "canary_executable",
+              "is_cloud_gpu_provider": true,
+              "levels": {
+                "canary_executable": true,
+                "catalog_routable": true,
+                "production_route": false,
+                "registered": true
+              },
+              "provider_region": "external",
+              "support_contract_version": "gpu-job-provider-support-contract-v1"
+            },
+            "required_backends": [],
+            "secret_refs": [],
+            "staging": {
+              "artifact_dir_binding": "provider_adapter_must_bind_to_workspace_plan_or_store_artifact_dir",
+              "artifact_dir_placeholder": "/workspace/artifacts",
+              "input_mode": "staged_input_path",
+              "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+              "staged_input_placeholder": "<staged-input-path>"
+            },
+            "worker_image": "auto"
+          },
+          "gpu_profile": "llm_heavy",
+          "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+          "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+          "mode": "pod/serverless plan",
+          "notes": [
+            "RunPod execute uses an existing serverless endpoint when one is configured or discoverable.",
+            "RunPod smoke execute uses a bounded Pod HTTP worker canary and writes the standard artifact contract.",
+            "gpu-job-control does not create paid pods automatically.",
+            "Serverless endpoint creation requires a concrete template_id and gpu_ids.",
+            "Use workers_min=0 and workers_standby=0 unless paid warm capacity is explicitly intended.",
+            "Worker must write result.json, metrics.json, verify.json, stdout.log, stderr.log."
+          ],
+          "output_uri": "local://contract-probes/contract-probe-llm_heavy-20260425-123808-1a94cd11",
+          "provider": "runpod",
+          "public_endpoint_candidates": [
+            {
+              "best_for": [
+                "llm_heavy",
+                "openai_compatible_chat",
+                "high-throughput text generation"
+              ],
+              "image": "runpod/worker-v1-vllm:<version>",
+              "name": "RunPod official worker-vllm",
+              "notes": [
+                "Use OpenAI-compatible endpoint path when deployed.",
+                "Prefer this over bespoke workers for vLLM-compatible models."
+              ]
+            },
+            {
+              "best_for": [
+                "ollama-compatible llm_heavy",
+                "fast reuse of public worker template"
+              ],
+              "hub_url": "https://console.runpod.io/hub/SvenBrnn/runpod-worker-ollama",
+              "image": "svenbrnn/runpod-ollama:latest",
+              "name": "SvenBrnn/runpod-worker-ollama",
+              "notes": [
+                "Attach an approved network volume so models are cached across cold starts.",
+                "Use workersMin=0 and workersStandby=0 unless paid warm capacity is explicitly accepted."
+              ],
+              "required_env": [
+                "OLLAMA_MODEL_NAME"
+              ]
+            },
+            {
+              "best_for": [
+                "ollama-compatible endpoint canary"
+              ],
+              "image": "pooyaharatian/runpod-ollama:0.0.8",
+              "name": "RunPod Ollama tutorial image",
+              "notes": [
+                "Official RunPod documentation recommends network volume caching to reduce repeated model downloads."
+              ],
+              "required_env": [
+                "MODEL_NAME"
+              ]
+            }
+          ],
+          "serverless": {
+            "asr_diarization_endpoint_plan": {
+              "canary_sequence": [
+                "clean pre-guard; fail if active pods or warm serverless capacity exist",
+                "create serverless template from verified ASR diarization image",
+                "create endpoint with workersMin=0, workersStandby=0, workersMax=1",
+                "submit ASR diarization workspace canary payload",
+                "poll queue/startup/model-load/execution phases separately",
+                "verify result.json, metrics.json, verify.json, stdout.log, stderr.log",
+                "quiesce/delete endpoint and template",
+                "clean post-guard; fail on warm capacity or resource residue",
+                "parse contract probe and require all workspace observation categories"
+              ],
+              "endpoint": {
+                "flashBootType": "FLASHBOOT",
+                "gpuCount": 1,
+                "gpuIds": "ADA_24",
+                "idleTimeout": 60,
+                "locations": "",
+                "name": "gpu-job-asr-diarization-20260425123823",
+                "networkVolumeId": "",
+                "scalerType": "QUEUE_DELAY",
+                "scalerValue": 4,
+                "templateId": "<created-template-id>",
+                "workersMax": 1,
+                "workersMin": 0
+              },
+              "execute_required": "future admin-only promote-asr-endpoint --execute",
+              "gpu_selection": {
+                "excluded_gpu_types": [],
+                "input": "ADA_24",
+                "invalid_pool_ids": [],
+                "ok": true,
+                "pool_ids": [
+                  "ADA_24"
+                ],
+                "rule": "gpuIds accepts RunPod GPU pool IDs; concrete GPU type names are only valid as exclusions prefixed with '-'",
+                "valid_pool_ids": [
+                  "ADA_24",
+                  "ADA_32_PRO",
+                  "ADA_48_PRO",
+                  "ADA_80_PRO",
+                  "AMPERE_16",
+                  "AMPERE_24",
+                  "AMPERE_48",
+                  "AMPERE_80",
+                  "BLACKWELL_180",
+                  "BLACKWELL_96",
+                  "HOPPER_141"
+                ]
+              },
+              "image_contract": {
+                "contract_id": "asr-diarization-large-v3-pyannote3.3.2-cuda12.4",
+                "provider_image": "ghcr.io/noiehoie/gpu-job-control/asr-diarization-worker:large-v3-pyannote3.3.2-cuda12.4-cmd@sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8",
+                "provider_image_status": "verified",
+                "registry_auth": {
+                  "auth_id": "cmo69c98l00iyjj07z22tsrzm",
+                  "registry": "ghcr.io",
+                  "type": "runpod_container_registry_auth",
+                  "username": "noiehoie"
+                }
+              },
+              "official_basis": {
+                "endpoint_settings": "https://docs.runpod.io/serverless/endpoints/endpoint-configurations",
+                "network_volumes": "https://docs.runpod.io/storage/network-volumes"
+              },
+              "ok": true,
+              "plan_version": "runpod-asr-endpoint-plan-v1",
+              "provider": "runpod",
+              "safety_invariants": {
+                "idle_timeout_seconds": 60,
+                "production_dispatch": "blocked_until_serverless_handler_and_workspace_contract_probe_pass",
+                "requires_clean_post_guard": true,
+                "requires_clean_pre_guard": true,
+                "requires_hf_secret_ref": true,
+                "requires_workspace_observation_parity": true,
+                "workers_max": 1,
+                "workers_min": 0,
+                "workers_standby": 0
+              },
+              "serverless_handler_contract": {
+                "contract_id": "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
+                "entrypoint": "python3.11 -u /rp_handler.py",
+                "probe_command": [
+                  "python3.11",
+                  "-u",
+                  "/rp_handler.py"
+                ],
+                "provider_image": "ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920",
+                "provider_image_status": "verified",
+                "reason": "",
+                "registry_auth": {
+                  "auth_id": "cmo69c98l00iyjj07z22tsrzm",
+                  "registry": "ghcr.io",
+                  "type": "runpod_container_registry_auth",
+                  "username": "noiehoie"
+                },
+                "required_before_execute": true,
+                "status": "verified"
+              },
+              "template": {
+                "containerDiskInGb": 80,
+                "dockerArgs": "",
+                "env": [
+                  {
+                    "key": "GPU_JOB_WORKER_MODE",
+                    "value": "asr_diarization"
+                  },
+                  {
+                    "key": "GPU_JOB_ASR_MODEL",
+                    "value": "large-v3"
+                  },
+                  {
+                    "key": "GPU_JOB_SPEAKER_MODEL",
+                    "value": "pyannote/speaker-diarization-3.1"
+                  },
+                  {
+                    "key": "HF_TOKEN",
+                    "value": "{{ RUNPOD_SECRET_gpu_job_hf_read }}"
+                  }
+                ],
+                "imageName": "ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920",
+                "isServerless": true,
+                "name": "gpu-job-asr-diarization",
+                "ports": "8000/http",
+                "volumeInGb": 0
+              },
+              "workspace_observation_contract": {
+                "coverage_version": "gpu-job-workspace-observation-coverage-v1",
+                "required_categories": [
+                  "provider_resource_identity",
+                  "image_contract",
+                  "secret_availability",
+                  "workspace_cache",
+                  "startup_phases",
+                  "queue_or_reservation",
+                  "model_load",
+                  "gpu_execution",
+                  "artifact_contract",
+                  "cost_guard",
+                  "cleanup_result",
+                  "provider_residue"
+                ]
+              }
+            },
+            "cost_guard_policy": [
+              "workers_min must remain 0 unless user explicitly chooses paid warm capacity.",
+              "workers_standby must remain 0 unless user explicitly chooses paid warm capacity.",
+              "gpu-job guard blocks execution if warm capacity is detected."
+            ],
+            "create_endpoint_function": "runpod.create_endpoint",
+            "endpoint_snapshot_source": "runpod_api_snapshot",
+            "existing_endpoints": [
+              {
+                "gpuCount": 1,
+                "id": "vllm-623t63akmshaoi",
+                "idleTimeout": 10,
+                "name": "gpu-job-disabled",
+                "networkVolumeId": null,
+                "templateId": "7nwbqj31ti",
+                "workersMax": 0,
+                "workersMin": 0,
+                "workersStandby": 0
+              }
+            ],
+            "mode": "serverless plan",
+            "recommended_args": {
+              "flashboot": true,
+              "gpu_count": 1,
+              "gpu_ids": "<gpu-type-id-required>",
+              "idle_timeout": 5,
+              "name": "gpu-job-llm_heavy-llm_heavy",
+              "scaler_type": "QUEUE_DELAY",
+              "scaler_value": 4,
+              "template_id": "<template-id-required>",
+              "workers_max": 1,
+              "workers_min": 0
+            },
+            "selected_llm_endpoint": {
+              "gpuCount": null,
+              "id": "qwen3-32b-awq",
+              "name": "RUNPOD_LLM_ENDPOINT_ID",
+              "networkVolumeId": null,
+              "templateId": null,
+              "workersMax": null,
+              "workersMin": null,
+              "workersStandby": null
+            },
+            "worker_contract": {
+              "artifact_contract": [
+                "result.json",
+                "metrics.json",
+                "verify.json",
+                "stdout.log",
+                "stderr.log"
+              ],
+              "command_template": [
+                "serverless endpoint receives input.prompt, input.system_prompt, input.model, input.max_tokens",
+                "response must include text/response/output/generated_text/answer or OpenAI-style choices"
+              ],
+              "dockerfile": "docker/asr-worker.Dockerfile",
+              "entrypoint": "gpu-job-asr-worker"
+            }
+          },
+          "worker_image": "auto"
+        },
+        "quota_result": {
+          "estimated_cost_usd": 0.0,
+          "global_budget_usd": 50.0,
+          "global_ok": true,
+          "global_remaining_usd": 50.0,
+          "global_used_usd": 0.0,
+          "ok": true,
+          "quota_version": "gpu-job-quota-v1",
+          "source_budget_usd": 10.0,
+          "source_ok": true,
+          "source_remaining_usd": 10.0,
+          "source_system": "contract-probe",
+          "source_used_usd": 0.0
+        },
+        "route_explanation": "selected provider 'runpod' for gpu_profile 'llm_heavy' from candidates [runpod]. reason: provider explicitly requested",
+        "route_result": {
+          "selected_provider": "runpod"
+        },
+        "routing": {
+          "estimated_gpu_runtime_seconds": 120,
+          "quality_requires_gpu": true
+        },
+        "runpod_execution_mode": "pod_http",
+        "runpod_pod_smoke": {
+          "actual_cost_guard": {
+            "cost_per_hour": 0.46,
+            "max_cost_usd": 0.038333,
+            "max_estimated_cost_usd": 0.25,
+            "max_uptime_seconds": 300,
+            "ok": true
+          },
+          "cleanup": {
+            "ok": true,
+            "result": {
+              "costPerHr": 0.46,
+              "desiredStatus": "EXITED",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "machine": {
+                "gpuDisplayName": "RTX 3090",
+                "podHostId": "cs3wp3y6ehvomd-64411dd3"
+              },
+              "machineId": "z0b0y2v5947y",
+              "name": "gpu-job-pod-canary-20260425123823",
+              "uptimeSeconds": 0
+            }
+          },
+          "executed": true,
+          "generate_result": {
+            "gpu_probe": {
+              "exit_code": 0,
+              "stderr": "",
+              "stdout": "NVIDIA GeForce RTX 3090, 24576 MiB"
+            },
+            "ok": true,
+            "prompt_chars": 41,
+            "service": "gpu-job-runpod-pod-http-canary",
+            "text": "RunPod Pod GPU canary response. mode=llm; prompt_sha256_prefix=dc6d872ab93b884e; This confirms HTTP generation path, GPU probe, artifact contract, and teardown.",
+            "text_chars": 160,
+            "volume_probe": {
+              "error": "volume path is not a directory",
+              "exists": false,
+              "is_dir": false,
+              "ok": false,
+              "path": "/runpod-volume"
+            },
+            "worker_mode": "llm"
+          },
+          "generate_url": "https://cs3wp3y6ehvomd-8000.proxy.runpod.net/generate",
+          "health_samples": [
+            {
+              "error": "",
+              "ok": false,
+              "status": 404
+            },
+            {
+              "error": "",
+              "ok": false,
+              "status": 404
+            },
+            {
+              "error": "",
+              "ok": false,
+              "status": 404
+            },
+            {
+              "error": "",
+              "ok": false,
+              "status": 404
+            },
+            {
+              "error": "",
+              "ok": false,
+              "status": 404
+            },
+            {
+              "gpu_probe": {
+                "exit_code": 0,
+                "stderr": "",
+                "stdout": "NVIDIA GeForce RTX 3090, 24576 MiB"
+              },
+              "ok": true,
+              "service": "gpu-job-runpod-pod-http-canary",
+              "uptime_seconds": 25.549,
+              "volume_probe": {
+                "error": "volume path is not a directory",
+                "exists": false,
+                "is_dir": false,
+                "ok": false,
+                "path": "/runpod-volume"
+              },
+              "worker_mode": "llm"
+            }
+          ],
+          "health_url": "https://cs3wp3y6ehvomd-8000.proxy.runpod.net/health",
+          "observed_http_worker": true,
+          "observed_runtime": true,
+          "ok": true,
+          "plan": {
+            "cleanup_sequence": [
+              "create pod only after clean pre-guard",
+              "observe desiredStatus/runtime until ready or timeout",
+              "terminate pod in finally block",
+              "run post-guard and require no active pods"
+            ],
+            "cost_guard": {
+              "estimated_cost_usd": 0.018333,
+              "max_estimated_cost_usd": 0.25,
+              "max_uptime_seconds": 300,
+              "ok": true,
+              "uninterruptable_price_usd_per_hour": 0.22
+            },
+            "gpu_info": {
+              "communityCloud": true,
+              "displayName": "RTX 3090",
+              "id": "NVIDIA GeForce RTX 3090",
+              "lowestPrice": {
+                "availableGpuCounts": null,
+                "minimumBidPrice": 0.11,
+                "stockStatus": "High",
+                "uninterruptablePrice": 0.22
+              },
+              "memoryInGb": 24,
+              "ok": true,
+              "secureCloud": true
+            },
+            "official_basis": {
+              "create_mutation": "podFindAndDeployOnDemand",
+              "graphql_cleanup": "podStop(input: {podId: ...})",
+              "graphql_docs": "https://docs.runpod.io/sdks/graphql/manage-pods",
+              "stop_mutation": "podStop"
+            },
+            "ok": true,
+            "plan_version": "runpod-pod-worker-plan-v1",
+            "pod_input": {
+              "cloudType": "ALL",
+              "containerDiskInGb": 20,
+              "dockerArgs": "bash -lc \"export GPU_JOB_WORKER_MODE=llm; python -u -c \\\"import base64;exec(base64.b64decode(\\\\\\\"aW1wb3J0IGhhc2hsaWIKaW1wb3J0IGpzb24KaW1wb3J0IG9zCmltcG9ydCBzdWJwcm9jZXNzCmltcG9ydCB0ZW1wZmlsZQppbXBvcnQgdGltZQpmcm9tIGh0dHAuc2VydmVyIGltcG9ydCBCYXNlSFRUUFJlcXVlc3RIYW5kbGVyLCBIVFRQU2VydmVyCgpTVEFSVEVEX0FUID0gdGltZS50aW1lKCkKV09SS0VSX01PREUgPSBvcy5lbnZpcm9uLmdldCgiR1BVX0pPQl9XT1JLRVJfTU9ERSIsICJzbW9rZSIpCgoKZGVmIGdwdV9wcm9iZSgpOgogICAgdHJ5OgogICAgICAgIHByb2MgPSBzdWJwcm9jZXNzLnJ1bigKICAgICAgICAgICAgWyJudmlkaWEtc21pIiwgIi0tcXVlcnktZ3B1PW5hbWUsbWVtb3J5LnRvdGFsIiwgIi0tZm9ybWF0PWNzdixub2hlYWRlciJdLAogICAgICAgICAgICBjYXB0dXJlX291dHB1dD1UcnVlLAogICAgICAgICAgICB0ZXh0PVRydWUsCiAgICAgICAgICAgIHRpbWVvdXQ9MTAsCiAgICAgICAgKQogICAgICAgIHJldHVybiB7CiAgICAgICAgICAgICJleGl0X2NvZGUiOiBwcm9jLnJldHVybmNvZGUsCiAgICAgICAgICAgICJzdGRvdXQiOiBwcm9jLnN0ZG91dC5zdHJpcCgpLAogICAgICAgICAgICAic3RkZXJyIjogcHJvYy5zdGRlcnIuc3RyaXAoKSwKICAgICAgICB9CiAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGV4YzoKICAgICAgICByZXR1cm4geyJleGl0X2NvZGUiOiAxLCAiZXJyb3IiOiBzdHIoZXhjKX0KCgpkZWYgdm9sdW1lX3Byb2JlKCk6CiAgICByb290ID0gIi9ydW5wb2Qtdm9sdW1lIgogICAgcmVzdWx0ID0gewogICAgICAgICJwYXRoIjogcm9vdCwKICAgICAgICAiZXhpc3RzIjogb3MucGF0aC5leGlzdHMocm9vdCksCiAgICAgICAgImlzX2RpciI6IG9zLnBhdGguaXNkaXIocm9vdCksCiAgICAgICAgIm9rIjogRmFsc2UsCiAgICB9CiAgICBpZiBub3QgcmVzdWx0WyJpc19kaXIiXToKICAgICAgICByZXN1bHRbImVycm9yIl0gPSAidm9sdW1lIHBhdGggaXMgbm90IGEgZGlyZWN0b3J5IgogICAgICAgIHJldHVybiByZXN1bHQKICAgIHRyeToKICAgICAgICBtYXJrZXJfZGlyID0gb3MucGF0aC5qb2luKHJvb3QsICJncHUtam9iLWNvbnRyb2wtY2FuYXJ5IikKICAgICAgICBvcy5tYWtlZGlycyhtYXJrZXJfZGlyLCBleGlzdF9vaz1UcnVlKQogICAgICAgIGZkLCBwYXRoID0gdGVtcGZpbGUubWtzdGVtcChwcmVmaXg9InByb2JlLSIsIHN1ZmZpeD0iLmpzb24iLCBkaXI9bWFya2VyX2RpcikKICAgICAgICBwYXlsb2FkID0geyJjcmVhdGVkX2F0IjogdGltZS50aW1lKCksICJzZXJ2aWNlIjogImdwdS1qb2ItcnVucG9kLXBvZC1odHRwLWNhbmFyeSJ9CiAgICAgICAgd2l0aCBvcy5mZG9wZW4oZmQsICJ3IikgYXMgZmg6CiAgICAgICAgICAgIGpzb24uZHVtcChwYXlsb2FkLCBmaCkKICAgICAgICB3aXRoIG9wZW4ocGF0aCkgYXMgZmg6CiAgICAgICAgICAgIGxvYWRlZCA9IGpzb24ubG9hZChmaCkKICAgICAgICBvcy51bmxpbmsocGF0aCkKICAgICAgICByZXN1bHQudXBkYXRlKHsKICAgICAgICAgICAgIm9rIjogbG9hZGVkLmdldCgic2VydmljZSIpID09IHBheWxvYWRbInNlcnZpY2UiXSwKICAgICAgICAgICAgIm1hcmtlcl9kaXIiOiBtYXJrZXJfZGlyLAogICAgICAgICAgICAid3JpdGVfcmVhZF9kZWxldGUiOiBUcnVlLAogICAgICAgIH0pCiAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGV4YzoKICAgICAgICByZXN1bHRbImVycm9yIl0gPSBzdHIoZXhjKQogICAgcmV0dXJuIHJlc3VsdAoKCmRlZiBnZW5lcmF0ZV90ZXh0KHByb21wdCk6CiAgICBkaWdlc3QgPSBoYXNobGliLnNoYTI1Nihwcm9tcHQuZW5jb2RlKCkpLmhleGRpZ2VzdCgpWzoxNl0KICAgIHJldHVybiAoCiAgICAgICAgIlJ1blBvZCBQb2QgR1BVIGNhbmFyeSByZXNwb25zZS4gIgogICAgICAgIGYibW9kZT17V09SS0VSX01PREV9OyBwcm9tcHRfc2hhMjU2X3ByZWZpeD17ZGlnZXN0fTsgIgogICAgICAgICJUaGlzIGNvbmZpcm1zIEhUVFAgZ2VuZXJhdGlvbiBwYXRoLCBHUFUgcHJvYmUsIGFydGlmYWN0IGNvbnRyYWN0LCBhbmQgdGVhcmRvd24uIgogICAgKQoKCmRlZiBhc3JfZGlhcml6YXRpb25fcHJvYmUoKToKICAgIHZvbHVtZSA9IHZvbHVtZV9wcm9iZSgpCiAgICBpbWFnZV9jb250cmFjdF9tYXJrZXIgPSAiL29wdC9ncHUtam9iLWNvbnRyb2wvaW1hZ2UtY29udHJhY3RzL2Fzci1kaWFyaXphdGlvbi1sYXJnZS12My1weWFubm90ZTMuMy4yLWN1ZGExMi40Lmpzb24iCiAgICBjaGVja3MgPSB7CiAgICAgICAgImhmX3Rva2VuX3ByZXNlbnQiOiBib29sKAogICAgICAgICAgICBvcy5lbnZpcm9uLmdldCgiSEZfVE9LRU4iKSBvciBvcy5lbnZpcm9uLmdldCgiSFVHR0lOR0ZBQ0VfVE9LRU4iKSBvciBvcy5lbnZpcm9uLmdldCgiSFVHR0lOR19GQUNFX0hVQl9UT0tFTiIpCiAgICAgICAgKSwKICAgICAgICAiZmFzdGVyX3doaXNwZXJfaW1wb3J0IjogRmFsc2UsCiAgICAgICAgInB5YW5ub3RlX2ltcG9ydCI6IEZhbHNlLAogICAgICAgICJtYXRwbG90bGliX2ltcG9ydCI6IEZhbHNlLAogICAgICAgICJpbWFnZV9jb250cmFjdF9tYXJrZXJfcHJlc2VudCI6IG9zLnBhdGguaXNmaWxlKGltYWdlX2NvbnRyYWN0X21hcmtlciksCiAgICAgICAgImNhY2hlX2hpdCI6IEZhbHNlLAogICAgfQogICAgZXJyb3JzID0ge30KICAgIGZvciBtb2R1bGVfbmFtZSwgY2hlY2tfbmFtZSBpbiBbCiAgICAgICAgKCJmYXN0ZXJfd2hpc3BlciIsICJmYXN0ZXJfd2hpc3Blcl9pbXBvcnQiKSwKICAgICAgICAoInB5YW5ub3RlLmF1ZGlvIiwgInB5YW5ub3RlX2ltcG9ydCIpLAogICAgICAgICgibWF0cGxvdGxpYiIsICJtYXRwbG90bGliX2ltcG9ydCIpLAogICAgXToKICAgICAgICB0cnk6CiAgICAgICAgICAgIF9faW1wb3J0X18obW9kdWxlX25hbWUpCiAgICAgICAgICAgIGNoZWNrc1tjaGVja19uYW1lXSA9IFRydWUKICAgICAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGV4YzoKICAgICAgICAgICAgZXJyb3JzW2NoZWNrX25hbWVdID0gc3RyKGV4YykKICAgIGNhY2hlX2hpdCA9IGJvb2woCiAgICAgICAgY2hlY2tzWyJmYXN0ZXJfd2hpc3Blcl9pbXBvcnQiXQogICAgICAgIGFuZCBjaGVja3NbInB5YW5ub3RlX2ltcG9ydCJdCiAgICAgICAgYW5kIGNoZWNrc1sibWF0cGxvdGxpYl9pbXBvcnQiXQogICAgICAgIGFuZCBjaGVja3NbImltYWdlX2NvbnRyYWN0X21hcmtlcl9wcmVzZW50Il0KICAgICkKICAgIGNoZWNrc1siY2FjaGVfaGl0Il0gPSBjYWNoZV9oaXQKICAgIG9rID0gYWxsKGNoZWNrcy52YWx1ZXMoKSkKICAgIHJldHVybiB7CiAgICAgICAgIm9rIjogb2ssCiAgICAgICAgImFzcl9kaWFyaXphdGlvbl9ydW50aW1lX29rIjogb2ssCiAgICAgICAgImltYWdlX2NvbnRyYWN0X2lkIjogImFzci1kaWFyaXphdGlvbi1sYXJnZS12My1weWFubm90ZTMuMy4yLWN1ZGExMi40IiwKICAgICAgICAibW9kZWwiOiAicHlhbm5vdGUvc3BlYWtlci1kaWFyaXphdGlvbi0zLjEiLAogICAgICAgICJkaWFyaXphdGlvbl9tb2RlbCI6ICJweWFubm90ZS9zcGVha2VyLWRpYXJpemF0aW9uLTMuMSIsCiAgICAgICAgInRleHQiOiAiR1BVX0pPQl9BU1JfRElBUklaQVRJT05fV09SS1NQQUNFX0NBTkFSWV9PSyIgaWYgb2sgZWxzZSAiIiwKICAgICAgICAic2VnbWVudHMiOiBbeyJzdGFydCI6IDAuMCwgImVuZCI6IDEuMCwgInRleHQiOiAiR1BVX0pPQl9BU1JfRElBUklaQVRJT05fV09SS1NQQUNFX0NBTkFSWV9PSyJ9XSBpZiBvayBlbHNlIFtdLAogICAgICAgICJzcGVha2VyX3NlZ21lbnRzIjogW3sic3RhcnQiOiAwLjAsICJlbmQiOiAxLjAsICJzcGVha2VyIjogIlNQRUFLRVJfMDAifV0gaWYgb2sgZWxzZSBbXSwKICAgICAgICAic3BlYWtlcl9jb3VudCI6IDEgaWYgb2sgZWxzZSAwLAogICAgICAgICJkaWFyaXphdGlvbl9lcnJvciI6ICIiIGlmIG9rIGVsc2UganNvbi5kdW1wcyhlcnJvcnMsIHNvcnRfa2V5cz1UcnVlKSwKICAgICAgICAiaGZfdG9rZW5fcHJlc2VudCI6IGNoZWNrc1siaGZfdG9rZW5fcHJlc2VudCJdLAogICAgICAgICJjYWNoZV9oaXQiOiBjYWNoZV9oaXQsCiAgICAgICAgImltYWdlX2NvbnRyYWN0X21hcmtlciI6IGltYWdlX2NvbnRyYWN0X21hcmtlciwKICAgICAgICAiaW1hZ2VfY29udHJhY3RfbWFya2VyX3ByZXNlbnQiOiBjaGVja3NbImltYWdlX2NvbnRyYWN0X21hcmtlcl9wcmVzZW50Il0sCiAgICAgICAgImNoZWNrcyI6IGNoZWNrcywKICAgICAgICAiZXJyb3JzIjogZXJyb3JzLAogICAgICAgICJncHVfcHJvYmUiOiBncHVfcHJvYmUoKSwKICAgICAgICAidm9sdW1lX3Byb2JlIjogdm9sdW1lLAogICAgfQoKCmNsYXNzIEhhbmRsZXIoQmFzZUhUVFBSZXF1ZXN0SGFuZGxlcik6CiAgICBkZWYgbG9nX21lc3NhZ2Uoc2VsZiwgKl9hcmdzKToKICAgICAgICByZXR1cm4KCiAgICBkZWYgX3NlbmRfanNvbihzZWxmLCBzdGF0dXMsIHBheWxvYWQpOgogICAgICAgIGJvZHkgPSBqc29uLmR1bXBzKHBheWxvYWQsIGVuc3VyZV9hc2NpaT1GYWxzZSkuZW5jb2RlKCkKICAgICAgICBzZWxmLnNlbmRfcmVzcG9uc2Uoc3RhdHVzKQogICAgICAgIHNlbGYuc2VuZF9oZWFkZXIoIkNvbnRlbnQtVHlwZSIsICJhcHBsaWNhdGlvbi9qc29uIikKICAgICAgICBzZWxmLnNlbmRfaGVhZGVyKCJDb250ZW50LUxlbmd0aCIsIHN0cihsZW4oYm9keSkpKQogICAgICAgIHNlbGYuZW5kX2hlYWRlcnMoKQogICAgICAgIHNlbGYud2ZpbGUud3JpdGUoYm9keSkKCiAgICBkZWYgZG9fR0VUKHNlbGYpOgogICAgICAgIGlmIHNlbGYucGF0aCAhPSAiL2hlYWx0aCI6CiAgICAgICAgICAgIHNlbGYuX3NlbmRfanNvbig0MDQsIHsib2siOiBGYWxzZSwgImVycm9yIjogIm5vdCBmb3VuZCJ9KQogICAgICAgICAgICByZXR1cm4KICAgICAgICBwcm9iZSA9IGdwdV9wcm9iZSgpCiAgICAgICAgc2VsZi5fc2VuZF9qc29uKAogICAgICAgICAgICAyMDAsCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICJvayI6IHByb2JlLmdldCgiZXhpdF9jb2RlIikgPT0gMCwKICAgICAgICAgICAgICAgICJzZXJ2aWNlIjogImdwdS1qb2ItcnVucG9kLXBvZC1odHRwLWNhbmFyeSIsCiAgICAgICAgICAgICAgICAid29ya2VyX21vZGUiOiBXT1JLRVJfTU9ERSwKICAgICAgICAgICAgICAgICJ1cHRpbWVfc2Vjb25kcyI6IHJvdW5kKHRpbWUudGltZSgpIC0gU1RBUlRFRF9BVCwgMyksCiAgICAgICAgICAgICAgICAiZ3B1X3Byb2JlIjogcHJvYmUsCiAgICAgICAgICAgICAgICAidm9sdW1lX3Byb2JlIjogdm9sdW1lX3Byb2JlKCksCiAgICAgICAgICAgIH0sCiAgICAgICAgKQoKICAgIGRlZiBkb19QT1NUKHNlbGYpOgogICAgICAgIGxlbmd0aCA9IGludChzZWxmLmhlYWRlcnMuZ2V0KCJDb250ZW50LUxlbmd0aCIpIG9yIDApCiAgICAgICAgcmF3ID0gc2VsZi5yZmlsZS5yZWFkKGxlbmd0aCkuZGVjb2RlKCJ1dGYtOCIsIGVycm9ycz0icmVwbGFjZSIpIGlmIGxlbmd0aCBlbHNlICIiCiAgICAgICAgdHJ5OgogICAgICAgICAgICBwYXlsb2FkID0ganNvbi5sb2FkcyhyYXcpIGlmIHJhdyBlbHNlIHt9CiAgICAgICAgZXhjZXB0IGpzb24uSlNPTkRlY29kZUVycm9yOgogICAgICAgICAgICBwYXlsb2FkID0geyJyYXciOiByYXd9CiAgICAgICAgcHJvbXB0ID0gc3RyKHBheWxvYWQuZ2V0KCJwcm9tcHQiKSBvciBwYXlsb2FkLmdldCgidGV4dCIpIG9yIHJhdykKICAgICAgICBpZiBzZWxmLnBhdGggPT0gIi9nZW5lcmF0ZSI6CiAgICAgICAgICAgIGlmIFdPUktFUl9NT0RFID09ICJhc3JfZGlhcml6YXRpb24iOgogICAgICAgICAgICAgICAgc2VsZi5fc2VuZF9qc29uKDIwMCwgYXNyX2RpYXJpemF0aW9uX3Byb2JlKCkpCiAgICAgICAgICAgICAgICByZXR1cm4KICAgICAgICAgICAgdGV4dCA9IGdlbmVyYXRlX3RleHQocHJvbXB0KQogICAgICAgICAgICBzZWxmLl9zZW5kX2pzb24oCiAgICAgICAgICAgICAgICAyMDAsCiAgICAgICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAgICAgIm9rIjogVHJ1ZSwKICAgICAgICAgICAgICAgICAgICAic2VydmljZSI6ICJncHUtam9iLXJ1bnBvZC1wb2QtaHR0cC1jYW5hcnkiLAogICAgICAgICAgICAgICAgICAgICJ3b3JrZXJfbW9kZSI6IFdPUktFUl9NT0RFLAogICAgICAgICAgICAgICAgICAgICJ0ZXh0IjogdGV4dCwKICAgICAgICAgICAgICAgICAgICAidGV4dF9jaGFycyI6IGxlbih0ZXh0KSwKICAgICAgICAgICAgICAgICAgICAicHJvbXB0X2NoYXJzIjogbGVuKHByb21wdCksCiAgICAgICAgICAgICAgICAgICAgImdwdV9wcm9iZSI6IGdwdV9wcm9iZSgpLAogICAgICAgICAgICAgICAgICAgICJ2b2x1bWVfcHJvYmUiOiB2b2x1bWVfcHJvYmUoKSwKICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICkKICAgICAgICAgICAgcmV0dXJuCiAgICAgICAgc2VsZi5fc2VuZF9qc29uKAogICAgICAgICAgICAyMDAsCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICJvayI6IFRydWUsCiAgICAgICAgICAgICAgICAic2VydmljZSI6ICJncHUtam9iLXJ1bnBvZC1wb2QtaHR0cC1jYW5hcnkiLAogICAgICAgICAgICAgICAgIndvcmtlcl9tb2RlIjogV09SS0VSX01PREUsCiAgICAgICAgICAgICAgICAicmVjZWl2ZWRfYnl0ZXMiOiBsZW4ocmF3LmVuY29kZSgpKSwKICAgICAgICAgICAgICAgICJncHVfcHJvYmUiOiBncHVfcHJvYmUoKSwKICAgICAgICAgICAgICAgICJ2b2x1bWVfcHJvYmUiOiB2b2x1bWVfcHJvYmUoKSwKICAgICAgICAgICAgfSwKICAgICAgICApCgoKSFRUUFNlcnZlcigoIjAuMC4wLjAiLCA4MDAwKSwgSGFuZGxlcikuc2VydmVfZm9yZXZlcigp\\\\\\\"))\\\"\"",
+              "gpuCount": 1,
+              "gpuTypeId": "NVIDIA GeForce RTX 3090",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "minMemoryInGb": 8,
+              "minVcpuCount": 2,
+              "name": "gpu-job-pod-canary-<timestamp>",
+              "ports": "8000/http",
+              "volumeInGb": 0,
+              "volumeMountPath": "/runpod-volume"
+            },
+            "provider": "runpod",
+            "worker_canary": {
+              "asr_diarization_condition": "imports faster_whisper, pyannote.audio, matplotlib and observes HF_TOKEN without running full ASR",
+              "generate_path": "/generate",
+              "health_path": "/health",
+              "proxy_url_template": "https://<pod_id>-8000.proxy.runpod.net/health",
+              "success_condition": "HTTP 200 JSON with ok=true and nvidia-smi exit_code=0",
+              "worker_mode": "llm"
+            }
+          },
+          "pod": {
+            "costPerHr": 0.46,
+            "desiredStatus": "RUNNING",
+            "gpuCount": 1,
+            "id": "cs3wp3y6ehvomd",
+            "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+            "machineId": "z0b0y2v5947y",
+            "name": "gpu-job-pod-canary-20260425123823",
+            "podHostId": "cs3wp3y6ehvomd-64411dd3",
+            "runtime": null,
+            "uptimeSeconds": 0
+          },
+          "runtime_seconds": 30.331,
+          "samples": [
+            {
+              "costPerHr": 0.46,
+              "desiredStatus": "RUNNING",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "machineId": "z0b0y2v5947y",
+              "name": "gpu-job-pod-canary-20260425123823",
+              "podHostId": "cs3wp3y6ehvomd-64411dd3",
+              "runtime": null,
+              "uptimeSeconds": 0
+            },
+            {
+              "costPerHr": 0.46,
+              "desiredStatus": "RUNNING",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "machineId": "z0b0y2v5947y",
+              "name": "gpu-job-pod-canary-20260425123823",
+              "podHostId": "cs3wp3y6ehvomd-64411dd3",
+              "runtime": null,
+              "uptimeSeconds": 0
+            },
+            {
+              "costPerHr": 0.46,
+              "desiredStatus": "RUNNING",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "machineId": "z0b0y2v5947y",
+              "name": "gpu-job-pod-canary-20260425123823",
+              "podHostId": "cs3wp3y6ehvomd-64411dd3",
+              "runtime": null,
+              "uptimeSeconds": 0
+            },
+            {
+              "costPerHr": 0.46,
+              "desiredStatus": "RUNNING",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "machineId": "z0b0y2v5947y",
+              "name": "gpu-job-pod-canary-20260425123823",
+              "podHostId": "cs3wp3y6ehvomd-64411dd3",
+              "runtime": null,
+              "uptimeSeconds": 0
+            },
+            {
+              "costPerHr": 0.46,
+              "desiredStatus": "RUNNING",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "machineId": "z0b0y2v5947y",
+              "name": "gpu-job-pod-canary-20260425123823",
+              "podHostId": "cs3wp3y6ehvomd-64411dd3",
+              "runtime": {
+                "container": {
+                  "cpuPercent": 0,
+                  "memoryPercent": 0
+                },
+                "gpus": [
+                  {
+                    "gpuUtilPercent": 0,
+                    "id": "GPU-82473809-2710-e31d-9654-3c934e68c09b",
+                    "memoryUtilPercent": 0
+                  }
+                ],
+                "ports": [
+                  {
+                    "ip": "100.65.29.211",
+                    "isIpPublic": false,
+                    "privatePort": 19123,
+                    "publicPort": 60293,
+                    "type": "http"
+                  },
+                  {
+                    "ip": "100.65.29.211",
+                    "isIpPublic": false,
+                    "privatePort": 8000,
+                    "publicPort": 60292,
+                    "type": "http"
+                  }
+                ],
+                "uptimeInSeconds": 15
+              },
+              "uptimeSeconds": 0
+            },
+            {
+              "costPerHr": 0.46,
+              "desiredStatus": "RUNNING",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "machineId": "z0b0y2v5947y",
+              "name": "gpu-job-pod-canary-20260425123823",
+              "podHostId": "cs3wp3y6ehvomd-64411dd3",
+              "runtime": {
+                "container": {
+                  "cpuPercent": 0,
+                  "memoryPercent": 0
+                },
+                "gpus": [
+                  {
+                    "gpuUtilPercent": 0,
+                    "id": "GPU-82473809-2710-e31d-9654-3c934e68c09b",
+                    "memoryUtilPercent": 0
+                  }
+                ],
+                "ports": [
+                  {
+                    "ip": "100.65.29.211",
+                    "isIpPublic": false,
+                    "privatePort": 19123,
+                    "publicPort": 60293,
+                    "type": "http"
+                  },
+                  {
+                    "ip": "100.65.29.211",
+                    "isIpPublic": false,
+                    "privatePort": 8000,
+                    "publicPort": 60292,
+                    "type": "http"
+                  }
+                ],
+                "uptimeInSeconds": 15
+              },
+              "uptimeSeconds": 0
+            }
+          ]
+        },
+        "secret_result": {
+          "allowed_secret_refs": [],
+          "denied_secret_refs": [],
+          "ok": true,
+          "requested_secret_refs": [],
+          "scope": "runpod:contract-probe:llm_heavy",
+          "secret_policy_version": "gpu-job-secret-policy-v1"
+        },
+        "selected_provider": "runpod",
+        "source_system": "contract-probe",
+        "startup_started_at": 1777088299,
+        "timeout_contract": {
+          "max_runtime_seconds": 600,
+          "ok": true,
+          "source": "job.limits",
+          "timeout_version": "gpu-job-timeout-v1"
+        },
+        "timeout_result": {
+          "error": "",
+          "max_runtime_seconds": 600,
+          "ok": true,
+          "runtime_seconds": 31,
+          "timeout_version": "gpu-job-timeout-v1"
+        },
+        "timing_v2": {
+          "append_only": true,
+          "clock": "unix_time_seconds",
+          "events": [
+            {
+              "at": 1777088288.0,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000001",
+              "phase": "received",
+              "seq": 1
+            },
+            {
+              "at": 1777088288.674,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000002",
+              "phase": "validated",
+              "provider": "runpod",
+              "seq": 2
+            },
+            {
+              "at": 1777088289.222,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000003",
+              "phase": "validated",
+              "provider": "runpod",
+              "seq": 3,
+              "status": "ok"
+            },
+            {
+              "at": 1777088289.222,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000004",
+              "phase": "planned",
+              "provider": "runpod",
+              "seq": 4,
+              "status": "ok"
+            },
+            {
+              "at": 1777088298.978,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000005",
+              "phase": "reserving_workspace",
+              "provider": "runpod",
+              "seq": 5
+            },
+            {
+              "at": 1777088299.26,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000006",
+              "phase": "reserving_workspace",
+              "provider": "runpod",
+              "seq": 6,
+              "status": "ok"
+            },
+            {
+              "at": 1777088343.947,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000007",
+              "phase": "verifying",
+              "provider": "runpod",
+              "seq": 7
+            },
+            {
+              "at": 1777088343.948,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000008",
+              "phase": "verifying",
+              "provider": "runpod",
+              "seq": 8,
+              "status": "ok"
+            },
+            {
+              "at": 1777088343.949,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000009",
+              "phase": "failed",
+              "provider": "runpod",
+              "seq": 9,
+              "status": "failed"
+            }
+          ],
+          "version": "gpu-job-timing-v2"
+        },
+        "trace": {
+          "span_id": "0fa9fae7e65249bb",
+          "telemetry_schema_version": "gpu-job-telemetry-v1",
+          "trace_id": "378d78ac84d040bd89dbafe38a13b42e"
+        },
+        "workspace_plan": {
+          "catalog_snapshot_id": "cat-1f8eb449c91a623f",
+          "catalog_version": "gpu-job-provider-catalog-v1",
+          "created_at": 1777088289,
+          "decision": "ready",
+          "execution_plan": {
+            "artifact_contract": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ],
+            "command": [
+              "gpu-job-worker",
+              "--job-id",
+              "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+              "--artifact-dir",
+              "/workspace/artifacts",
+              "--gpu-profile",
+              "llm_heavy",
+              "--input-uri",
+              "<staged-input-path>",
+              "--provider",
+              "runpod"
+            ],
+            "command_shape": {
+              "entrypoint_is_command_argv0": true,
+              "tokenized": true
+            },
+            "entrypoint": "gpu-job-worker",
+            "execution_plan_version": "gpu-job-execution-plan-v1",
+            "gpu_profile": "llm_heavy",
+            "image_contract": {
+              "contract": {},
+              "contract_id": "",
+              "ok": true,
+              "reason": "",
+              "required_backends": [],
+              "status": "not_required"
+            },
+            "image_distribution": {},
+            "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+            "job_type": "llm_heavy",
+            "provider": "runpod",
+            "provider_image": "",
+            "provider_support_contract": {
+              "basis": {
+                "canary_executable": "provider is allowed only for explicit canary or controlled routes unless promoted",
+                "catalog_routable": "provider has at least one catalog-supported job type",
+                "production_route": "provider may be selected by normal planning for its supported job types",
+                "registered": "adapter or policy entry is present in the generated provider catalog"
+              },
+              "highest_support_level": "canary_executable",
+              "is_cloud_gpu_provider": true,
+              "levels": {
+                "canary_executable": true,
+                "catalog_routable": true,
+                "production_route": false,
+                "registered": true
+              },
+              "provider_region": "external",
+              "support_contract_version": "gpu-job-provider-support-contract-v1"
+            },
+            "required_backends": [],
+            "secret_refs": [],
+            "staging": {
+              "artifact_dir_binding": "provider_adapter_must_bind_to_workspace_plan_or_store_artifact_dir",
+              "artifact_dir_placeholder": "/workspace/artifacts",
+              "input_mode": "staged_input_path",
+              "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+              "staged_input_placeholder": "<staged-input-path>"
+            },
+            "worker_image": "auto"
+          },
+          "gpu_profile": "llm_heavy",
+          "image_contract": {
+            "contract": {},
+            "contract_id": "",
+            "ok": true,
+            "reason": "",
+            "required_backends": [],
+            "status": "not_required"
+          },
+          "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+          "job_type": "llm_heavy",
+          "provider": "runpod",
+          "provider_capability": {
+            "cache_state": null,
+            "estimated_startup_seconds": null,
+            "provider": "runpod",
+            "supported_job_types": [
+              "asr",
+              "llm_heavy",
+              "smoke"
+            ],
+            "warm_state": null
+          },
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "base_url": "https://api.runpod.ai/v2",
+                  "evidence": [
+                    "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/runner.py",
+                    "tasks/research/runpod-org/repos/runpod__js-sdk/src/index.ts"
+                  ],
+                  "operations": [
+                    "run",
+                    "runsync",
+                    "status",
+                    "stream",
+                    "cancel",
+                    "health",
+                    "purge_queue"
+                  ],
+                  "surface": "serverless_v2"
+                }
+              ],
+              "canary_requirements": [
+                "endpoint_health",
+                "minimal_run",
+                "status_poll",
+                "cancel",
+                "result_retention",
+                "artifact_upload",
+                "billing_surface_snapshot"
+              ],
+              "cost_model": [
+                "compute_seconds",
+                "active_worker_idle_seconds",
+                "network_volume_gb_month"
+              ],
+              "execution_semantics": "queued_request_to_autoscaled_worker",
+              "module_id": "runpod_serverless",
+              "parent_provider": "runpod",
+              "resource_model": "serverless_endpoint_worker",
+              "status_model": {
+                "evidence": [
+                  "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/helpers.py"
+                ],
+                "known_inconsistency": "Python SDK FINAL_STATES omits CANCELLED while is_completed includes it",
+                "terminal_states": [
+                  "COMPLETED",
+                  "FAILED",
+                  "TIMED_OUT",
+                  "CANCELLED"
+                ]
+              },
+              "workspace_paths": [
+                "/runpod/cache",
+                "/runpod-volume"
+              ]
+            },
+            "active_module_id": "runpod_serverless",
+            "available_module_ids": [
+              "runpod_serverless",
+              "runpod_pod"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "base_url": "https://api.runpod.ai/v2",
+                    "evidence": [
+                      "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/runner.py",
+                      "tasks/research/runpod-org/repos/runpod__js-sdk/src/index.ts"
+                    ],
+                    "operations": [
+                      "run",
+                      "runsync",
+                      "status",
+                      "stream",
+                      "cancel",
+                      "health",
+                      "purge_queue"
+                    ],
+                    "surface": "serverless_v2"
+                  }
+                ],
+                "canary_requirements": [
+                  "endpoint_health",
+                  "minimal_run",
+                  "status_poll",
+                  "cancel",
+                  "result_retention",
+                  "artifact_upload",
+                  "billing_surface_snapshot"
+                ],
+                "cost_model": [
+                  "compute_seconds",
+                  "active_worker_idle_seconds",
+                  "network_volume_gb_month"
+                ],
+                "execution_semantics": "queued_request_to_autoscaled_worker",
+                "module_id": "runpod_serverless",
+                "parent_provider": "runpod",
+                "resource_model": "serverless_endpoint_worker",
+                "status_model": {
+                  "evidence": [
+                    "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/helpers.py"
+                  ],
+                  "known_inconsistency": "Python SDK FINAL_STATES omits CANCELLED while is_completed includes it",
+                  "terminal_states": [
+                    "COMPLETED",
+                    "FAILED",
+                    "TIMED_OUT",
+                    "CANCELLED"
+                  ]
+                },
+                "workspace_paths": [
+                  "/runpod/cache",
+                  "/runpod-volume"
+                ]
+              },
+              {
+                "api_surfaces": [
+                  {
+                    "base_url": "https://rest.runpod.io/v1",
+                    "evidence": [
+                      "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/client.go"
+                    ],
+                    "operations": [
+                      "pods",
+                      "endpoints",
+                      "billing_pods",
+                      "billing_endpoints",
+                      "billing_networkvolumes"
+                    ],
+                    "surface": "rest_v1"
+                  },
+                  {
+                    "base_url": "https://api.runpod.io/graphql",
+                    "evidence": [
+                      "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/graphql.go",
+                      "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/api/mutations/pods.py"
+                    ],
+                    "operations": [
+                      "myself",
+                      "gpuTypes",
+                      "networkVolumes",
+                      "podFindAndDeployOnDemand"
+                    ],
+                    "surface": "graphql"
+                  }
+                ],
+                "canary_requirements": [
+                  "gpu_stock_query",
+                  "create_pod",
+                  "proxy_url_ready",
+                  "ssh_ready",
+                  "workspace_path_check",
+                  "stop_resume",
+                  "terminate",
+                  "billing_residue_check"
+                ],
+                "cost_model": [
+                  "pod_cost_per_hr",
+                  "stopped_storage_cost",
+                  "network_volume_gb_month"
+                ],
+                "execution_semantics": "persistent_pod_lifecycle",
+                "module_id": "runpod_pod",
+                "parent_provider": "runpod",
+                "resource_model": "direct_pod",
+                "status_model": {
+                  "evidence": [
+                    "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/pods.go"
+                  ],
+                  "resource_status_source": "pod status and desiredStatus",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace",
+                  "/runpod-volume"
+                ]
+              }
+            ],
+            "parent_provider": "runpod",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "provider_runtime": {},
+          "required_actions": [],
+          "required_backends": [],
+          "runtime_contract_probe": {
+            "contract_probe": "",
+            "ok": true,
+            "required": false,
+            "self_probe": false
+          },
+          "workspace": {
+            "artifact_dir": "/workspace/gpu-job/out",
+            "cleanup_contract": "terminate_pod_or_scale_to_zero_endpoint",
+            "input_staging": "network_volume_or_http_payload",
+            "official_docs": [
+              "https://docs.runpod.io/serverless/overview",
+              "https://docs.runpod.io/serverless/endpoints/endpoint-configurations",
+              "https://docs.runpod.io/storage/network-volumes"
+            ],
+            "workspace_kind": "pod_or_serverless_endpoint",
+            "workspace_modes": {
+              "pod": {
+                "network_volume_mount": "/workspace",
+                "resource_model": "pod",
+                "timing_fields": [
+                  "pod_create_seconds",
+                  "image_pull_seconds",
+                  "worker_ready_seconds",
+                  "execution_seconds"
+                ],
+                "volume_attach_rule": "network volume must be selected at pod deployment and cannot be attached later without deleting the pod"
+              },
+              "serverless": {
+                "cost_fields": [
+                  "compute_seconds",
+                  "active_worker_idle_seconds",
+                  "network_volume_gb_month"
+                ],
+                "network_volume_mount": "/runpod-volume",
+                "resource_model": "endpoint_worker",
+                "status_model": "queued_request_then_worker_status",
+                "timing_fields": [
+                  "queue_seconds",
+                  "cold_start_seconds",
+                  "execution_timeout_seconds",
+                  "job_ttl_seconds"
+                ]
+              }
+            },
+            "workspace_root": "/workspace/gpu-job"
+          },
+          "workspace_plan_id": "workspace-7c7544aec3fc0acf",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        },
+        "workspace_record": {
+          "gpu_profile": "llm_heavy",
+          "image_contract": {
+            "contract": {},
+            "contract_id": "",
+            "ok": true,
+            "reason": "",
+            "required_backends": [],
+            "status": "not_required"
+          },
+          "job_id": "contract-probe-llm_heavy-20260425-123808-1a94cd11",
+          "path": "/home/admin/.local/share/gpu-job-control/workspaces/workspace-7c7544aec3fc0acf.json",
+          "provider": "runpod",
+          "provider_job_id": "cs3wp3y6ehvomd",
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "base_url": "https://api.runpod.ai/v2",
+                  "evidence": [
+                    "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/runner.py",
+                    "tasks/research/runpod-org/repos/runpod__js-sdk/src/index.ts"
+                  ],
+                  "operations": [
+                    "run",
+                    "runsync",
+                    "status",
+                    "stream",
+                    "cancel",
+                    "health",
+                    "purge_queue"
+                  ],
+                  "surface": "serverless_v2"
+                }
+              ],
+              "canary_requirements": [
+                "endpoint_health",
+                "minimal_run",
+                "status_poll",
+                "cancel",
+                "result_retention",
+                "artifact_upload",
+                "billing_surface_snapshot"
+              ],
+              "cost_model": [
+                "compute_seconds",
+                "active_worker_idle_seconds",
+                "network_volume_gb_month"
+              ],
+              "execution_semantics": "queued_request_to_autoscaled_worker",
+              "module_id": "runpod_serverless",
+              "parent_provider": "runpod",
+              "resource_model": "serverless_endpoint_worker",
+              "status_model": {
+                "evidence": [
+                  "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/helpers.py"
+                ],
+                "known_inconsistency": "Python SDK FINAL_STATES omits CANCELLED while is_completed includes it",
+                "terminal_states": [
+                  "COMPLETED",
+                  "FAILED",
+                  "TIMED_OUT",
+                  "CANCELLED"
+                ]
+              },
+              "workspace_paths": [
+                "/runpod/cache",
+                "/runpod-volume"
+              ]
+            },
+            "active_module_id": "runpod_serverless",
+            "available_module_ids": [
+              "runpod_serverless",
+              "runpod_pod"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "base_url": "https://api.runpod.ai/v2",
+                    "evidence": [
+                      "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/runner.py",
+                      "tasks/research/runpod-org/repos/runpod__js-sdk/src/index.ts"
+                    ],
+                    "operations": [
+                      "run",
+                      "runsync",
+                      "status",
+                      "stream",
+                      "cancel",
+                      "health",
+                      "purge_queue"
+                    ],
+                    "surface": "serverless_v2"
+                  }
+                ],
+                "canary_requirements": [
+                  "endpoint_health",
+                  "minimal_run",
+                  "status_poll",
+                  "cancel",
+                  "result_retention",
+                  "artifact_upload",
+                  "billing_surface_snapshot"
+                ],
+                "cost_model": [
+                  "compute_seconds",
+                  "active_worker_idle_seconds",
+                  "network_volume_gb_month"
+                ],
+                "execution_semantics": "queued_request_to_autoscaled_worker",
+                "module_id": "runpod_serverless",
+                "parent_provider": "runpod",
+                "resource_model": "serverless_endpoint_worker",
+                "status_model": {
+                  "evidence": [
+                    "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/endpoint/helpers.py"
+                  ],
+                  "known_inconsistency": "Python SDK FINAL_STATES omits CANCELLED while is_completed includes it",
+                  "terminal_states": [
+                    "COMPLETED",
+                    "FAILED",
+                    "TIMED_OUT",
+                    "CANCELLED"
+                  ]
+                },
+                "workspace_paths": [
+                  "/runpod/cache",
+                  "/runpod-volume"
+                ]
+              },
+              {
+                "api_surfaces": [
+                  {
+                    "base_url": "https://rest.runpod.io/v1",
+                    "evidence": [
+                      "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/client.go"
+                    ],
+                    "operations": [
+                      "pods",
+                      "endpoints",
+                      "billing_pods",
+                      "billing_endpoints",
+                      "billing_networkvolumes"
+                    ],
+                    "surface": "rest_v1"
+                  },
+                  {
+                    "base_url": "https://api.runpod.io/graphql",
+                    "evidence": [
+                      "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/graphql.go",
+                      "tasks/research/runpod-org/repos/runpod__runpod-python/runpod/api/mutations/pods.py"
+                    ],
+                    "operations": [
+                      "myself",
+                      "gpuTypes",
+                      "networkVolumes",
+                      "podFindAndDeployOnDemand"
+                    ],
+                    "surface": "graphql"
+                  }
+                ],
+                "canary_requirements": [
+                  "gpu_stock_query",
+                  "create_pod",
+                  "proxy_url_ready",
+                  "ssh_ready",
+                  "workspace_path_check",
+                  "stop_resume",
+                  "terminate",
+                  "billing_residue_check"
+                ],
+                "cost_model": [
+                  "pod_cost_per_hr",
+                  "stopped_storage_cost",
+                  "network_volume_gb_month"
+                ],
+                "execution_semantics": "persistent_pod_lifecycle",
+                "module_id": "runpod_pod",
+                "parent_provider": "runpod",
+                "resource_model": "direct_pod",
+                "status_model": {
+                  "evidence": [
+                    "tasks/research/runpod-org/repos/runpod__runpodctl/internal/api/pods.go"
+                  ],
+                  "resource_status_source": "pod status and desiredStatus",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace",
+                  "/runpod-volume"
+                ]
+              }
+            ],
+            "parent_provider": "runpod",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "required_actions": [],
+          "state": "terminal",
+          "status": "failed",
+          "updated_at": 1777088343,
+          "workspace": {
+            "artifact_dir": "/workspace/gpu-job/out",
+            "cleanup_contract": "terminate_pod_or_scale_to_zero_endpoint",
+            "input_staging": "network_volume_or_http_payload",
+            "official_docs": [
+              "https://docs.runpod.io/serverless/overview",
+              "https://docs.runpod.io/serverless/endpoints/endpoint-configurations",
+              "https://docs.runpod.io/storage/network-volumes"
+            ],
+            "workspace_kind": "pod_or_serverless_endpoint",
+            "workspace_modes": {
+              "pod": {
+                "network_volume_mount": "/workspace",
+                "resource_model": "pod",
+                "timing_fields": [
+                  "pod_create_seconds",
+                  "image_pull_seconds",
+                  "worker_ready_seconds",
+                  "execution_seconds"
+                ],
+                "volume_attach_rule": "network volume must be selected at pod deployment and cannot be attached later without deleting the pod"
+              },
+              "serverless": {
+                "cost_fields": [
+                  "compute_seconds",
+                  "active_worker_idle_seconds",
+                  "network_volume_gb_month"
+                ],
+                "network_volume_mount": "/runpod-volume",
+                "resource_model": "endpoint_worker",
+                "status_model": "queued_request_then_worker_status",
+                "timing_fields": [
+                  "queue_seconds",
+                  "cold_start_seconds",
+                  "execution_timeout_seconds",
+                  "job_ttl_seconds"
+                ]
+              }
+            },
+            "workspace_root": "/workspace/gpu-job"
+          },
+          "workspace_plan_id": "workspace-7c7544aec3fc0acf",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        }
+      },
+      "model": "",
+      "output_uri": "local://contract-probes/contract-probe-llm_heavy-20260425-123808-1a94cd11",
+      "provider": "runpod",
+      "provider_job_id": "cs3wp3y6ehvomd",
+      "runtime_seconds": 31,
+      "started_at": 1777088303,
+      "status": "failed",
+      "updated_at": 1777088343,
+      "verify": {},
+      "worker_image": "auto"
+    },
+    "ok": false,
+    "path": "/home/admin/.local/share/gpu-job-control/jobs/contract-probe-llm_heavy-20260425-123808-1a94cd11.json",
+    "post_submit_guard": {
+      "capacity": {
+        "active_total": 1,
+        "by_job_type": {
+          "asr": {
+            "failed": 30,
+            "planned": 1,
+            "succeeded": 8
+          },
+          "cpu_workflow_helper": {
+            "succeeded": 1
+          },
+          "embedding": {
+            "failed": 1,
+            "succeeded": 6
+          },
+          "llm_heavy": {
+            "cancelled": 1,
+            "failed": 147,
+            "succeeded": 101
+          },
+          "pdf_ocr": {
+            "succeeded": 2
+          },
+          "smoke": {
+            "cancelled": 1,
+            "failed": 6,
+            "running": 1,
+            "succeeded": 11
+          },
+          "vlm_ocr": {
+            "failed": 74,
+            "succeeded": 38
+          }
+        },
+        "counts": {
+          "cancelled": 2,
+          "failed": 258,
+          "planned": 1,
+          "running": 1,
+          "succeeded": 167
+        },
+        "flattened_provider_limits": {
+          "local:*": 1,
+          "modal:*": 1,
+          "modal:asr": 2,
+          "modal:asr_diarization": 1,
+          "modal:llm_heavy": 1,
+          "modal:vlm_ocr": 1,
+          "ollama:*": 1,
+          "ollama:embedding": 1,
+          "ollama:llm_heavy": 1,
+          "ollama:vlm_ocr": 1,
+          "runpod:*": 1,
+          "runpod:asr": 2,
+          "runpod:llm_heavy": 1,
+          "vast:*": 1,
+          "vast:asr": 1,
+          "vast:asr_diarization": 1
+        },
+        "ok": true,
+        "provider_limits": {
+          "local": {
+            "*": 1
+          },
+          "modal": {
+            "*": 1,
+            "asr": 2,
+            "asr_diarization": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "ollama": {
+            "*": 1,
+            "embedding": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "runpod": {
+            "*": 1,
+            "asr": 2,
+            "llm_heavy": 1
+          },
+          "vast": {
+            "*": 1,
+            "asr": 1,
+            "asr_diarization": 1
+          }
+        },
+        "providers": {
+          "local:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "local",
+            "provider_profile_key": "local:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:embedding": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "embedding",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:embedding",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:smoke": {
+            "active": 1,
+            "available_slots": 0,
+            "expected_wait_seconds": 30,
+            "gpu_profile": "smoke",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:smoke",
+            "queued": 0,
+            "saturated": true
+          }
+        },
+        "queued_total": 0
+      },
+      "estimated_hourly_usd": 0.46,
+      "ok": false,
+      "providers": {
+        "runpod": {
+          "billable_resources": [
+            {
+              "costPerHr": 0.46,
+              "desiredStatus": "EXITED",
+              "gpuCount": 1,
+              "id": "cs3wp3y6ehvomd",
+              "imageName": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+              "name": "gpu-job-pod-canary-20260425123823"
+            }
+          ],
+          "estimated_hourly_usd": 0.46,
+          "ok": false,
+          "persistent_resources": [
+            {
+              "dataCenterId": "US-NC-1",
+              "id": "le9b9gqqu6",
+              "name": "news-llm-models",
+              "size_gb": 80,
+              "type": "network_volume"
+            },
+            {
+              "dataCenterId": "EU-NL-1",
+              "id": "vb25y1avw1",
+              "name": "news-llm-models-nl",
+              "size_gb": 50,
+              "type": "network_volume"
+            }
+          ],
+          "persistent_storage": {
+            "allowed_monthly_usd": null,
+            "allowed_persistent_resources": [
+              {
+                "allowed_size_gb": 80.0,
+                "dataCenterId": "US-NC-1",
+                "estimated_monthly_usd": 5.6,
+                "id": "le9b9gqqu6",
+                "name": "news-llm-models",
+                "purpose": "approved model and worker asset storage",
+                "size_gb": 80,
+                "type": "network_volume"
+              },
+              {
+                "allowed_size_gb": 50.0,
+                "dataCenterId": "EU-NL-1",
+                "estimated_monthly_usd": 3.5,
+                "id": "vb25y1avw1",
+                "name": "news-llm-models-nl",
+                "purpose": "approved model and worker asset storage",
+                "size_gb": 50,
+                "type": "network_volume"
+              }
+            ],
+            "estimated_monthly_usd": 9.1,
+            "fail_monthly_usd": 0.0,
+            "ok": true,
+            "price_usd_per_gb_month": 0.07,
+            "reason": "RunPod persistent storage is within approved fixed-cost budget",
+            "size_mismatch_persistent_resources": [],
+            "total_gb": 130.0,
+            "unknown_persistent_resources": [],
+            "warning": false,
+            "warning_monthly_usd": 0.0
+          },
+          "provider": "runpod",
+          "reason": "RunPod active pods or warm serverless workers present",
+          "serverless_queue": [
+            {
+              "id": "vllm-623t63akmshaoi",
+              "jobs": {
+                "completed": 0,
+                "failed": 0,
+                "inProgress": 0,
+                "inQueue": 0,
+                "retried": 0
+              },
+              "name": "gpu-job-disabled",
+              "ok": true,
+              "workers": {
+                "idle": 0,
+                "initializing": 0,
+                "ready": 0,
+                "running": 0,
+                "throttled": 0,
+                "unhealthy": 0
+              }
+            }
+          ]
+        }
+      },
+      "resource": {
+        "ok": true,
+        "reason": "local resource guard not applicable to selected remote providers",
+        "skipped": true
+      }
+    },
+    "pre_submit_guard": {
+      "capacity": {
+        "active_total": 1,
+        "by_job_type": {
+          "asr": {
+            "failed": 30,
+            "planned": 1,
+            "succeeded": 8
+          },
+          "cpu_workflow_helper": {
+            "succeeded": 1
+          },
+          "embedding": {
+            "failed": 1,
+            "succeeded": 6
+          },
+          "llm_heavy": {
+            "cancelled": 1,
+            "failed": 147,
+            "succeeded": 100
+          },
+          "pdf_ocr": {
+            "succeeded": 2
+          },
+          "smoke": {
+            "cancelled": 1,
+            "failed": 6,
+            "starting": 1,
+            "succeeded": 11
+          },
+          "vlm_ocr": {
+            "failed": 74,
+            "succeeded": 38
+          }
+        },
+        "counts": {
+          "cancelled": 2,
+          "failed": 258,
+          "planned": 1,
+          "starting": 1,
+          "succeeded": 166
+        },
+        "flattened_provider_limits": {
+          "local:*": 1,
+          "modal:*": 1,
+          "modal:asr": 2,
+          "modal:asr_diarization": 1,
+          "modal:llm_heavy": 1,
+          "modal:vlm_ocr": 1,
+          "ollama:*": 1,
+          "ollama:embedding": 1,
+          "ollama:llm_heavy": 1,
+          "ollama:vlm_ocr": 1,
+          "runpod:*": 1,
+          "runpod:asr": 2,
+          "runpod:llm_heavy": 1,
+          "vast:*": 1,
+          "vast:asr": 1,
+          "vast:asr_diarization": 1
+        },
+        "ok": true,
+        "provider_limits": {
+          "local": {
+            "*": 1
+          },
+          "modal": {
+            "*": 1,
+            "asr": 2,
+            "asr_diarization": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "ollama": {
+            "*": 1,
+            "embedding": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "runpod": {
+            "*": 1,
+            "asr": 2,
+            "llm_heavy": 1
+          },
+          "vast": {
+            "*": 1,
+            "asr": 1,
+            "asr_diarization": 1
+          }
+        },
+        "providers": {
+          "local:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "local",
+            "provider_profile_key": "local:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:embedding": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "embedding",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:embedding",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:smoke": {
+            "active": 1,
+            "available_slots": 0,
+            "expected_wait_seconds": 30,
+            "gpu_profile": "smoke",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:smoke",
+            "queued": 0,
+            "saturated": true
+          }
+        },
+        "queued_total": 0
+      },
+      "estimated_hourly_usd": 0.0,
+      "ok": true,
+      "providers": {
+        "runpod": {
+          "billable_resources": [],
+          "estimated_hourly_usd": 0,
+          "ok": true,
+          "persistent_resources": [
+            {
+              "dataCenterId": "US-NC-1",
+              "id": "le9b9gqqu6",
+              "name": "news-llm-models",
+              "size_gb": 80,
+              "type": "network_volume"
+            },
+            {
+              "dataCenterId": "EU-NL-1",
+              "id": "vb25y1avw1",
+              "name": "news-llm-models-nl",
+              "size_gb": 50,
+              "type": "network_volume"
+            }
+          ],
+          "persistent_storage": {
+            "allowed_monthly_usd": null,
+            "allowed_persistent_resources": [
+              {
+                "allowed_size_gb": 80.0,
+                "dataCenterId": "US-NC-1",
+                "estimated_monthly_usd": 5.6,
+                "id": "le9b9gqqu6",
+                "name": "news-llm-models",
+                "purpose": "approved model and worker asset storage",
+                "size_gb": 80,
+                "type": "network_volume"
+              },
+              {
+                "allowed_size_gb": 50.0,
+                "dataCenterId": "EU-NL-1",
+                "estimated_monthly_usd": 3.5,
+                "id": "vb25y1avw1",
+                "name": "news-llm-models-nl",
+                "purpose": "approved model and worker asset storage",
+                "size_gb": 50,
+                "type": "network_volume"
+              }
+            ],
+            "estimated_monthly_usd": 9.1,
+            "fail_monthly_usd": 0.0,
+            "ok": true,
+            "price_usd_per_gb_month": 0.07,
+            "reason": "RunPod persistent storage is within approved fixed-cost budget",
+            "size_mismatch_persistent_resources": [],
+            "total_gb": 130.0,
+            "unknown_persistent_resources": [],
+            "warning": false,
+            "warning_monthly_usd": 0.0
+          },
+          "provider": "runpod",
+          "reason": "no RunPod active pods or warm serverless workers; persistent storage within approved fixed-cost budget",
+          "serverless_queue": [
+            {
+              "id": "vllm-623t63akmshaoi",
+              "jobs": {
+                "completed": 0,
+                "failed": 0,
+                "inProgress": 0,
+                "inQueue": 0,
+                "retried": 0
+              },
+              "name": "gpu-job-disabled",
+              "ok": true,
+              "workers": {
+                "idle": 0,
+                "initializing": 0,
+                "ready": 0,
+                "running": 0,
+                "throttled": 0,
+                "unhealthy": 0
+              }
+            }
+          ]
+        }
+      },
+      "resource": {
+        "ok": true,
+        "reason": "local resource guard not applicable to selected remote providers",
+        "skipped": true
+      }
+    }
+  }
+}

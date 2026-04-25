@@ -1,0 +1,3173 @@
+{
+  "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+  "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+  "ok": true,
+  "probe_name": "modal.llm_heavy.qwen2_5_32b",
+  "provider": "modal",
+  "provider_module_probe_name": "modal_function.llm_heavy.qwen2_5_32b",
+  "record": {
+    "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123511-2743b96d",
+    "checks": {
+      "artifact_contract_ok": true,
+      "cache_contract_ok": true,
+      "forbidden_model_absent": true,
+      "gpu_contract_ok": true,
+      "image_digest_match": true,
+      "image_match": true,
+      "model_match": true,
+      "official_template_smoke_ok": true,
+      "text_nonempty": true,
+      "verify_ok": true,
+      "workspace_contract_ok": true
+    },
+    "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+    "execution_mode": "executed",
+    "failure": {
+      "class": null,
+      "reason": "",
+      "retryable": false
+    },
+    "observed": {
+      "artifact_contract": {
+        "file_count": 9,
+        "files": [
+          {
+            "bytes": 20296,
+            "path": "execution_record.json",
+            "sha256": "6286f50468092ce883d0b8aaaafec7b1462614061e79c8c8943f103fac88b6d6"
+          },
+          {
+            "bytes": 1104,
+            "path": "manifest.json",
+            "sha256": "683094038ac39994eac6b17b452bd6f1bc95d7661ad98c848eaee41b0c9dcae9"
+          },
+          {
+            "bytes": 331,
+            "path": "metrics.json",
+            "sha256": "1649b8258e58b8eed3cfce5f5f281ba389e3b9a901d0ee6641838b27c6d9e458"
+          },
+          {
+            "bytes": 304,
+            "path": "probe_info.json",
+            "sha256": "8e4d0fdd4db32b273bd3c95bf283ba7d979e27ac80ba172a158e24385142dc95"
+          },
+          {
+            "bytes": 611,
+            "path": "result.json",
+            "sha256": "d2588581a7e526a6e4bad316c4ab92659713d4ebdb6ca50553ffbd28183b6825"
+          },
+          {
+            "bytes": 0,
+            "path": "stderr.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "bytes": 15939,
+            "path": "stdout.log",
+            "sha256": "b698ebbb7e0cd37d8951cb93f2888369a0fa9b3bec41faa7a64ff650c07647c8"
+          },
+          {
+            "bytes": 15424,
+            "path": "submit_result.json",
+            "sha256": "044d3276623f90f226e865122b2ccf8f6fd48262fc7639a449976506be0a74e2"
+          },
+          {
+            "bytes": 193,
+            "path": "verify.json",
+            "sha256": "8570a8fb2bef31d1c3ca11304f6d4fd0ea727d93d83cdf8cbbf8a9f506ce3344"
+          }
+        ],
+        "manifest_version": "gpu-job-artifact-manifest-v1",
+        "root": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123511-2743b96d",
+        "total_bytes": 54202
+      },
+      "cache": {
+        "cache_hit": true,
+        "cold_start_observed": true,
+        "cold_start_signals": [
+          "hf_fetching_files"
+        ],
+        "download_seconds": null
+      },
+      "gpu_utilization_evidence": {
+        "execution_class": "gpu",
+        "matches": [
+          {
+            "key": "gpu_memory_used_mb",
+            "path": "gpu_memory_used_mb",
+            "value": 62518
+          }
+        ],
+        "ok": true,
+        "reason": "gpu utilization evidence present"
+      },
+      "hardware": {
+        "gpu_count": 1,
+        "gpu_name": "NVIDIA A100 80GB PCIe",
+        "vram_mb": null
+      },
+      "http_statuses": [],
+      "image": {
+        "digest": null,
+        "name": "gpu-job-modal-llm"
+      },
+      "model": "Qwen/Qwen2.5-32B-Instruct",
+      "workspace_contract": {
+        "actual_cost_guard": {
+          "estimated_hourly_usd": null,
+          "ok": true,
+          "provider": "modal",
+          "reason": "no running Modal apps",
+          "source": "submit_result.post_submit_guard"
+        },
+        "cache_hit": true,
+        "cleanup": {
+          "billable_count": 0,
+          "ok": true,
+          "provider": "modal",
+          "reason": "no running Modal apps",
+          "source": "submit_result.post_submit_guard"
+        },
+        "cleanup_ok": true,
+        "cost_guard_ok": true,
+        "endpoint_id": "",
+        "gpu_probe": {},
+        "hf_token_present": null,
+        "image_contract_marker_present": null,
+        "instance_id": "",
+        "official_template_smoke_ok": false,
+        "ok": null,
+        "pod_id": "",
+        "provider_job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+        "require_gpu": null,
+        "runtime_checks": {},
+        "runtime_imports_ok": null,
+        "small_workload_ok": null,
+        "volume_probe_ok": null,
+        "volume_required": null,
+        "worker_startup_ok": true,
+        "workergroup_id": ""
+      },
+      "workspace_observation_coverage": {
+        "categories": {
+          "artifact_contract": {
+            "evidence_fields": [
+              "artifact_contract",
+              "verify_artifacts"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "cleanup_result": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "cost_guard": {
+            "evidence_fields": [
+              "actual_cost_guard",
+              "cost_guard_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "gpu_execution": {
+            "evidence_fields": [
+              "gpu_probe",
+              "gpu_utilization_evidence",
+              "hardware"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "image_contract": {
+            "evidence_fields": [
+              "image",
+              "provider_image",
+              "image_contract_marker_present"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "model_load": {
+            "evidence_fields": [
+              "model",
+              "loaded_model_id",
+              "runtime_imports_ok",
+              "small_workload_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "provider_residue": {
+            "evidence_fields": [
+              "cleanup",
+              "cleanup_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "provider_resource_identity": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "",
+              "pod_id": "",
+              "provider_job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "queue_or_reservation": {
+            "evidence_fields": [
+              "endpoint_id",
+              "workergroup_id",
+              "pod_id",
+              "instance_id",
+              "provider_job_id"
+            ],
+            "evidence_values": {
+              "endpoint_id": "",
+              "instance_id": "",
+              "pod_id": "",
+              "provider_job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+              "workergroup_id": ""
+            },
+            "observed": true,
+            "ok": true
+          },
+          "secret_availability": {
+            "evidence_fields": [
+              "hf_token_present"
+            ],
+            "observed": false,
+            "ok": null
+          },
+          "startup_phases": {
+            "evidence_fields": [
+              "worker_startup_ok",
+              "workspace_contract_ok"
+            ],
+            "observed": true,
+            "ok": true
+          },
+          "workspace_cache": {
+            "evidence_fields": [
+              "cache_hit",
+              "cache_warm"
+            ],
+            "observed": true,
+            "ok": true
+          }
+        },
+        "coverage_version": "gpu-job-workspace-observation-coverage-v1",
+        "failed_categories": [],
+        "missing_categories": [
+          "secret_availability"
+        ],
+        "observed_categories": [
+          "provider_resource_identity",
+          "image_contract",
+          "workspace_cache",
+          "startup_phases",
+          "queue_or_reservation",
+          "model_load",
+          "gpu_execution",
+          "artifact_contract",
+          "cost_guard",
+          "cleanup_result",
+          "provider_residue"
+        ],
+        "provider": "modal"
+      }
+    },
+    "ok": true,
+    "probe_name": "modal.llm_heavy.qwen2_5_32b",
+    "provider": "modal",
+    "provider_module_canary_evidence": {
+      "evidence_source": "record.observed.workspace_observation_coverage",
+      "failed_categories": [],
+      "missing_categories": [],
+      "module_canary_requirements": [
+        "function_invoke",
+        "artifact_verify",
+        "volume_visibility",
+        "cost_snapshot"
+      ],
+      "module_specific_failures": [],
+      "observation_categories": {
+        "artifact_contract": {
+          "evidence_fields": [
+            "artifact_contract",
+            "verify_artifacts"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "cleanup_result": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "cost_guard": {
+          "evidence_fields": [
+            "actual_cost_guard",
+            "cost_guard_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "gpu_execution": {
+          "evidence_fields": [
+            "gpu_probe",
+            "gpu_utilization_evidence",
+            "hardware"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "image_contract": {
+          "evidence_fields": [
+            "image",
+            "provider_image",
+            "image_contract_marker_present"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "model_load": {
+          "evidence_fields": [
+            "model",
+            "loaded_model_id",
+            "runtime_imports_ok",
+            "small_workload_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "provider_residue": {
+          "evidence_fields": [
+            "cleanup",
+            "cleanup_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "provider_resource_identity": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "",
+            "pod_id": "",
+            "provider_job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "queue_or_reservation": {
+          "evidence_fields": [
+            "endpoint_id",
+            "workergroup_id",
+            "pod_id",
+            "instance_id",
+            "provider_job_id"
+          ],
+          "evidence_values": {
+            "endpoint_id": "",
+            "instance_id": "",
+            "pod_id": "",
+            "provider_job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+            "workergroup_id": ""
+          },
+          "observed": true,
+          "ok": true
+        },
+        "secret_availability": {
+          "evidence_fields": [
+            "hf_token_present"
+          ],
+          "observed": false,
+          "ok": null
+        },
+        "startup_phases": {
+          "evidence_fields": [
+            "worker_startup_ok",
+            "workspace_contract_ok"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "workspace_cache": {
+          "evidence_fields": [
+            "cache_hit",
+            "cache_warm"
+          ],
+          "observed": true,
+          "ok": true
+        }
+      },
+      "observed_categories": [
+        "provider_resource_identity",
+        "startup_phases",
+        "gpu_execution",
+        "artifact_contract",
+        "cost_guard",
+        "provider_residue"
+      ],
+      "ok": true,
+      "parent_provider": "modal",
+      "provider_module_canary_evidence_version": "gpu-job-provider-module-canary-evidence-v1",
+      "provider_module_id": "modal_function",
+      "provider_module_probe_name": "modal_function.llm_heavy.qwen2_5_32b",
+      "required_observation_categories": [
+        "provider_resource_identity",
+        "startup_phases",
+        "gpu_execution",
+        "artifact_contract",
+        "cost_guard",
+        "provider_residue"
+      ],
+      "requirement_observation_mapping": {
+        "artifact_verify": [
+          "artifact_contract"
+        ],
+        "cost_snapshot": [
+          "cost_guard",
+          "provider_residue"
+        ],
+        "function_invoke": [
+          "provider_resource_identity",
+          "startup_phases",
+          "gpu_execution"
+        ],
+        "volume_visibility": [
+          "artifact_contract"
+        ]
+      },
+      "requirements": {
+        "artifact_verify": {
+          "categories": [
+            "artifact_contract"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "cost_snapshot": {
+          "categories": [
+            "cost_guard",
+            "provider_residue"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "function_invoke": {
+          "categories": [
+            "provider_resource_identity",
+            "startup_phases",
+            "gpu_execution"
+          ],
+          "observed": true,
+          "ok": true
+        },
+        "volume_visibility": {
+          "categories": [
+            "artifact_contract"
+          ],
+          "observed": true,
+          "ok": true
+        }
+      }
+    },
+    "provider_module_contract": {
+      "active_module": {
+        "api_surfaces": [
+          {
+            "evidence": [
+              "docs/cloud-gpu-provider-research.md"
+            ],
+            "operations": [
+              "invoke_function",
+              "image_build",
+              "volume_mount",
+              "logs"
+            ],
+            "surface": "modal_function"
+          }
+        ],
+        "canary_requirements": [
+          "function_invoke",
+          "artifact_verify",
+          "volume_visibility",
+          "cost_snapshot"
+        ],
+        "cost_model": [
+          "function_runtime",
+          "idle_container_seconds",
+          "volume_storage"
+        ],
+        "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+        "module_id": "modal_function",
+        "parent_provider": "modal",
+        "resource_model": "modal_function",
+        "status_model": {
+          "resource_status_source": "modal function invocation lifecycle",
+          "terminal_states": []
+        },
+        "workspace_paths": [
+          "/workspace",
+          "/mnt"
+        ]
+      },
+      "active_module_id": "modal_function",
+      "available_module_ids": [
+        "modal_function"
+      ],
+      "available_modules": [
+        {
+          "api_surfaces": [
+            {
+              "evidence": [
+                "docs/cloud-gpu-provider-research.md"
+              ],
+              "operations": [
+                "invoke_function",
+                "image_build",
+                "volume_mount",
+                "logs"
+              ],
+              "surface": "modal_function"
+            }
+          ],
+          "canary_requirements": [
+            "function_invoke",
+            "artifact_verify",
+            "volume_visibility",
+            "cost_snapshot"
+          ],
+          "cost_model": [
+            "function_runtime",
+            "idle_container_seconds",
+            "volume_storage"
+          ],
+          "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+          "module_id": "modal_function",
+          "parent_provider": "modal",
+          "resource_model": "modal_function",
+          "status_model": {
+            "resource_status_source": "modal function invocation lifecycle",
+            "terminal_states": []
+          },
+          "workspace_paths": [
+            "/workspace",
+            "/mnt"
+          ]
+        }
+      ],
+      "parent_provider": "modal",
+      "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+      "requested_module_id": "modal_function",
+      "selection": {
+        "mode": "metadata_requested_or_parent_default",
+        "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+        "requested_module_valid": true,
+        "routing_by_module_enabled": false
+      }
+    },
+    "provider_module_probe_name": "modal_function.llm_heavy.qwen2_5_32b",
+    "recorded_at": 1777088216,
+    "spec": {
+      "cache_required": true,
+      "expected_image": "gpu-job-modal-llm",
+      "expected_image_digest": "",
+      "expected_model": "Qwen/Qwen2.5-32B-Instruct",
+      "forbidden_models": [
+        "Qwen/Qwen2.5-0.5B-Instruct"
+      ],
+      "gpu_profile": "llm_heavy",
+      "job_type": "llm_heavy",
+      "probe_name": "modal.llm_heavy.qwen2_5_32b",
+      "provider": "modal",
+      "provider_module_id": "modal_function",
+      "require_gpu_utilization": true,
+      "required_files": [
+        "result.json",
+        "metrics.json",
+        "verify.json",
+        "stdout.log",
+        "stderr.log"
+      ],
+      "workload_family": "llm_heavy"
+    },
+    "submit_result": {
+      "error": "",
+      "exit_code": 0,
+      "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+      "ok": true,
+      "post_submit_guard": {
+        "capacity": {
+          "active_total": 0,
+          "by_job_type": {
+            "asr": {
+              "failed": 29,
+              "planned": 1,
+              "succeeded": 8
+            },
+            "cpu_workflow_helper": {
+              "succeeded": 1
+            },
+            "embedding": {
+              "failed": 1,
+              "succeeded": 6
+            },
+            "llm_heavy": {
+              "cancelled": 1,
+              "failed": 147,
+              "succeeded": 100
+            },
+            "pdf_ocr": {
+              "succeeded": 2
+            },
+            "smoke": {
+              "cancelled": 1,
+              "failed": 6,
+              "succeeded": 11
+            },
+            "vlm_ocr": {
+              "failed": 74,
+              "succeeded": 38
+            }
+          },
+          "counts": {
+            "cancelled": 2,
+            "failed": 257,
+            "planned": 1,
+            "succeeded": 166
+          },
+          "flattened_provider_limits": {
+            "local:*": 1,
+            "modal:*": 1,
+            "modal:asr": 2,
+            "modal:asr_diarization": 1,
+            "modal:llm_heavy": 1,
+            "modal:vlm_ocr": 1,
+            "ollama:*": 1,
+            "ollama:embedding": 1,
+            "ollama:llm_heavy": 1,
+            "ollama:vlm_ocr": 1,
+            "runpod:*": 1,
+            "runpod:asr": 2,
+            "runpod:llm_heavy": 1,
+            "vast:*": 1,
+            "vast:asr": 1,
+            "vast:asr_diarization": 1
+          },
+          "ok": true,
+          "provider_limits": {
+            "local": {
+              "*": 1
+            },
+            "modal": {
+              "*": 1,
+              "asr": 2,
+              "asr_diarization": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "ollama": {
+              "*": 1,
+              "embedding": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "runpod": {
+              "*": 1,
+              "asr": 2,
+              "llm_heavy": 1
+            },
+            "vast": {
+              "*": 1,
+              "asr": 1,
+              "asr_diarization": 1
+            }
+          },
+          "providers": {
+            "local:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "local",
+              "provider_profile_key": "local:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:embedding": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "embedding",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:embedding",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            }
+          },
+          "queued_total": 0
+        },
+        "estimated_hourly_usd": null,
+        "ok": true,
+        "providers": {
+          "modal": {
+            "billable_resources": [],
+            "estimated_hourly_usd": null,
+            "ok": true,
+            "provider": "modal",
+            "reason": "no running Modal apps"
+          }
+        },
+        "resource": {
+          "ok": true,
+          "reason": "local resource guard not applicable to selected remote providers",
+          "skipped": true
+        }
+      },
+      "pre_submit_guard": {
+        "capacity": {
+          "active_total": 0,
+          "by_job_type": {
+            "asr": {
+              "failed": 29,
+              "planned": 1,
+              "succeeded": 8
+            },
+            "cpu_workflow_helper": {
+              "succeeded": 1
+            },
+            "embedding": {
+              "failed": 1,
+              "succeeded": 6
+            },
+            "llm_heavy": {
+              "cancelled": 1,
+              "failed": 147,
+              "succeeded": 99
+            },
+            "pdf_ocr": {
+              "succeeded": 2
+            },
+            "smoke": {
+              "cancelled": 1,
+              "failed": 6,
+              "succeeded": 11
+            },
+            "vlm_ocr": {
+              "failed": 74,
+              "succeeded": 38
+            }
+          },
+          "counts": {
+            "cancelled": 2,
+            "failed": 257,
+            "planned": 1,
+            "succeeded": 165
+          },
+          "flattened_provider_limits": {
+            "local:*": 1,
+            "modal:*": 1,
+            "modal:asr": 2,
+            "modal:asr_diarization": 1,
+            "modal:llm_heavy": 1,
+            "modal:vlm_ocr": 1,
+            "ollama:*": 1,
+            "ollama:embedding": 1,
+            "ollama:llm_heavy": 1,
+            "ollama:vlm_ocr": 1,
+            "runpod:*": 1,
+            "runpod:asr": 2,
+            "runpod:llm_heavy": 1,
+            "vast:*": 1,
+            "vast:asr": 1,
+            "vast:asr_diarization": 1
+          },
+          "ok": true,
+          "provider_limits": {
+            "local": {
+              "*": 1
+            },
+            "modal": {
+              "*": 1,
+              "asr": 2,
+              "asr_diarization": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "ollama": {
+              "*": 1,
+              "embedding": 1,
+              "llm_heavy": 1,
+              "vlm_ocr": 1
+            },
+            "runpod": {
+              "*": 1,
+              "asr": 2,
+              "llm_heavy": 1
+            },
+            "vast": {
+              "*": 1,
+              "asr": 1,
+              "asr_diarization": 1
+            }
+          },
+          "providers": {
+            "local:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "local",
+              "provider_profile_key": "local:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "modal:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "modal",
+              "provider_profile_key": "modal:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:embedding": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "embedding",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:embedding",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "ollama:vlm_ocr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "vlm_ocr",
+              "max_concurrent": 1,
+              "provider": "ollama",
+              "provider_profile_key": "ollama:vlm_ocr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:asr": {
+              "active": 0,
+              "available_slots": 2,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 2,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "runpod:llm_heavy": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "llm_heavy",
+              "max_concurrent": 1,
+              "provider": "runpod",
+              "provider_profile_key": "runpod:llm_heavy",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:*": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "*",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:*",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr",
+              "queued": 0,
+              "saturated": false
+            },
+            "vast:asr_diarization": {
+              "active": 0,
+              "available_slots": 1,
+              "expected_wait_seconds": 0,
+              "gpu_profile": "asr_diarization",
+              "max_concurrent": 1,
+              "provider": "vast",
+              "provider_profile_key": "vast:asr_diarization",
+              "queued": 0,
+              "saturated": false
+            }
+          },
+          "queued_total": 0
+        },
+        "estimated_hourly_usd": null,
+        "ok": true,
+        "providers": {
+          "modal": {
+            "billable_resources": [],
+            "estimated_hourly_usd": null,
+            "ok": true,
+            "provider": "modal",
+            "reason": "no running Modal apps"
+          }
+        },
+        "resource": {
+          "ok": true,
+          "reason": "local resource guard not applicable to selected remote providers",
+          "skipped": true
+        }
+      },
+      "provider": "modal",
+      "provider_job_id": "",
+      "status": "succeeded"
+    },
+    "verdict": "pass",
+    "workload_family": "llm_heavy"
+  },
+  "submit_result": {
+    "error": "",
+    "job": {
+      "artifact_bytes": 18482,
+      "artifact_count": 7,
+      "created_at": 1777088111,
+      "error": "",
+      "exit_code": 0,
+      "finished_at": 1777088213,
+      "gpu_profile": "llm_heavy",
+      "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+      "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+      "job_type": "llm_heavy",
+      "limits": {
+        "max_cost_usd": 3.0,
+        "max_runtime_minutes": 30,
+        "max_startup_seconds": 900
+      },
+      "metadata": {
+        "capability_result": {
+          "capability": {
+            "asr": true,
+            "job_types": [
+              "smoke",
+              "asr",
+              "llm_heavy",
+              "pdf_ocr",
+              "vlm_ocr"
+            ],
+            "max_input_tokens": 32768,
+            "provider": "modal",
+            "quality_tier": "external_gpu",
+            "vision": true
+          },
+          "capability_version": "gpu-job-capability-v1",
+          "checks": {
+            "asr_ok": true,
+            "job_type_ok": true,
+            "quality_ok": true,
+            "tokens_ok": true,
+            "vision_ok": true
+          },
+          "estimated_input_tokens": 10,
+          "model": "Qwen/Qwen2.5-32B-Instruct",
+          "model_key": "modal:Qwen/Qwen2.5-32B-Instruct",
+          "ok": true,
+          "provider": "modal",
+          "reason": "model capability accepted",
+          "registered": true
+        },
+        "capacity_reservation": {
+          "active_before": 0,
+          "max_concurrent": 1,
+          "ok": true,
+          "provider": "modal",
+          "queued_before": 0
+        },
+        "circuit": {
+          "circuit_version": "gpu-job-circuit-v1",
+          "error_classes": {},
+          "failure_count": 0,
+          "failure_rate": 0.0,
+          "half_open_probe_allowed": false,
+          "latest_sample_status": null,
+          "latest_success_after_failure": false,
+          "latest_success_is_circuit_probe": false,
+          "ok": true,
+          "provider": "modal",
+          "rate_limit_failure_count": 0,
+          "retryable_failure_count": 0,
+          "sample_count": 0,
+          "state": "closed",
+          "window_seconds": 900
+        },
+        "compliance_result": {
+          "allowed_regions": [],
+          "compliance_version": "gpu-job-compliance-v1",
+          "data_classification": "unspecified",
+          "ok": true,
+          "prohibited_providers": [],
+          "provider": "modal",
+          "provider_ok": true,
+          "provider_region": "external",
+          "residency_ok": true
+        },
+        "contract_probe": {
+          "contract_probe_version": "gpu-job-provider-contract-probe-v1",
+          "probe_name": "modal.llm_heavy.qwen2_5_32b",
+          "provider": "modal",
+          "provider_module_id": "modal_function"
+        },
+        "cost_result": {
+          "budget_usd": 3.0,
+          "cost_version": "gpu-job-cost-v1",
+          "cross_region_transfer": false,
+          "estimated_artifact_gb": 0.0,
+          "estimated_egress_cost_usd": 0.0,
+          "estimated_runtime_cost_usd": 0.0,
+          "estimated_storage_month_cost_usd": 0.0,
+          "estimated_total_cost_usd": 0.0,
+          "ok": true
+        },
+        "decision_hash": "c4144b8846c128246866468c3afbccb9b5824aaec8958b8c4c89efe777af7bc9",
+        "execute_requested": true,
+        "execution_record": {
+          "path": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123511-2743b96d/execution_record.json",
+          "record_hash": "261ff1923d1b11fdc68a8cbe070c25e797b68f835d9f37bda04f243f8c1ff066",
+          "record_id": "exec-261ff1923d1b11fd"
+        },
+        "final_artifact_verify": {
+          "application_verify": {
+            "checks": {
+              "text_nonempty": true
+            },
+            "missing": [],
+            "ok": true,
+            "required": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ]
+          },
+          "artifact_bytes": 18482,
+          "artifact_count": 7,
+          "artifact_dir": "/home/admin/.local/share/gpu-job-control/artifacts/contract-probe-llm_heavy-20260425-123511-2743b96d",
+          "hardware_verify": {
+            "execution_class": "gpu",
+            "ok": true,
+            "reason": "gpu utilization evidence present"
+          },
+          "json_valid": {
+            "metrics.json": true,
+            "result.json": true,
+            "verify.json": true
+          },
+          "manifest": {
+            "manifest_present": true,
+            "mismatched": [],
+            "missing": [],
+            "ok": true
+          },
+          "missing": [],
+          "ok": true,
+          "require_gpu_utilization": true,
+          "require_manifest": true,
+          "required": [
+            "result.json",
+            "metrics.json",
+            "verify.json",
+            "stdout.log",
+            "stderr.log"
+          ]
+        },
+        "hardware_verification": {
+          "require_gpu_utilization": true
+        },
+        "input": {
+          "max_tokens": 32,
+          "prompt": "Return exactly: GPU_JOB_CONTRACT_PROBE_OK"
+        },
+        "model_requirements": {
+          "llm_heavy": true,
+          "min_quality_tier": "external_gpu"
+        },
+        "placement_result": {
+          "exclusive_gpu": false,
+          "fractional_gpu": null,
+          "fractional_ok": true,
+          "gpu_count": 1.0,
+          "multi_gpu_ok": true,
+          "ok": true,
+          "placement_version": "gpu-job-placement-v1",
+          "provider": "modal",
+          "provider_support": {
+            "fractional": false,
+            "multi_gpu": false
+          }
+        },
+        "policy_validation": {
+          "errors": [],
+          "exceptions": {
+            "active": [],
+            "errors": [],
+            "expired": [],
+            "ok": true
+          },
+          "ok": true,
+          "policy_engine_version": "gpu-job-policy-v1",
+          "policy_hash": "48a3aad19251da57994681da011e5464c611f6691a2b1a0e032e16ad34259554"
+        },
+        "post_submit_guard": {
+          "capacity": {
+            "active_total": 0,
+            "by_job_type": {
+              "asr": {
+                "failed": 29,
+                "planned": 1,
+                "succeeded": 8
+              },
+              "cpu_workflow_helper": {
+                "succeeded": 1
+              },
+              "embedding": {
+                "failed": 1,
+                "succeeded": 6
+              },
+              "llm_heavy": {
+                "cancelled": 1,
+                "failed": 147,
+                "succeeded": 100
+              },
+              "pdf_ocr": {
+                "succeeded": 2
+              },
+              "smoke": {
+                "cancelled": 1,
+                "failed": 6,
+                "succeeded": 11
+              },
+              "vlm_ocr": {
+                "failed": 74,
+                "succeeded": 38
+              }
+            },
+            "counts": {
+              "cancelled": 2,
+              "failed": 257,
+              "planned": 1,
+              "succeeded": 166
+            },
+            "flattened_provider_limits": {
+              "local:*": 1,
+              "modal:*": 1,
+              "modal:asr": 2,
+              "modal:asr_diarization": 1,
+              "modal:llm_heavy": 1,
+              "modal:vlm_ocr": 1,
+              "ollama:*": 1,
+              "ollama:embedding": 1,
+              "ollama:llm_heavy": 1,
+              "ollama:vlm_ocr": 1,
+              "runpod:*": 1,
+              "runpod:asr": 2,
+              "runpod:llm_heavy": 1,
+              "vast:*": 1,
+              "vast:asr": 1,
+              "vast:asr_diarization": 1
+            },
+            "ok": true,
+            "provider_limits": {
+              "local": {
+                "*": 1
+              },
+              "modal": {
+                "*": 1,
+                "asr": 2,
+                "asr_diarization": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "ollama": {
+                "*": 1,
+                "embedding": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "runpod": {
+                "*": 1,
+                "asr": 2,
+                "llm_heavy": 1
+              },
+              "vast": {
+                "*": 1,
+                "asr": 1,
+                "asr_diarization": 1
+              }
+            },
+            "providers": {
+              "local:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "local",
+                "provider_profile_key": "local:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:embedding": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "embedding",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:embedding",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              }
+            },
+            "queued_total": 0
+          },
+          "estimated_hourly_usd": null,
+          "ok": true,
+          "providers": {
+            "modal": {
+              "billable_resources": [],
+              "estimated_hourly_usd": null,
+              "ok": true,
+              "provider": "modal",
+              "reason": "no running Modal apps"
+            }
+          },
+          "resource": {
+            "ok": true,
+            "reason": "local resource guard not applicable to selected remote providers",
+            "skipped": true
+          }
+        },
+        "pre_submit_guard": {
+          "capacity": {
+            "active_total": 0,
+            "by_job_type": {
+              "asr": {
+                "failed": 29,
+                "planned": 1,
+                "succeeded": 8
+              },
+              "cpu_workflow_helper": {
+                "succeeded": 1
+              },
+              "embedding": {
+                "failed": 1,
+                "succeeded": 6
+              },
+              "llm_heavy": {
+                "cancelled": 1,
+                "failed": 147,
+                "succeeded": 99
+              },
+              "pdf_ocr": {
+                "succeeded": 2
+              },
+              "smoke": {
+                "cancelled": 1,
+                "failed": 6,
+                "succeeded": 11
+              },
+              "vlm_ocr": {
+                "failed": 74,
+                "succeeded": 38
+              }
+            },
+            "counts": {
+              "cancelled": 2,
+              "failed": 257,
+              "planned": 1,
+              "succeeded": 165
+            },
+            "flattened_provider_limits": {
+              "local:*": 1,
+              "modal:*": 1,
+              "modal:asr": 2,
+              "modal:asr_diarization": 1,
+              "modal:llm_heavy": 1,
+              "modal:vlm_ocr": 1,
+              "ollama:*": 1,
+              "ollama:embedding": 1,
+              "ollama:llm_heavy": 1,
+              "ollama:vlm_ocr": 1,
+              "runpod:*": 1,
+              "runpod:asr": 2,
+              "runpod:llm_heavy": 1,
+              "vast:*": 1,
+              "vast:asr": 1,
+              "vast:asr_diarization": 1
+            },
+            "ok": true,
+            "provider_limits": {
+              "local": {
+                "*": 1
+              },
+              "modal": {
+                "*": 1,
+                "asr": 2,
+                "asr_diarization": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "ollama": {
+                "*": 1,
+                "embedding": 1,
+                "llm_heavy": 1,
+                "vlm_ocr": 1
+              },
+              "runpod": {
+                "*": 1,
+                "asr": 2,
+                "llm_heavy": 1
+              },
+              "vast": {
+                "*": 1,
+                "asr": 1,
+                "asr_diarization": 1
+              }
+            },
+            "providers": {
+              "local:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "local",
+                "provider_profile_key": "local:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "modal:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "modal",
+                "provider_profile_key": "modal:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:embedding": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "embedding",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:embedding",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "ollama:vlm_ocr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "vlm_ocr",
+                "max_concurrent": 1,
+                "provider": "ollama",
+                "provider_profile_key": "ollama:vlm_ocr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:asr": {
+                "active": 0,
+                "available_slots": 2,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 2,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "runpod:llm_heavy": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "llm_heavy",
+                "max_concurrent": 1,
+                "provider": "runpod",
+                "provider_profile_key": "runpod:llm_heavy",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:*": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "*",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:*",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr",
+                "queued": 0,
+                "saturated": false
+              },
+              "vast:asr_diarization": {
+                "active": 0,
+                "available_slots": 1,
+                "expected_wait_seconds": 0,
+                "gpu_profile": "asr_diarization",
+                "max_concurrent": 1,
+                "provider": "vast",
+                "provider_profile_key": "vast:asr_diarization",
+                "queued": 0,
+                "saturated": false
+              }
+            },
+            "queued_total": 0
+          },
+          "estimated_hourly_usd": null,
+          "ok": true,
+          "providers": {
+            "modal": {
+              "billable_resources": [],
+              "estimated_hourly_usd": null,
+              "ok": true,
+              "provider": "modal",
+              "reason": "no running Modal apps"
+            }
+          },
+          "resource": {
+            "ok": true,
+            "reason": "local resource guard not applicable to selected remote providers",
+            "skipped": true
+          }
+        },
+        "preemption_result": {
+          "checkpoint_artifact": null,
+          "checkpoint_ok": false,
+          "checkpoint_path": null,
+          "ok": true,
+          "preemptible": false,
+          "preemption_version": "gpu-job-preemption-v1",
+          "resume_allowed": false
+        },
+        "provenance_result": {
+          "attestation": {
+            "ok": true,
+            "reason": "attestation not required",
+            "required": false
+          },
+          "attestation_required": false,
+          "image_digest": null,
+          "image_pinned": false,
+          "model_pinned": false,
+          "model_weights_hash": null,
+          "ok": true,
+          "provenance_version": "gpu-job-provenance-v1",
+          "strict": false
+        },
+        "provider_plan": {
+          "execution_plan": {
+            "artifact_contract": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ],
+            "command": [
+              "gpu-job-worker",
+              "--job-id",
+              "contract-probe-llm_heavy-20260425-123511-2743b96d",
+              "--artifact-dir",
+              "/workspace/artifacts",
+              "--gpu-profile",
+              "llm_heavy",
+              "--input-uri",
+              "<staged-input-path>",
+              "--provider",
+              "modal",
+              "--model-name",
+              "Qwen/Qwen2.5-32B-Instruct"
+            ],
+            "command_shape": {
+              "entrypoint_is_command_argv0": true,
+              "tokenized": true
+            },
+            "entrypoint": "gpu-job-worker",
+            "execution_plan_version": "gpu-job-execution-plan-v1",
+            "gpu_profile": "llm_heavy",
+            "image_contract": {
+              "contract": {},
+              "contract_id": "",
+              "ok": true,
+              "reason": "",
+              "required_backends": [],
+              "status": "not_required"
+            },
+            "image_distribution": {},
+            "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+            "job_type": "llm_heavy",
+            "provider": "modal",
+            "provider_image": "",
+            "provider_support_contract": {
+              "basis": {
+                "canary_executable": "provider is allowed only for explicit canary or controlled routes unless promoted",
+                "catalog_routable": "provider has at least one catalog-supported job type",
+                "production_route": "provider may be selected by normal planning for its supported job types",
+                "registered": "adapter or policy entry is present in the generated provider catalog"
+              },
+              "highest_support_level": "production_route",
+              "is_cloud_gpu_provider": true,
+              "levels": {
+                "canary_executable": true,
+                "catalog_routable": true,
+                "production_route": true,
+                "registered": true
+              },
+              "provider_region": "external",
+              "support_contract_version": "gpu-job-provider-support-contract-v1"
+            },
+            "required_backends": [],
+            "secret_refs": [],
+            "staging": {
+              "artifact_dir_binding": "provider_adapter_must_bind_to_workspace_plan_or_store_artifact_dir",
+              "artifact_dir_placeholder": "/workspace/artifacts",
+              "input_mode": "staged_input_path",
+              "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+              "staged_input_placeholder": "<staged-input-path>"
+            },
+            "worker_image": "gpu-job-modal-llm"
+          },
+          "gpu_profile": "llm_heavy",
+          "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+          "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+          "mode": "function plan",
+          "notes": [
+            "Modal runs GPU jobs as functions rather than SSH instances.",
+            "Execute supports GPU smoke, ASR canaries, llm_heavy canaries, and VLM/OCR canaries.",
+            "Execute writes the standard artifact contract.",
+            "Worker must write result.json, metrics.json, verify.json, stdout.log, stderr.log."
+          ],
+          "output_uri": "local://contract-probes/contract-probe-llm_heavy-20260425-123511-2743b96d",
+          "provider": "modal",
+          "worker_image": "gpu-job-modal-llm"
+        },
+        "quota_result": {
+          "estimated_cost_usd": 0.0,
+          "global_budget_usd": 50.0,
+          "global_ok": true,
+          "global_remaining_usd": 50.0,
+          "global_used_usd": 0.0,
+          "ok": true,
+          "quota_version": "gpu-job-quota-v1",
+          "source_budget_usd": 10.0,
+          "source_ok": true,
+          "source_remaining_usd": 10.0,
+          "source_system": "contract-probe",
+          "source_used_usd": 0.0
+        },
+        "route_explanation": "selected provider 'modal' for gpu_profile 'llm_heavy' from candidates [modal]. reason: provider explicitly requested",
+        "route_result": {
+          "selected_provider": "modal"
+        },
+        "routing": {
+          "estimated_gpu_runtime_seconds": 120,
+          "quality_requires_gpu": true
+        },
+        "secret_result": {
+          "allowed_secret_refs": [],
+          "denied_secret_refs": [],
+          "ok": true,
+          "requested_secret_refs": [],
+          "scope": "modal:contract-probe:llm_heavy",
+          "secret_policy_version": "gpu-job-secret-policy-v1"
+        },
+        "selected_provider": "modal",
+        "source_system": "contract-probe",
+        "startup_started_at": 1777088116,
+        "timeout_contract": {
+          "max_runtime_seconds": 1800,
+          "ok": true,
+          "source": "job.limits",
+          "timeout_version": "gpu-job-timeout-v1"
+        },
+        "timeout_result": {
+          "error": "",
+          "max_runtime_seconds": 1800,
+          "ok": true,
+          "runtime_seconds": 97,
+          "timeout_version": "gpu-job-timeout-v1"
+        },
+        "timing_v2": {
+          "append_only": true,
+          "clock": "unix_time_seconds",
+          "events": [
+            {
+              "at": 1777088111.0,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000001",
+              "phase": "received",
+              "seq": 1
+            },
+            {
+              "at": 1777088111.482,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000002",
+              "phase": "validated",
+              "provider": "modal",
+              "seq": 2
+            },
+            {
+              "at": 1777088112.174,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000003",
+              "phase": "validated",
+              "provider": "modal",
+              "seq": 3,
+              "status": "ok"
+            },
+            {
+              "at": 1777088112.174,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000004",
+              "phase": "planned",
+              "provider": "modal",
+              "seq": 4,
+              "status": "ok"
+            },
+            {
+              "at": 1777088116.143,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000005",
+              "phase": "reserving_workspace",
+              "provider": "modal",
+              "seq": 5
+            },
+            {
+              "at": 1777088116.438,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000006",
+              "phase": "reserving_workspace",
+              "provider": "modal",
+              "seq": 6,
+              "status": "ok"
+            },
+            {
+              "at": 1777088216.928,
+              "attempt": 1,
+              "event": "enter",
+              "event_id": "000000000007",
+              "phase": "verifying",
+              "provider": "modal",
+              "seq": 7
+            },
+            {
+              "at": 1777088216.93,
+              "attempt": 1,
+              "event": "exit",
+              "event_id": "000000000008",
+              "phase": "verifying",
+              "provider": "modal",
+              "seq": 8,
+              "status": "ok"
+            },
+            {
+              "at": 1777088216.93,
+              "attempt": 1,
+              "event": "instant",
+              "event_id": "000000000009",
+              "phase": "succeeded",
+              "provider": "modal",
+              "seq": 9,
+              "status": "succeeded"
+            }
+          ],
+          "version": "gpu-job-timing-v2"
+        },
+        "trace": {
+          "span_id": "cd2a73e51efd495b",
+          "telemetry_schema_version": "gpu-job-telemetry-v1",
+          "trace_id": "ec422c371d004fa3817c243633ef434e"
+        },
+        "workspace_plan": {
+          "catalog_snapshot_id": "cat-1f8eb449c91a623f",
+          "catalog_version": "gpu-job-provider-catalog-v1",
+          "created_at": 1777088112,
+          "decision": "ready",
+          "execution_plan": {
+            "artifact_contract": [
+              "result.json",
+              "metrics.json",
+              "verify.json",
+              "stdout.log",
+              "stderr.log"
+            ],
+            "command": [
+              "gpu-job-worker",
+              "--job-id",
+              "contract-probe-llm_heavy-20260425-123511-2743b96d",
+              "--artifact-dir",
+              "/workspace/artifacts",
+              "--gpu-profile",
+              "llm_heavy",
+              "--input-uri",
+              "<staged-input-path>",
+              "--provider",
+              "modal",
+              "--model-name",
+              "Qwen/Qwen2.5-32B-Instruct"
+            ],
+            "command_shape": {
+              "entrypoint_is_command_argv0": true,
+              "tokenized": true
+            },
+            "entrypoint": "gpu-job-worker",
+            "execution_plan_version": "gpu-job-execution-plan-v1",
+            "gpu_profile": "llm_heavy",
+            "image_contract": {
+              "contract": {},
+              "contract_id": "",
+              "ok": true,
+              "reason": "",
+              "required_backends": [],
+              "status": "not_required"
+            },
+            "image_distribution": {},
+            "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+            "job_type": "llm_heavy",
+            "provider": "modal",
+            "provider_image": "",
+            "provider_support_contract": {
+              "basis": {
+                "canary_executable": "provider is allowed only for explicit canary or controlled routes unless promoted",
+                "catalog_routable": "provider has at least one catalog-supported job type",
+                "production_route": "provider may be selected by normal planning for its supported job types",
+                "registered": "adapter or policy entry is present in the generated provider catalog"
+              },
+              "highest_support_level": "production_route",
+              "is_cloud_gpu_provider": true,
+              "levels": {
+                "canary_executable": true,
+                "catalog_routable": true,
+                "production_route": true,
+                "registered": true
+              },
+              "provider_region": "external",
+              "support_contract_version": "gpu-job-provider-support-contract-v1"
+            },
+            "required_backends": [],
+            "secret_refs": [],
+            "staging": {
+              "artifact_dir_binding": "provider_adapter_must_bind_to_workspace_plan_or_store_artifact_dir",
+              "artifact_dir_placeholder": "/workspace/artifacts",
+              "input_mode": "staged_input_path",
+              "input_uri": "text://GPU_JOB_CONTRACT_PROBE_OK",
+              "staged_input_placeholder": "<staged-input-path>"
+            },
+            "worker_image": "gpu-job-modal-llm"
+          },
+          "gpu_profile": "llm_heavy",
+          "image_contract": {
+            "contract": {},
+            "contract_id": "",
+            "ok": true,
+            "reason": "",
+            "required_backends": [],
+            "status": "not_required"
+          },
+          "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+          "job_type": "llm_heavy",
+          "provider": "modal",
+          "provider_capability": {
+            "cache_state": null,
+            "estimated_startup_seconds": null,
+            "provider": "modal",
+            "supported_job_types": [
+              "asr",
+              "llm_heavy",
+              "pdf_ocr",
+              "smoke",
+              "vlm_ocr"
+            ],
+            "warm_state": null
+          },
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "evidence": [
+                    "docs/cloud-gpu-provider-research.md"
+                  ],
+                  "operations": [
+                    "invoke_function",
+                    "image_build",
+                    "volume_mount",
+                    "logs"
+                  ],
+                  "surface": "modal_function"
+                }
+              ],
+              "canary_requirements": [
+                "function_invoke",
+                "artifact_verify",
+                "volume_visibility",
+                "cost_snapshot"
+              ],
+              "cost_model": [
+                "function_runtime",
+                "idle_container_seconds",
+                "volume_storage"
+              ],
+              "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+              "module_id": "modal_function",
+              "parent_provider": "modal",
+              "resource_model": "modal_function",
+              "status_model": {
+                "resource_status_source": "modal function invocation lifecycle",
+                "terminal_states": []
+              },
+              "workspace_paths": [
+                "/workspace",
+                "/mnt"
+              ]
+            },
+            "active_module_id": "modal_function",
+            "available_module_ids": [
+              "modal_function"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "docs/cloud-gpu-provider-research.md"
+                    ],
+                    "operations": [
+                      "invoke_function",
+                      "image_build",
+                      "volume_mount",
+                      "logs"
+                    ],
+                    "surface": "modal_function"
+                  }
+                ],
+                "canary_requirements": [
+                  "function_invoke",
+                  "artifact_verify",
+                  "volume_visibility",
+                  "cost_snapshot"
+                ],
+                "cost_model": [
+                  "function_runtime",
+                  "idle_container_seconds",
+                  "volume_storage"
+                ],
+                "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+                "module_id": "modal_function",
+                "parent_provider": "modal",
+                "resource_model": "modal_function",
+                "status_model": {
+                  "resource_status_source": "modal function invocation lifecycle",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace",
+                  "/mnt"
+                ]
+              }
+            ],
+            "parent_provider": "modal",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "provider_runtime": {},
+          "required_actions": [],
+          "required_backends": [],
+          "runtime_contract_probe": {
+            "contract_probe": "",
+            "ok": true,
+            "required": false,
+            "self_probe": false
+          },
+          "workspace": {
+            "artifact_dir": "/workspace/artifacts",
+            "cleanup_contract": "modal_function_lifecycle",
+            "input_staging": "provider_native",
+            "official_docs": [
+              "https://modal.com/docs/guide/images",
+              "https://modal.com/docs/guide/volumes",
+              "https://modal.com/docs/guide/timeouts",
+              "https://modal.com/docs/guide/retries"
+            ],
+            "workspace_kind": "function",
+            "workspace_modes": {
+              "function": {
+                "consistency": "volume changes require commit/reload semantics for cross-container visibility",
+                "resource_model": "modal_app_function",
+                "timing_fields": [
+                  "startup_timeout_seconds",
+                  "execution_timeout_seconds",
+                  "retry_attempts"
+                ],
+                "volume_mount_default": "/mnt"
+              }
+            },
+            "workspace_root": "/workspace"
+          },
+          "workspace_plan_id": "workspace-2a0c81ce6a52085e",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        },
+        "workspace_record": {
+          "gpu_profile": "llm_heavy",
+          "image_contract": {
+            "contract": {},
+            "contract_id": "",
+            "ok": true,
+            "reason": "",
+            "required_backends": [],
+            "status": "not_required"
+          },
+          "job_id": "contract-probe-llm_heavy-20260425-123511-2743b96d",
+          "path": "/home/admin/.local/share/gpu-job-control/workspaces/workspace-2a0c81ce6a52085e.json",
+          "provider": "modal",
+          "provider_job_id": "",
+          "provider_module_contract": {
+            "active_module": {
+              "api_surfaces": [
+                {
+                  "evidence": [
+                    "docs/cloud-gpu-provider-research.md"
+                  ],
+                  "operations": [
+                    "invoke_function",
+                    "image_build",
+                    "volume_mount",
+                    "logs"
+                  ],
+                  "surface": "modal_function"
+                }
+              ],
+              "canary_requirements": [
+                "function_invoke",
+                "artifact_verify",
+                "volume_visibility",
+                "cost_snapshot"
+              ],
+              "cost_model": [
+                "function_runtime",
+                "idle_container_seconds",
+                "volume_storage"
+              ],
+              "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+              "module_id": "modal_function",
+              "parent_provider": "modal",
+              "resource_model": "modal_function",
+              "status_model": {
+                "resource_status_source": "modal function invocation lifecycle",
+                "terminal_states": []
+              },
+              "workspace_paths": [
+                "/workspace",
+                "/mnt"
+              ]
+            },
+            "active_module_id": "modal_function",
+            "available_module_ids": [
+              "modal_function"
+            ],
+            "available_modules": [
+              {
+                "api_surfaces": [
+                  {
+                    "evidence": [
+                      "docs/cloud-gpu-provider-research.md"
+                    ],
+                    "operations": [
+                      "invoke_function",
+                      "image_build",
+                      "volume_mount",
+                      "logs"
+                    ],
+                    "surface": "modal_function"
+                  }
+                ],
+                "canary_requirements": [
+                  "function_invoke",
+                  "artifact_verify",
+                  "volume_visibility",
+                  "cost_snapshot"
+                ],
+                "cost_model": [
+                  "function_runtime",
+                  "idle_container_seconds",
+                  "volume_storage"
+                ],
+                "execution_semantics": "function_invocation_with_image_and_volume_contracts",
+                "module_id": "modal_function",
+                "parent_provider": "modal",
+                "resource_model": "modal_function",
+                "status_model": {
+                  "resource_status_source": "modal function invocation lifecycle",
+                  "terminal_states": []
+                },
+                "workspace_paths": [
+                  "/workspace",
+                  "/mnt"
+                ]
+              }
+            ],
+            "parent_provider": "modal",
+            "provider_module_contract_version": "gpu-job-provider-module-contract-v1",
+            "requested_module_id": "",
+            "selection": {
+              "mode": "metadata_requested_or_parent_default",
+              "reason": "provider module is recorded for contract visibility; execution still uses the parent provider adapter",
+              "requested_module_valid": false,
+              "routing_by_module_enabled": false
+            }
+          },
+          "required_actions": [],
+          "state": "terminal",
+          "status": "succeeded",
+          "updated_at": 1777088216,
+          "workspace": {
+            "artifact_dir": "/workspace/artifacts",
+            "cleanup_contract": "modal_function_lifecycle",
+            "input_staging": "provider_native",
+            "official_docs": [
+              "https://modal.com/docs/guide/images",
+              "https://modal.com/docs/guide/volumes",
+              "https://modal.com/docs/guide/timeouts",
+              "https://modal.com/docs/guide/retries"
+            ],
+            "workspace_kind": "function",
+            "workspace_modes": {
+              "function": {
+                "consistency": "volume changes require commit/reload semantics for cross-container visibility",
+                "resource_model": "modal_app_function",
+                "timing_fields": [
+                  "startup_timeout_seconds",
+                  "execution_timeout_seconds",
+                  "retry_attempts"
+                ],
+                "volume_mount_default": "/mnt"
+              }
+            },
+            "workspace_root": "/workspace"
+          },
+          "workspace_plan_id": "workspace-2a0c81ce6a52085e",
+          "workspace_registry_version": "gpu-job-provider-workspace-registry-v1"
+        }
+      },
+      "model": "Qwen/Qwen2.5-32B-Instruct",
+      "output_uri": "local://contract-probes/contract-probe-llm_heavy-20260425-123511-2743b96d",
+      "provider": "modal",
+      "provider_job_id": "",
+      "runtime_seconds": 97,
+      "started_at": 1777088116,
+      "status": "succeeded",
+      "updated_at": 1777088216,
+      "verify": {},
+      "worker_image": "gpu-job-modal-llm"
+    },
+    "ok": true,
+    "path": "/home/admin/.local/share/gpu-job-control/jobs/contract-probe-llm_heavy-20260425-123511-2743b96d.json",
+    "post_submit_guard": {
+      "capacity": {
+        "active_total": 0,
+        "by_job_type": {
+          "asr": {
+            "failed": 29,
+            "planned": 1,
+            "succeeded": 8
+          },
+          "cpu_workflow_helper": {
+            "succeeded": 1
+          },
+          "embedding": {
+            "failed": 1,
+            "succeeded": 6
+          },
+          "llm_heavy": {
+            "cancelled": 1,
+            "failed": 147,
+            "succeeded": 100
+          },
+          "pdf_ocr": {
+            "succeeded": 2
+          },
+          "smoke": {
+            "cancelled": 1,
+            "failed": 6,
+            "succeeded": 11
+          },
+          "vlm_ocr": {
+            "failed": 74,
+            "succeeded": 38
+          }
+        },
+        "counts": {
+          "cancelled": 2,
+          "failed": 257,
+          "planned": 1,
+          "succeeded": 166
+        },
+        "flattened_provider_limits": {
+          "local:*": 1,
+          "modal:*": 1,
+          "modal:asr": 2,
+          "modal:asr_diarization": 1,
+          "modal:llm_heavy": 1,
+          "modal:vlm_ocr": 1,
+          "ollama:*": 1,
+          "ollama:embedding": 1,
+          "ollama:llm_heavy": 1,
+          "ollama:vlm_ocr": 1,
+          "runpod:*": 1,
+          "runpod:asr": 2,
+          "runpod:llm_heavy": 1,
+          "vast:*": 1,
+          "vast:asr": 1,
+          "vast:asr_diarization": 1
+        },
+        "ok": true,
+        "provider_limits": {
+          "local": {
+            "*": 1
+          },
+          "modal": {
+            "*": 1,
+            "asr": 2,
+            "asr_diarization": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "ollama": {
+            "*": 1,
+            "embedding": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "runpod": {
+            "*": 1,
+            "asr": 2,
+            "llm_heavy": 1
+          },
+          "vast": {
+            "*": 1,
+            "asr": 1,
+            "asr_diarization": 1
+          }
+        },
+        "providers": {
+          "local:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "local",
+            "provider_profile_key": "local:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:embedding": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "embedding",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:embedding",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          }
+        },
+        "queued_total": 0
+      },
+      "estimated_hourly_usd": null,
+      "ok": true,
+      "providers": {
+        "modal": {
+          "billable_resources": [],
+          "estimated_hourly_usd": null,
+          "ok": true,
+          "provider": "modal",
+          "reason": "no running Modal apps"
+        }
+      },
+      "resource": {
+        "ok": true,
+        "reason": "local resource guard not applicable to selected remote providers",
+        "skipped": true
+      }
+    },
+    "pre_submit_guard": {
+      "capacity": {
+        "active_total": 0,
+        "by_job_type": {
+          "asr": {
+            "failed": 29,
+            "planned": 1,
+            "succeeded": 8
+          },
+          "cpu_workflow_helper": {
+            "succeeded": 1
+          },
+          "embedding": {
+            "failed": 1,
+            "succeeded": 6
+          },
+          "llm_heavy": {
+            "cancelled": 1,
+            "failed": 147,
+            "succeeded": 99
+          },
+          "pdf_ocr": {
+            "succeeded": 2
+          },
+          "smoke": {
+            "cancelled": 1,
+            "failed": 6,
+            "succeeded": 11
+          },
+          "vlm_ocr": {
+            "failed": 74,
+            "succeeded": 38
+          }
+        },
+        "counts": {
+          "cancelled": 2,
+          "failed": 257,
+          "planned": 1,
+          "succeeded": 165
+        },
+        "flattened_provider_limits": {
+          "local:*": 1,
+          "modal:*": 1,
+          "modal:asr": 2,
+          "modal:asr_diarization": 1,
+          "modal:llm_heavy": 1,
+          "modal:vlm_ocr": 1,
+          "ollama:*": 1,
+          "ollama:embedding": 1,
+          "ollama:llm_heavy": 1,
+          "ollama:vlm_ocr": 1,
+          "runpod:*": 1,
+          "runpod:asr": 2,
+          "runpod:llm_heavy": 1,
+          "vast:*": 1,
+          "vast:asr": 1,
+          "vast:asr_diarization": 1
+        },
+        "ok": true,
+        "provider_limits": {
+          "local": {
+            "*": 1
+          },
+          "modal": {
+            "*": 1,
+            "asr": 2,
+            "asr_diarization": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "ollama": {
+            "*": 1,
+            "embedding": 1,
+            "llm_heavy": 1,
+            "vlm_ocr": 1
+          },
+          "runpod": {
+            "*": 1,
+            "asr": 2,
+            "llm_heavy": 1
+          },
+          "vast": {
+            "*": 1,
+            "asr": 1,
+            "asr_diarization": 1
+          }
+        },
+        "providers": {
+          "local:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "local",
+            "provider_profile_key": "local:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "modal:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "modal",
+            "provider_profile_key": "modal:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:embedding": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "embedding",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:embedding",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "ollama:vlm_ocr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "vlm_ocr",
+            "max_concurrent": 1,
+            "provider": "ollama",
+            "provider_profile_key": "ollama:vlm_ocr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:asr": {
+            "active": 0,
+            "available_slots": 2,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 2,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "runpod:llm_heavy": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "llm_heavy",
+            "max_concurrent": 1,
+            "provider": "runpod",
+            "provider_profile_key": "runpod:llm_heavy",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:*": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "*",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:*",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr",
+            "queued": 0,
+            "saturated": false
+          },
+          "vast:asr_diarization": {
+            "active": 0,
+            "available_slots": 1,
+            "expected_wait_seconds": 0,
+            "gpu_profile": "asr_diarization",
+            "max_concurrent": 1,
+            "provider": "vast",
+            "provider_profile_key": "vast:asr_diarization",
+            "queued": 0,
+            "saturated": false
+          }
+        },
+        "queued_total": 0
+      },
+      "estimated_hourly_usd": null,
+      "ok": true,
+      "providers": {
+        "modal": {
+          "billable_resources": [],
+          "estimated_hourly_usd": null,
+          "ok": true,
+          "provider": "modal",
+          "reason": "no running Modal apps"
+        }
+      },
+      "resource": {
+        "ok": true,
+        "reason": "local resource guard not applicable to selected remote providers",
+        "skipped": true
+      }
+    }
+  }
+}

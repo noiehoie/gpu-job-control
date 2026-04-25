@@ -1,0 +1,212 @@
+{
+  "contract_probe_summary": {
+    "count": 15,
+    "latest_probe_names": [
+      "modal.asr_diarization.pyannote",
+      "modal.llm_heavy.qwen2_5_32b",
+      "runpod.asr_diarization.serverless_handler",
+      "runpod.llm_heavy.pod_http",
+      "vast.asr.serverless_template",
+      "vast.instance_smoke.cuda"
+    ],
+    "ok": true
+  },
+  "destructive_questions_before_cleanup": [],
+  "forbidden_until_next_approval": [
+    "Mac Studio Docker build/push",
+    "provider adapter changes before canary evidence parity",
+    "provider_module_routing.routing_by_module_enabled=true",
+    "RunPod Serverless vLLM or Hub-template as a launch blocker",
+    "Vast production_primary promotion",
+    "serverless module promotion without endpoint identity evidence",
+    "destructive cleanup without explicit approval, fresh provider read, and destructive preflight"
+  ],
+  "guard_summary": {
+    "estimated_hourly_usd": null,
+    "ok": true,
+    "providers": {
+      "modal": {
+        "billable_count": 0,
+        "estimated_hourly_usd": null,
+        "ok": true,
+        "reason": "no running Modal apps"
+      },
+      "runpod": {
+        "billable_count": 0,
+        "estimated_hourly_usd": 0,
+        "ok": true,
+        "reason": "no RunPod active pods or warm serverless workers; persistent storage within approved fixed-cost budget"
+      },
+      "vast": {
+        "billable_count": 0,
+        "estimated_hourly_usd": 0.0,
+        "ok": true,
+        "reason": "no Vast.ai billable resources"
+      }
+    }
+  },
+  "launch_gate_version": "gpu-job-launch-gate-v1",
+  "ok": true,
+  "phases": [
+    {
+      "checks": [
+        {
+          "name": "policy_valid",
+          "ok": true
+        },
+        {
+          "name": "routing_by_module_enabled_false",
+          "ok": true
+        },
+        {
+          "name": "routing_by_module_true_rejected",
+          "ok": true
+        },
+        {
+          "name": "provider_adapter_diff_empty",
+          "ok": true
+        },
+        {
+          "name": "guard_clean",
+          "ok": true
+        },
+        {
+          "name": "contract_probe_schema_has_module_canary_evidence",
+          "ok": true
+        },
+        {
+          "name": "contract_probe_schema_has_serverless_identity_rules",
+          "ok": true
+        }
+      ],
+      "name": "phase_0_current_diff_fixed",
+      "ok": true
+    },
+    {
+      "checks": [
+        {
+          "name": "slice_01_contract_core_locally_verified",
+          "ok": true
+        },
+        {
+          "name": "slice_02_runtime_binding_locally_verified_after_ci",
+          "ok": true
+        },
+        {
+          "name": "slice_03_lifecycle_conservative_only",
+          "ok": true
+        },
+        {
+          "name": "destructive_cleanup_not_enabled",
+          "ok": true
+        },
+        {
+          "name": "contract_probe_schema_has_module_canary_evidence",
+          "ok": true
+        },
+        {
+          "name": "contract_probe_schema_has_serverless_identity_rules",
+          "ok": true
+        }
+      ],
+      "name": "phase_1_contract_core_launch_candidate",
+      "ok": true
+    },
+    {
+      "checks": [
+        {
+          "name": "slice_05_runtime_config_requires_provider_cross_check",
+          "ok": true
+        },
+        {
+          "name": "production_unverified_image_routing_blocked",
+          "ok": true
+        },
+        {
+          "name": "routing_by_module_enabled_false",
+          "ok": true
+        }
+      ],
+      "name": "phase_2_runtime_config_cross_check",
+      "ok": true
+    },
+    {
+      "checks": [
+        {
+          "name": "guard_clean_before_canary",
+          "ok": true
+        },
+        {
+          "name": "modal_llm_contract_probe_evidence_present",
+          "ok": true
+        },
+        {
+          "name": "modal_asr_contract_probe_evidence_present",
+          "ok": true
+        },
+        {
+          "name": "modal_slice_promoted_after_repeat_canary",
+          "ok": true
+        }
+      ],
+      "name": "phase_3_modal_canary",
+      "ok": true
+    },
+    {
+      "checks": [
+        {
+          "name": "runpod_no_active_billable_resources",
+          "ok": true
+        },
+        {
+          "name": "runpod_bounded_pod_canary_evidence_present",
+          "ok": true
+        },
+        {
+          "name": "runpod_serverless_endpoint_canary_evidence_present",
+          "ok": false
+        },
+        {
+          "name": "runpod_slice_conditional_or_high_risk",
+          "ok": true
+        },
+        {
+          "name": "serverless_vllm_deferred",
+          "ok": true
+        }
+      ],
+      "name": "phase_4_runpod_bounded_canary",
+      "ok": false
+    },
+    {
+      "checks": [
+        {
+          "name": "guard_clean_before_canary",
+          "ok": true
+        },
+        {
+          "name": "vast_direct_instance_canary_evidence_present",
+          "ok": true
+        },
+        {
+          "name": "vast_pyworker_serverless_canary_evidence_present",
+          "ok": false
+        },
+        {
+          "name": "vast_slice_high_risk_until_repeat_canary",
+          "ok": true
+        },
+        {
+          "name": "vast_primary_forbidden",
+          "ok": true
+        }
+      ],
+      "name": "phase_5_vast_reserve_canary",
+      "ok": false
+    }
+  ],
+  "provider_adapter_diff": [],
+  "routing_by_module_enabled": false,
+  "routing_true_rejected": true,
+  "stop_conditions": []
+}
