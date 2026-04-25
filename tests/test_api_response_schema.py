@@ -226,7 +226,7 @@ class ApiResponseSchemaTest(unittest.TestCase):
                 "idempotency": {"key": "api-caller-validate-001"},
                 "caller": {
                     "system": "api-test",
-                    "operation": "validate",
+                    "operation": "smoke",
                     "request_id": "api-caller-validate-001",
                     "version": "2026.04.25",
                 },
@@ -277,7 +277,7 @@ class ApiResponseSchemaTest(unittest.TestCase):
                 "idempotency": {"key": "api-caller-golden-001"},
                 "caller": {
                     "system": "api-test",
-                    "operation": "golden",
+                    "operation": "smoke",
                     "request_id": "api-caller-golden-001",
                     "version": "2026.04.25",
                 },

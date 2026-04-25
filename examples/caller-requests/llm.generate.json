@@ -30,6 +30,10 @@
     "trace_id": "trace-llm-generate-001"
   },
   "preferences": {
-    "quality_requires_gpu": true
+    "quality_requires_gpu": true,
+    "quality_tier": "production_quality",
+    "model_size_class": "at_least_70b",
+    "model_size_billion_parameters": 70,
+    "local_fixed_resource_policy": "unsuitable"
   }
 }

@@ -50,6 +50,9 @@ The caller must emit one strict JSON object with these top-level fields:
 - `idempotency.key` must always be present.
 - `caller.system`, `caller.operation`, `caller.request_id`, and `caller.version` are mandatory.
 - `preferences.provider_module_id` is optional visibility metadata only. It must never be used as implicit permission to bypass product policy.
+- `gpu-job-control` is not a generic small-LLM wrapper. Use it for workloads that are unsuitable for local fixed resources.
+- For production-quality `llm.generate`, set `preferences.quality_tier` to `production_quality`, `preferences.quality_requires_gpu` to `true`, `preferences.local_fixed_resource_policy` to `unsuitable`, and either `preferences.model_size_billion_parameters` to at least `70` or `preferences.model_size_class` to `at_least_70b`.
+- 27B/32B-class LLMs may be used for `smoke`, `development`, or `degraded` flows, but must not be treated as production-quality external-GPU evidence.
 
 5. Deterministic behavior requirements
 - Same caller intent plus same inputs must produce the same canonical request.

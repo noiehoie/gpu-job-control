@@ -144,6 +144,23 @@
         },
         "allow_quality_downgrade": {
           "type": "boolean"
+        },
+        "local_fixed_resource_policy": {
+          "type": "string",
+          "enum": ["unsuitable", "suitable", "unknown"],
+          "description": "Policy for local fixed resource usage. External GPU only for unsuitable workloads."
+        },
+        "model_size_class": {
+          "type": "string",
+          "enum": ["unknown", "under_70b", "at_least_70b"]
+        },
+        "model_size_billion_parameters": {
+          "type": "number",
+          "minimum": 0
+        },
+        "quality_tier": {
+          "type": "string",
+          "enum": ["smoke", "development", "degraded", "production_quality"]
         }
       }
     }

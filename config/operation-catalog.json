@@ -52,6 +52,17 @@
     "llm.generate": {
       "job_type": "llm_heavy",
       "description": "Deterministic GPU-backed text generation.",
+      "product_boundary": {
+        "scope": "external GPU is for workloads unsuitable for local fixed resources",
+        "production_quality_requirements": {
+          "quality_tier": "production_quality",
+          "quality_requires_gpu": true,
+          "local_fixed_resource_policy": "unsuitable",
+          "minimum_model_size_billion_parameters": 70,
+          "accepted_model_size_classes": ["at_least_70b"]
+        },
+        "non_production_tiers": ["smoke", "development", "degraded"]
+      },
       "input_contract": {
         "required_input_uri_schemes": ["text", "s3", "local", "http", "https"],
         "required_parameters": []

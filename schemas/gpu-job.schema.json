@@ -121,7 +121,12 @@
             "effective_burst_size": {"type": "number", "minimum": 1},
             "deadline_seconds": {"type": "number", "minimum": 0},
             "latency_class": {"type": "string", "enum": ["interactive", "batch", "bulk"]},
-            "quality_requires_gpu": {"type": "boolean"}
+            "quality_requires_gpu": {"type": "boolean"},
+            "allow_quality_downgrade": {"type": "boolean"},
+            "quality_tier": {"type": "string", "enum": ["smoke", "development", "degraded", "production_quality"]},
+            "local_fixed_resource_policy": {"type": "string", "enum": ["unsuitable", "suitable", "unknown"]},
+            "model_size_class": {"type": "string", "enum": ["unknown", "under_70b", "at_least_70b"]},
+            "model_size_billion_parameters": {"type": "number", "minimum": 0}
           },
           "additionalProperties": true
         }

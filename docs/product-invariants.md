@@ -18,6 +18,8 @@ during launch pressure.
 ## Public Product Invariants
 
 - Public caller requests use `gpu-job-caller-request-v1`.
+- External GPUs are strictly for workloads unsuitable for local fixed resources.
+- Production `llm.generate` judges require 70B+ class models and are strictly external.
 - Public callers choose `operation`, not provider-specific `job_type`.
 - Free-form public operations are rejected.
 - Same valid caller request compiles to the same internal plan.

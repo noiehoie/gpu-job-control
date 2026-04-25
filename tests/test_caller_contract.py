@@ -28,7 +28,7 @@ def _caller_request() -> dict:
         "idempotency": {"key": "caller-req-001"},
         "caller": {
             "system": "news-system",
-            "operation": "daily-summary",
+            "operation": "smoke",
             "request_id": "req-001",
             "version": "2026.04.25",
         },
@@ -74,6 +74,8 @@ def test_compile_caller_request_produces_job_shape() -> None:
     assert job["metadata"]["task_family"] == "llm.generate"
     assert job["metadata"]["caller_request_id"] == "req-001"
     assert job["metadata"]["idempotency_key"] == "caller-req-001"
+    assert job["metadata"]["routing"]["quality_tier"] == "development"
+    assert job["metadata"]["routing"]["local_fixed_resource_policy"] == "unknown"
 
 
 def test_compile_caller_request_requires_closed_operation() -> None:
@@ -101,3 +103,70 @@ def test_all_caller_request_examples_validate_and_compile() -> None:
         compiled = compile_caller_request(payload)
         assert validation["ok"] is True, path.name
         assert compiled["ok"] is True, path.name
+
+
+def test_validate_caller_request_enforces_production_quality_constraints() -> None:
+    payload = _caller_request()
+    payload["preferences"] = {
+        "quality_tier": "production_quality",
+        "model_size_billion_parameters": 32,
+        "quality_requires_gpu": True,
+        "local_fixed_resource_policy": "unsuitable",
+    }
+    result = validate_caller_request(payload)
+    assert result["ok"] is False
+    assert "production_quality llm.generate requires >=70B model" in result["errors"]
+
+    payload["preferences"]["model_size_billion_parameters"] = 72
+    payload["preferences"]["quality_requires_gpu"] = False
+    result = validate_caller_request(payload)
+    assert result["ok"] is False
+    assert "production_quality llm.generate requires quality_requires_gpu=true" in result["errors"]
+
+    payload["preferences"]["quality_requires_gpu"] = True
+    payload["preferences"]["local_fixed_resource_policy"] = "suitable"
+    result = validate_caller_request(payload)
+    assert result["ok"] is False
+    assert "production_quality llm.generate requires local_fixed_resource_policy=unsuitable" in result["errors"]
+
+    payload["preferences"]["local_fixed_resource_policy"] = "unsuitable"
+    result = validate_caller_request(payload)
+    assert result["ok"] is True
+
+
+def test_validate_caller_request_allows_small_models_only_outside_production_quality() -> None:
+    payload = _caller_request()
+    payload["preferences"] = {
+        "quality_tier": "degraded",
+        "model_size_billion_parameters": 32,
+        "quality_requires_gpu": True,
+        "local_fixed_resource_policy": "unsuitable",
+    }
+    result = validate_caller_request(payload)
+    assert result["ok"] is True
+
+    payload["preferences"] = {
+        "quality_tier": "production_quality",
+        "model_size_class": "under_70b",
+        "quality_requires_gpu": True,
+        "local_fixed_resource_policy": "unsuitable",
+    }
+    result = validate_caller_request(payload)
+    assert result["ok"] is False
+    assert "production_quality llm.generate requires >=70B model" in result["errors"]
+
+    payload["preferences"]["model_size_class"] = "at_least_70b"
+    result = compile_caller_request(payload)
+    assert result["ok"] is True
+    assert result["job"]["metadata"]["routing"]["quality_tier"] == "production_quality"
+    assert result["job"]["metadata"]["routing"]["model_size_class"] == "at_least_70b"
+
+
+def test_validate_caller_request_rejects_unknown_preferences() -> None:
+    payload = _caller_request()
+    payload["preferences"] = {"quality_tier": "degraded", "provider": "modal"}
+
+    result = validate_caller_request(payload)
+
+    assert result["ok"] is False
+    assert "unsupported preferences present: provider" in result["errors"]

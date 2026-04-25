@@ -17,6 +17,21 @@ LEGACY_PUBLIC_SURFACES = {
     "cli": ["gpu-job validate", "gpu-job workload-plan"],
 }
 DEFAULT_REQUIRED_FILES = ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+ALLOWED_PREFERENCE_FIELDS = {
+    "model",
+    "gpu_profile",
+    "worker_image",
+    "provider_module_id",
+    "quality_requires_gpu",
+    "allow_quality_downgrade",
+    "quality_tier",
+    "local_fixed_resource_policy",
+    "model_size_class",
+    "model_size_billion_parameters",
+}
+QUALITY_TIERS = {"smoke", "development", "degraded", "production_quality"}
+LOCAL_FIXED_RESOURCE_POLICIES = {"unsuitable", "suitable", "unknown"}
+MODEL_SIZE_CLASSES = {"unknown", "under_70b", "at_least_70b"}
 FORBIDDEN_TOP_LEVEL_FIELDS = {
     "job_type",
     "input_uri",
@@ -161,6 +176,41 @@ def validate_caller_request(payload: dict[str, Any]) -> dict[str, Any]:
     preferences = payload.get("preferences")
     if preferences is not None and not isinstance(preferences, dict):
         errors.append("preferences must be an object when present")
+    prefs = dict(preferences or {}) if isinstance(preferences, dict) else {}
+    unknown_preferences = sorted(key for key in prefs if key not in ALLOWED_PREFERENCE_FIELDS)
+    if unknown_preferences:
+        errors.append(f"unsupported preferences present: {', '.join(unknown_preferences)}")
+    quality_tier = str(prefs.get("quality_tier") or "")
+    if quality_tier and quality_tier not in QUALITY_TIERS:
+        errors.append(f"preferences.quality_tier must be one of {', '.join(sorted(QUALITY_TIERS))}")
+    local_policy = str(prefs.get("local_fixed_resource_policy") or "")
+    if local_policy and local_policy not in LOCAL_FIXED_RESOURCE_POLICIES:
+        errors.append(f"preferences.local_fixed_resource_policy must be one of {', '.join(sorted(LOCAL_FIXED_RESOURCE_POLICIES))}")
+    model_size_class = str(prefs.get("model_size_class") or "")
+    if model_size_class and model_size_class not in MODEL_SIZE_CLASSES:
+        errors.append(f"preferences.model_size_class must be one of {', '.join(sorted(MODEL_SIZE_CLASSES))}")
+    model_size_billion_parameters = prefs.get("model_size_billion_parameters")
+    if model_size_billion_parameters is not None:
+        try:
+            if float(model_size_billion_parameters) < 0:
+                errors.append("preferences.model_size_billion_parameters must be non-negative")
+        except (TypeError, ValueError):
+            errors.append("preferences.model_size_billion_parameters must be numeric")
+
+    if not errors and operation == "llm.generate" and quality_tier == "production_quality":
+        try:
+            model_size = float(prefs.get("model_size_billion_parameters"))
+        except (TypeError, ValueError):
+            model_size = 0.0
+        large_by_size = model_size >= 70
+        large_by_class = model_size_class == "at_least_70b"
+        if not (large_by_size or large_by_class):
+            errors.append("production_quality llm.generate requires >=70B model")
+        if prefs.get("quality_requires_gpu") is not True:
+            errors.append("production_quality llm.generate requires quality_requires_gpu=true")
+        if local_policy != "unsuitable":
+            errors.append("production_quality llm.generate requires local_fixed_resource_policy=unsuitable")
+
     forbidden = sorted(key for key in FORBIDDEN_TOP_LEVEL_FIELDS if key in payload)
     if forbidden:
         errors.append(f"forbidden top-level fields present: {', '.join(forbidden)}")
@@ -193,7 +243,12 @@ def compile_caller_request(payload: dict[str, Any]) -> dict[str, Any]:
     routing = {
         "quality_requires_gpu": bool(preferences.get("quality_requires_gpu", False)),
         "allow_quality_downgrade": bool(preferences.get("allow_quality_downgrade", False)),
+        "local_fixed_resource_policy": str(preferences.get("local_fixed_resource_policy") or "unknown"),
+        "model_size_class": str(preferences.get("model_size_class") or "unknown"),
+        "quality_tier": str(preferences.get("quality_tier") or "development"),
     }
+    if "model_size_billion_parameters" in preferences:
+        routing["model_size_billion_parameters"] = preferences["model_size_billion_parameters"]
     input_parameters = dict(input_data.get("parameters") or {})
     job = {
         "job_type": spec["job_type"],
