@@ -1,0 +1,54 @@
+前提事実:
+- launch gate は overall_ok=true
+- routing_by_module_enabled=false
+- provider_adapter_diff=[]
+- phase_0〜phase_5 はすべて ok=true
+- contract_probe_summary.count=48
+- latest probes:
+  - modal.asr_diarization.pyannote
+  - modal.llm_heavy.qwen2_5_32b
+  - runpod.asr.official_whisper_smoke
+  - runpod.asr_diarization.pyannote
+  - runpod.asr_diarization.serverless_handler
+  - runpod.serverless.heartbeat
+  - vast.asr.serverless_template
+  - vast.asr_diarization.pyannote
+  - vast.instance_smoke.cuda
+- forbidden_until_next_approval:
+  - Mac Studio Docker build/push
+  - provider adapter changes before canary evidence parity
+  - provider_module_routing.routing_by_module_enabled=true
+  - RunPod Serverless vLLM or Hub-template as a launch blocker
+  - Vast production_primary promotion
+  - serverless module promotion without endpoint identity evidence
+  - destructive cleanup without explicit approval, fresh provider read, and destructive preflight
+
+依頼:
+この repo を「完全ローンチ」まで持っていくためのロードマップを日本語で作れ。
+
+要件:
+1. 現在地を 5系統別に整理すること
+   - modal
+   - runpod pod
+   - runpod serverless
+   - vast direct instance
+   - vast serverless
+2. 「gate は green だが launch 完了ではない」前提で、残作業だけを書くこと
+3. Phase を切ること
+4. 各 Phase ごとに:
+   - 目的
+   - 実作業
+   - Gate
+   - Stop
+   - 成果物
+5. 完全ローンチの定義を明示すること
+6. 直近 48 時間でやる順序を明示すること
+7. 絶対にやらないことを明示すること
+
+制約:
+- provider adapter は基本触らない
+- routing_by_module_enabled=false を維持
+- netcup 実行を前提
+- Mac Studio Docker 不使用
+- 既存 evidence/artifact/guard/canary schema を壊さない
+- 曖昧語禁止
