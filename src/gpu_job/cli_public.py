@@ -1,3 +1,9 @@
+"""Public CLI transport surface.
+
+Lane B keeps this file read-oriented and delegates public orchestration to
+``gpu_job.public_ops``.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -131,13 +137,22 @@ def cmd_selftest(_: argparse.Namespace) -> int:
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
+    from .public_ops import validate_public_job
+
     job = Job.from_file(Path(args.job))
-    print_json({"ok": True, "job": job.to_dict()})
+    print_json(validate_public_job(job.to_dict()))
     return 0
 
 
 def cmd_workload_plan(args: argparse.Namespace) -> int:
-    result = plan_workload(_read_json(args.workload))
+    from .public_ops import plan_public_job
+
+    payload = _read_json(args.workload)
+    job_keys = {"job_type", "input_uri", "output_uri", "worker_image", "gpu_profile"}
+    if job_keys.issubset(payload):
+        result = plan_public_job(payload)
+    else:
+        result = plan_workload(payload)
     print_json(result)
     return 0 if result.get("ok") else 2
 

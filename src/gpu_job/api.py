@@ -1,3 +1,9 @@
+"""HTTP transport surface.
+
+Lane B keeps this file as a thin transport/legacy compatibility layer.
+Public orchestration lives in ``gpu_job.public_ops``.
+"""
+
 from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,9 +21,7 @@ from .audit import verify_audit_chain
 from .authz import approval_ok, approval_record, authorize, list_approvals, save_approval
 from .capabilities import evaluate_model_capability, load_capabilities
 from .circuit import all_circuits
-from .contracts import artifact_manifest_schema, contract_schemas, failure_taxonomy, plan_workload, workload_to_workflow
-from .execution_record import execution_record_schema
-from .plan_quote import plan_quote_schema
+from .contracts import failure_taxonomy, plan_workload, workload_to_workflow
 from .cost import cost_estimate
 from .decision import load_decision, replay_all_decisions, replay_decision
 from .destructive import destructive_preflight
@@ -31,24 +35,16 @@ from .models import Job
 from .policy_engine import policy_activation_record
 from .placement import placement_check
 from .preemption import preemption_check
-from .provider_catalog import load_provider_catalog
-from .provider_module_contracts import apply_provider_module_metadata, provider_module_contract_schema, provider_module_validation
-from .provider_contract_probe import (
-    list_contract_probes,
-    provider_contract_probe_schema,
-)
-from .provider_probe import recent_probe_summary
+from .public_ops import catalog_snapshot, plan_public_job, route_public_job, schema_snapshot, submit_public_job, validate_public_job
+from .provider_module_contracts import apply_provider_module_metadata
 from .provenance import expected_attestation_hash
-from .providers import PROVIDERS, get_provider
+from .providers import PROVIDERS
 from .quota import quota_check
 from .queue import cancel_group, cancel_job, enqueue_job, queue_status, replan_queued_jobs, retry_job
 from .readiness import launch_readiness
 from .remediation import remediation_decision
-from .requirements import load_requirement_registry
 from .reconcile import reconcile_detect_only
 from .retention import retention_report
-from .router import route_job
-from .runner import submit_job
 from .secrets_policy import secret_check
 from .selftest import run_selftest
 from .stats import collect_stats
@@ -57,7 +53,6 @@ from .timeout import timeout_contract
 from .timing import public_timing
 from .verify import verify_artifacts
 from .wal import wal_recovery_plan, wal_recovery_status, wal_status
-from .workspace_registry import workspace_registry_schema
 from .workflow import (
     approve_workflow,
     drain_workflow,
@@ -389,37 +384,38 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, {"ok": True, "registry": load_capabilities()})
                 return
             if path == "/catalog/providers":
-                _json_response(self, 200, {"ok": True, "catalog": load_provider_catalog()})
+                result = catalog_snapshot()
+                _json_response(self, 200, {"ok": True, "catalog": result["providers"], "lanes": result["lanes"]})
                 return
             if path == "/catalog/requirements":
-                _json_response(self, 200, {"ok": True, "registry": load_requirement_registry()})
+                _json_response(self, 200, {"ok": True, "registry": catalog_snapshot()["requirements"]})
                 return
             if path == "/catalog/probes":
-                _json_response(self, 200, recent_probe_summary())
+                _json_response(self, 200, catalog_snapshot()["probes"])
                 return
             if path == "/catalog/contract-probes":
-                _json_response(self, 200, list_contract_probes())
+                _json_response(self, 200, catalog_snapshot()["contract_probes"])
                 return
             if path == "/schemas/artifact-manifest":
-                _json_response(self, 200, artifact_manifest_schema())
+                _json_response(self, 200, schema_snapshot()["artifact_manifest"])
                 return
             if path == "/schemas/contracts":
-                _json_response(self, 200, contract_schemas())
+                _json_response(self, 200, schema_snapshot()["contracts"])
                 return
             if path == "/schemas/plan-quote":
-                _json_response(self, 200, plan_quote_schema())
+                _json_response(self, 200, schema_snapshot()["plan_quote"])
                 return
             if path == "/schemas/execution-record":
-                _json_response(self, 200, execution_record_schema())
+                _json_response(self, 200, schema_snapshot()["execution_record"])
                 return
             if path == "/schemas/provider-workspace":
-                _json_response(self, 200, workspace_registry_schema())
+                _json_response(self, 200, schema_snapshot()["provider_workspace"])
                 return
             if path == "/schemas/provider-module":
-                _json_response(self, 200, provider_module_contract_schema())
+                _json_response(self, 200, schema_snapshot()["provider_module"])
                 return
             if path == "/schemas/provider-contract-probe":
-                _json_response(self, 200, provider_contract_probe_schema())
+                _json_response(self, 200, schema_snapshot()["provider_contract_probe"])
                 return
             if path == "/schemas/failure-taxonomy":
                 _json_response(self, 200, failure_taxonomy())
@@ -651,18 +647,8 @@ class GPUJobHandler(BaseHTTPRequestHandler):
 
             if path == "/validate":
                 provider_name = str(payload.get("provider") or _first(qs, "provider", ""))
-                providers = [provider_name] if provider_name else sorted(PROVIDERS)
-                _json_response(
-                    self,
-                    200,
-                    {
-                        "ok": True,
-                        "job": job.to_dict(),
-                        "provider_module_validation": {
-                            provider: provider_module_validation(job.metadata, provider) for provider in providers
-                        },
-                    },
-                )
+                result = validate_public_job(job.to_dict(), provider=provider_name)
+                _json_response(self, 200, result)
                 return
             if path == "/timeout":
                 _json_response(self, 200, timeout_contract(job))
@@ -671,7 +657,7 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 _json_response(self, 200, {"ok": True, "subject_sha256": expected_attestation_hash(job)})
                 return
             if path == "/route":
-                _json_response(self, 200, route_job(job))
+                _json_response(self, 200, route_public_job(job.to_dict()))
                 return
             if path == "/invariants":
                 provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
@@ -710,13 +696,12 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 return
             if path == "/plan":
                 provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
-                selected = route_job(job)["selected_provider"] if provider_name == "auto" else provider_name
-                _json_response(self, 200, get_provider(selected).plan(job))
+                _json_response(self, 200, plan_public_job(job.to_dict(), provider=provider_name))
                 return
             if path == "/submit":
                 provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
                 execute = bool(payload.get("execute", False)) or _truthy(_first(qs, "execute", ""))
-                result = submit_job(job, provider_name=provider_name, execute=execute)
+                result = submit_public_job(job.to_dict(), provider=provider_name, execute=execute)
                 status = int(result.get("status_code") or (200 if result.get("ok") else 500))
                 if result.get("error") == "pre-submit cost guard failed":
                     status = 409

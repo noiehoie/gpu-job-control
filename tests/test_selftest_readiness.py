@@ -18,7 +18,7 @@ def test_run_selftest_reports_all_expected_checks() -> None:
     assert result["ok"] is True
     names = {item["name"] for item in result["checks"]}
     assert names == {
-        "route_score_components",
+        "route_selected",
         "local_submit",
         "artifact_manifest",
         "secret_gate_blocks",

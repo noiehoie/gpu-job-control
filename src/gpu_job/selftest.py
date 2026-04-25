@@ -52,9 +52,7 @@ def run_selftest() -> dict[str, Any]:
                 }
             )
             route = route_job(smoke, config_path=routing_config)
-            selected_decision = route["provider_decisions"][route["selected_provider"]]
-            score_components = selected_decision["workload_policy"].get("score_components", [])
-            checks.append({"name": "route_score_components", "ok": bool(score_components)})
+            checks.append({"name": "route_selected", "ok": route["selected_provider"] == "local"})
 
             local_smoke = Job.from_dict(
                 {

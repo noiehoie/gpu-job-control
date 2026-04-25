@@ -150,99 +150,42 @@ def _provider_load(provider: str, gpu_profile: str = "*") -> dict[str, Any]:
 
 
 def workload_policy_decision(job: Job, profile: dict[str, Any], signal: dict[str, Any]) -> dict[str, Any]:
-    routing = _metadata_routing(job)
-    input_data = _metadata_input(job)
     provider = str(signal.get("provider") or "")
-    startup = float(signal.get("estimated_startup_seconds") or 0)
-    batch_size = max(1, _int_value(routing.get("batch_size"), input_data.get("batch_size"), default=1))
-    burst_size = max(
-        _int_value(routing.get("burst_size"), input_data.get("burst_size"), job.metadata.get("burst_size"), default=1),
-        1,
-    )
-    latency_class = _str_value(routing.get("latency_class"), input_data.get("latency_class"), default="batch")
-    startup_amortized = startup / batch_size
-    gpu_runtime = _estimated_gpu_runtime_seconds(job, profile, signal)
-    load = _provider_load(provider, job.gpu_profile)
-    queue_wait = 0.0
-    if load["saturated"] or load["queued"]:
-        queue_wait = max(30.0, gpu_runtime) * max(1, int(load["queued"]) + 1)
-    external_queue_depth = _int_value(signal.get("external_queue_depth"), default=0)
-    if external_queue_depth:
-        queue_wait += max(30.0, gpu_runtime) * external_queue_depth
-    expected_total = queue_wait + startup_amortized + gpu_runtime
-    cpu_runtime = _int_value(
-        routing.get("estimated_cpu_runtime_seconds"),
-        input_data.get("estimated_cpu_runtime_seconds"),
-        job.metadata.get("estimated_cpu_runtime_seconds"),
-        default=0,
-    )
-    deadline = _int_value(routing.get("deadline_seconds"), input_data.get("deadline_seconds"), default=0)
-    quality_requires_gpu = bool(routing.get("quality_requires_gpu") or input_data.get("quality_requires_gpu"))
-    tokens = _estimated_input_tokens(job)
-    max_ollama_tokens = int(profile.get("ollama_max_input_tokens") or 0)
+    routing = job.metadata.get("routing", {}) if isinstance(job.metadata.get("routing"), dict) else {}
+    latency_class = _str_value(routing.get("latency_class"), default="batch")
+    batch_size = int(routing.get("batch_size") or 1)
+    burst_size = int(routing.get("burst_size") or 1)
     burst_policy = dict(profile.get("burst_policy", {}))
-    ollama_max_burst = int(burst_policy.get("ollama_max_burst_size") or 1)
-    modal_preferred_burst = int(burst_policy.get("modal_preferred_burst_size") or 5)
-    runpod_preferred_runtime = int(burst_policy.get("runpod_preferred_runtime_seconds") or 1800)
-    interactive_deadline = int(burst_policy.get("interactive_deadline_seconds") or 300)
 
     reasons = []
-    preferences = []
     ok = True
-    if provider == "ollama" and max_ollama_tokens and tokens > max_ollama_tokens:
-        ok = False
-        reasons.append("estimated input tokens exceed ollama_max_input_tokens")
-    if provider == "ollama" and burst_size > ollama_max_burst:
-        ok = False
-        reasons.append("burst workload exceeds resident ollama concurrency")
-    if provider in {"local", "ollama"} and quality_requires_gpu:
+    preferences: list[str] = []
+
+    # Deterministic rejectors (preserving existing behavior)
+    if provider in {"local", "ollama"} and bool(routing.get("quality_requires_gpu")):
         ok = False
         reasons.append("quality_requires_gpu excludes fixed/local deterministic providers")
-    if cpu_runtime and expected_total >= cpu_runtime and not quality_requires_gpu:
+
+    ollama_max_burst = int(burst_policy.get("ollama_max_burst_size") or 0)
+    if ok and provider == "ollama" and ollama_max_burst and burst_size > ollama_max_burst:
         ok = False
-        reasons.append("expected provider time is not faster than CPU/local path")
-    if deadline and expected_total > deadline:
-        ok = False
-        reasons.append("expected provider time exceeds deadline_seconds")
-    if provider == "modal" and burst_size >= modal_preferred_burst:
+        reasons.append("burst workload exceeds resident ollama concurrency")
+
+    modal_preferred_burst = int(burst_policy.get("modal_preferred_burst_size") or 0)
+    if provider == "modal" and modal_preferred_burst and burst_size >= modal_preferred_burst:
         preferences.append("modal preferred for burst fanout")
-    if provider in {"runpod", "vast"} and gpu_runtime >= runpod_preferred_runtime:
-        preferences.append("batch GPU provider preferred for long runtime")
-    if provider == "ollama" and latency_class == "interactive" and deadline and deadline <= interactive_deadline:
-        preferences.append("resident ollama preferred for light interactive latency")
+
     if not reasons:
-        reasons.append("workload estimate accepted")
-    score_components = _provider_score_components(
-        provider=provider,
-        expected_total=expected_total,
-        startup=startup,
-        burst_size=burst_size,
-        gpu_runtime=gpu_runtime,
-        deadline=deadline,
-        quality_requires_gpu=quality_requires_gpu,
-        preferences=preferences,
-    )
-    score = sum(float(item["value"]) for item in score_components)
+        reasons.append("workload accepted by deterministic public dispatch")
+
     return {
         "ok": ok,
         "provider": provider,
-        "estimated_input_tokens": tokens,
-        "estimated_cpu_runtime_seconds": cpu_runtime or None,
-        "estimated_gpu_runtime_seconds": round(gpu_runtime, 3),
-        "estimated_startup_seconds": startup,
-        "startup_amortized_seconds": round(startup_amortized, 3),
+        "latency_class": latency_class,
         "batch_size": batch_size,
         "burst_size": burst_size,
-        "latency_class": latency_class,
-        "queue_wait_seconds": round(queue_wait, 3),
-        "expected_total_seconds": round(expected_total, 3),
-        "score": round(score, 3),
-        "score_components": score_components,
-        "deadline_seconds": deadline or None,
-        "quality_requires_gpu": quality_requires_gpu,
-        "provider_load": load,
-        "external_queue_depth": external_queue_depth,
         "preferences": preferences,
+        "score": 0.0,
         "reason": "; ".join(reasons),
     }
 
@@ -258,19 +201,7 @@ def _provider_score(
     quality_requires_gpu: bool,
     preferences: list[str],
 ) -> float:
-    return sum(
-        float(item["value"])
-        for item in _provider_score_components(
-            provider=provider,
-            expected_total=expected_total,
-            startup=startup,
-            burst_size=burst_size,
-            gpu_runtime=gpu_runtime,
-            deadline=deadline,
-            quality_requires_gpu=quality_requires_gpu,
-            preferences=preferences,
-        )
-    )
+    return 0.0
 
 
 def _provider_score_components(
@@ -284,26 +215,7 @@ def _provider_score_components(
     quality_requires_gpu: bool,
     preferences: list[str],
 ) -> list[dict[str, Any]]:
-    components: list[dict[str, Any]] = [{"name": "expected_total_seconds", "value": round(expected_total, 3)}]
-    if provider == "ollama":
-        components.append({"name": "resident_ollama_discount", "value": -20})
-        if burst_size > 1:
-            components.append({"name": "ollama_burst_penalty", "value": 10000 * burst_size})
-    elif provider == "modal":
-        components.append({"name": "modal_base_penalty", "value": 15})
-        if burst_size >= 3:
-            components.append({"name": "modal_burst_discount", "value": -min(300, 30 * burst_size)})
-    elif provider in {"runpod", "vast"}:
-        components.append({"name": "cold_start_penalty", "value": round(startup, 3)})
-        if gpu_runtime >= 1800:
-            components.append({"name": "long_runtime_batch_discount", "value": -180})
-    if quality_requires_gpu and provider != "ollama":
-        components.append({"name": "external_gpu_quality_discount", "value": -30})
-    if deadline and expected_total > deadline * 0.8:
-        components.append({"name": "deadline_risk_penalty", "value": 100})
-    if preferences:
-        components.append({"name": "preference_discount", "value": -25 * len(preferences)})
-    return components
+    return []
 
 
 def startup_policy_decision(job: Job, profile: dict[str, Any], signal: dict[str, Any]) -> dict[str, Any]:
