@@ -113,6 +113,7 @@ GitHub is the canonical source for the repository, including the reusable integr
 
 - Canonical repository: `https://github.com/noiehoie/gpu-job-control`
 - Canonical integration prompt: `https://github.com/noiehoie/gpu-job-control/blob/main/docs/generic-system-integration-prompt.md`
+- Canonical versioned integration prompt: `https://github.com/noiehoie/gpu-job-control/blob/main/docs/generic-system-integration-prompt-v1.md`
 - Operational checkout: `/home/admin/gpu-job-control`
 - Operational integration prompt: `/home/admin/gpu-job-control/docs/generic-system-integration-prompt.md`
 

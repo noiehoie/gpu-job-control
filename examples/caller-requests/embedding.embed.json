@@ -1,0 +1,28 @@
+{
+  "contract_version": "gpu-job-caller-request-v1",
+  "operation": "embedding.embed",
+  "input": {
+    "uri": "text://embedding request",
+    "parameters": {
+      "texts": ["GPU contract", "caller schema"]
+    }
+  },
+  "output_expectation": {
+    "target_uri": "local://caller-embedding",
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "limits": {
+    "max_runtime_minutes": 5,
+    "max_cost_usd": 1,
+    "max_output_gb": 1
+  },
+  "idempotency": {
+    "key": "caller-embedding-example"
+  },
+  "caller": {
+    "system": "example-system",
+    "operation": "embedding",
+    "request_id": "req-embedding-001",
+    "version": "2026.04.25"
+  }
+}

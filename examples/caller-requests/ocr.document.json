@@ -1,0 +1,26 @@
+{
+  "contract_version": "gpu-job-caller-request-v1",
+  "operation": "ocr.document",
+  "input": {
+    "uri": "s3://example-input/docs/report.pdf",
+    "parameters": {}
+  },
+  "output_expectation": {
+    "target_uri": "s3://example-output/docs/report/",
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "limits": {
+    "max_runtime_minutes": 60,
+    "max_cost_usd": 4,
+    "max_output_gb": 5
+  },
+  "idempotency": {
+    "key": "caller-ocr-document-example"
+  },
+  "caller": {
+    "system": "example-system",
+    "operation": "ocr-document",
+    "request_id": "req-ocr-document-001",
+    "version": "2026.04.25"
+  }
+}

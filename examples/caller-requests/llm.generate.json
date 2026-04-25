@@ -1,0 +1,35 @@
+{
+  "contract_version": "gpu-job-caller-request-v1",
+  "operation": "llm.generate",
+  "input": {
+    "uri": "text://Summarize the caller contract.",
+    "parameters": {
+      "prompt": "Summarize the caller contract.",
+      "max_tokens": 256
+    }
+  },
+  "output_expectation": {
+    "target_uri": "local://caller-llm-generate",
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "limits": {
+    "max_runtime_minutes": 15,
+    "max_cost_usd": 2,
+    "max_output_gb": 1
+  },
+  "idempotency": {
+    "key": "caller-llm-generate-example"
+  },
+  "caller": {
+    "system": "example-system",
+    "operation": "summary",
+    "request_id": "req-llm-generate-001",
+    "version": "2026.04.25"
+  },
+  "trace_context": {
+    "trace_id": "trace-llm-generate-001"
+  },
+  "preferences": {
+    "quality_requires_gpu": true
+  }
+}

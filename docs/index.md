@@ -17,6 +17,10 @@ Start here when evaluating or integrating `gpu-job-control`.
 - [Launch Decision](launch-decision.md): current launch route decision and deferred provider paths.
 - [Launch Phase 0-5 Gate](launch-phase0-5-gate.md): machine-readable launch gates and current stop conditions from contract freeze through provider canaries.
 - [Generic System Integration Prompt](generic-system-integration-prompt.md): reusable prompt for adapting any system to gpu-job-control without confusing synchronous submit with asynchronous intake.
+- [Caller Contract](caller-contract.md): canonical caller-facing request schema and fail-closed rules.
+- [Operation Catalog](operation-catalog.md): closed operation menu accepted by the public product surface.
+- [Public API](public-api.md): caller-facing transport surface and compatibility notes.
+- [Client Integration Guide](client-integration-guide.md): reference client and downstream integration order.
 - [RunPod Support Question](runpod-support-question.md): reproducible evidence for the current Serverless vLLM endpoint blocker.
 - [Worker Image Distribution](ghcr-publish-runbook.md): runtime-independent image publishing and registry-mirroring guidance.
 
@@ -26,6 +30,7 @@ GitHub is the canonical source for this repository, even when it is private. The
 
 - Canonical source: `https://github.com/noiehoie/gpu-job-control`
 - Canonical integration prompt: `https://github.com/noiehoie/gpu-job-control/blob/main/docs/generic-system-integration-prompt.md`
+- Canonical versioned integration prompt: `https://github.com/noiehoie/gpu-job-control/blob/main/docs/generic-system-integration-prompt-v1.md`
 - Operational checkout: `/home/admin/gpu-job-control`
 - Operational integration prompt: `/home/admin/gpu-job-control/docs/generic-system-integration-prompt.md`
 

@@ -48,6 +48,7 @@ class ApiResponseSchemaTest(unittest.TestCase):
                 "/schemas/contracts": ("contract_version", "gpu-job-contract-v1"),
                 "/schemas/provider-module": ("provider_module_contract_version", "gpu-job-provider-module-contract-v1"),
                 "/schemas/provider-contract-probe": ("contract_probe_version", "gpu-job-provider-contract-probe-v1"),
+                "/schemas/caller-request": ("schema_bundle_version", "gpu-job-caller-schema-bundle-v1"),
             }
             for path, (key, expected) in checks.items():
                 with self.subTest(path=path):
@@ -59,6 +60,8 @@ class ApiResponseSchemaTest(unittest.TestCase):
                         self.assertEqual(payload["provider_module_routing_flag"]["current_allowed_values"], [False])
                     if path == "/schemas/provider-contract-probe":
                         self.assertIn("provider_module_canary_evidence", payload["required_top_level_fields"])
+                    if path == "/schemas/caller-request":
+                        self.assertEqual(payload["properties"]["contract_version"]["const"], "gpu-job-caller-request-v1")
         finally:
             server.shutdown()
             server.server_close()
@@ -130,6 +133,115 @@ class ApiResponseSchemaTest(unittest.TestCase):
                     self.assertEqual(caught.exception.code, 404)
                     payload = json.loads(caught.exception.read().decode())
                     self.assertEqual(payload["error"], f"unknown endpoint: {path}")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+            if old_allow is None:
+                os.environ.pop("GPU_JOB_ALLOW_UNAUTHENTICATED", None)
+            else:
+                os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = old_allow
+            if old_token is None:
+                os.environ.pop("GPU_JOB_API_TOKEN", None)
+            else:
+                os.environ["GPU_JOB_API_TOKEN"] = old_token
+
+    def test_operation_catalog_endpoint_is_public_and_closed(self) -> None:
+        old_allow = os.environ.get("GPU_JOB_ALLOW_UNAUTHENTICATED")
+        old_token = os.environ.get("GPU_JOB_API_TOKEN")
+        os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = "1"
+        os.environ.pop("GPU_JOB_API_TOKEN", None)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), api.GPUJobHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.server_address[1]}"
+            with urllib.request.urlopen(base + "/catalog/operations", timeout=5) as response:
+                payload = json.loads(response.read().decode())
+            self.assertEqual(response.status, 200)
+            self.assertTrue(payload["ok"])
+            self.assertFalse(payload["free_form_job_type_allowed"])
+            self.assertIn("llm.generate", payload["operations"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+            if old_allow is None:
+                os.environ.pop("GPU_JOB_ALLOW_UNAUTHENTICATED", None)
+            else:
+                os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = old_allow
+            if old_token is None:
+                os.environ.pop("GPU_JOB_API_TOKEN", None)
+            else:
+                os.environ["GPU_JOB_API_TOKEN"] = old_token
+
+    def test_caller_prompt_catalog_endpoint_is_public(self) -> None:
+        old_allow = os.environ.get("GPU_JOB_ALLOW_UNAUTHENTICATED")
+        old_token = os.environ.get("GPU_JOB_API_TOKEN")
+        os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = "1"
+        os.environ.pop("GPU_JOB_API_TOKEN", None)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), api.GPUJobHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.server_address[1]}"
+            with urllib.request.urlopen(base + "/catalog/caller-prompt", timeout=5) as response:
+                payload = json.loads(response.read().decode())
+            self.assertEqual(response.status, 200)
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["current_prompt_version"], "generic-system-integration-prompt-v1")
+            self.assertTrue(payload["sha256"])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+            if old_allow is None:
+                os.environ.pop("GPU_JOB_ALLOW_UNAUTHENTICATED", None)
+            else:
+                os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = old_allow
+            if old_token is None:
+                os.environ.pop("GPU_JOB_API_TOKEN", None)
+            else:
+                os.environ["GPU_JOB_API_TOKEN"] = old_token
+
+    def test_validate_endpoint_accepts_caller_request_shape(self) -> None:
+        old_allow = os.environ.get("GPU_JOB_ALLOW_UNAUTHENTICATED")
+        old_token = os.environ.get("GPU_JOB_API_TOKEN")
+        os.environ["GPU_JOB_ALLOW_UNAUTHENTICATED"] = "1"
+        os.environ.pop("GPU_JOB_API_TOKEN", None)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), api.GPUJobHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.server_address[1]}"
+            payload = {
+                "contract_version": "gpu-job-caller-request-v1",
+                "operation": "llm.generate",
+                "input": {"uri": "text://Return exactly: ok", "parameters": {"prompt": "Return exactly: ok"}},
+                "output_expectation": {
+                    "target_uri": "local://caller-validate",
+                    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+                },
+                "limits": {"max_runtime_minutes": 5, "max_cost_usd": 1, "max_output_gb": 1},
+                "idempotency": {"key": "api-caller-validate-001"},
+                "caller": {
+                    "system": "api-test",
+                    "operation": "validate",
+                    "request_id": "api-caller-validate-001",
+                    "version": "2026.04.25",
+                },
+            }
+            request = urllib.request.Request(
+                base + "/validate",
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=5) as response:
+                result = json.loads(response.read().decode())
+            self.assertEqual(response.status, 200)
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["job"]["job_type"], "llm_heavy")
         finally:
             server.shutdown()
             server.server_close()

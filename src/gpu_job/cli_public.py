@@ -139,9 +139,10 @@ def cmd_selftest(_: argparse.Namespace) -> int:
 def cmd_validate(args: argparse.Namespace) -> int:
     from .public_ops import validate_public_job
 
-    job = Job.from_file(Path(args.job))
-    print_json(validate_public_job(job.to_dict()))
-    return 0
+    payload = _read_json(args.job)
+    result = validate_public_job(payload)
+    print_json(result)
+    return 0 if result.get("ok") else 2
 
 
 def cmd_workload_plan(args: argparse.Namespace) -> int:
@@ -155,6 +156,21 @@ def cmd_workload_plan(args: argparse.Namespace) -> int:
         result = plan_workload(payload)
     print_json(result)
     return 0 if result.get("ok") else 2
+
+
+def cmd_caller(args: argparse.Namespace) -> int:
+    from .caller_contract import caller_request_schema, operation_catalog_snapshot, prompt_asset_snapshot
+
+    if args.caller_command == "schema":
+        result = caller_request_schema()
+    elif args.caller_command == "catalog":
+        result = operation_catalog_snapshot()
+    elif args.caller_command == "prompt":
+        result = prompt_asset_snapshot()
+    else:
+        raise ValueError(f"unknown caller command: {args.caller_command}")
+    print_json(result)
+    return 0 if result.get("ok", True) else 2
 
 
 def cmd_queue(args: argparse.Namespace) -> int:
@@ -389,6 +405,12 @@ def build_parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate", help="validate a gpu-job JSON file")
     validate.add_argument("job", help="path to a gpu-job JSON file")
     validate.set_defaults(func=cmd_validate)
+
+    caller = sub.add_parser("caller", help="inspect caller-facing prompt, schema, and operation catalog")
+    caller_sub = caller.add_subparsers(dest="caller_command", required=True)
+    caller_sub.add_parser("schema", help="show caller request schema").set_defaults(func=cmd_caller)
+    caller_sub.add_parser("catalog", help="show caller operation catalog").set_defaults(func=cmd_caller)
+    caller_sub.add_parser("prompt", help="show current caller prompt asset metadata").set_defaults(func=cmd_caller)
 
     workload_plan = sub.add_parser("workload-plan", help="plan a workload contract without contacting providers")
     workload_plan.add_argument("workload", help="path to workload JSON file")

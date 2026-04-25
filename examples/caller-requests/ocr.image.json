@@ -1,0 +1,26 @@
+{
+  "contract_version": "gpu-job-caller-request-v1",
+  "operation": "ocr.image",
+  "input": {
+    "uri": "s3://example-input/images/frame-0001.png",
+    "parameters": {}
+  },
+  "output_expectation": {
+    "target_uri": "s3://example-output/images/frame-0001/",
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "limits": {
+    "max_runtime_minutes": 30,
+    "max_cost_usd": 3,
+    "max_output_gb": 2
+  },
+  "idempotency": {
+    "key": "caller-ocr-image-example"
+  },
+  "caller": {
+    "system": "example-system",
+    "operation": "ocr-image",
+    "request_id": "req-ocr-image-001",
+    "version": "2026.04.25"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "contract_version": "gpu-job-caller-request-v1",
+  "operation": "asr.transcribe_diarize",
+  "input": {
+    "uri": "s3://example-input/asr/sample.mp4",
+    "parameters": {
+      "speaker_diarization": true
+    }
+  },
+  "output_expectation": {
+    "target_uri": "s3://example-output/asr/sample-diarize/",
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "limits": {
+    "max_runtime_minutes": 180,
+    "max_cost_usd": 20,
+    "max_output_gb": 20
+  },
+  "idempotency": {
+    "key": "caller-asr-diarize-example"
+  },
+  "caller": {
+    "system": "example-system",
+    "operation": "transcribe-diarize",
+    "request_id": "req-asr-diarize-001",
+    "version": "2026.04.25"
+  }
+}

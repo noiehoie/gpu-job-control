@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from .caller_contract import (
+    caller_request_schema,
+    compile_caller_request,
+    is_caller_request,
+    operation_catalog_snapshot,
+    prompt_asset_snapshot,
+)
 from .contracts import artifact_manifest_schema, contract_schemas
 from .execution_record import execution_record_schema
 from .lanes import get_lane, list_lanes, resolve_lane_id
@@ -25,6 +32,8 @@ def catalog_snapshot() -> dict[str, Any]:
         "probes": recent_probe_summary(),
         "contract_probes": list_contract_probes(),
         "lanes": list_lanes(),
+        "operations": operation_catalog_snapshot(),
+        "caller_prompt": prompt_asset_snapshot(),
     }
 
 
@@ -38,10 +47,16 @@ def schema_snapshot() -> dict[str, Any]:
         "provider_workspace": workspace_registry_schema(),
         "provider_module": provider_module_contract_schema(),
         "provider_contract_probe": provider_contract_probe_schema(),
+        "caller_request": caller_request_schema(),
     }
 
 
 def build_job(job_data: dict[str, Any]) -> Job:
+    if is_caller_request(job_data):
+        compiled = compile_caller_request(job_data)
+        if not compiled.get("ok"):
+            raise ValueError("; ".join(compiled.get("errors") or [str(compiled.get("error") or "caller request compilation failed")]))
+        job_data = dict(compiled["job"])
     return Job.from_dict(job_data)
 
 
@@ -53,7 +68,10 @@ def route_public_job(job_data: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_public_job(job_data: dict[str, Any], provider: str = "") -> dict[str, Any]:
-    job = build_job(job_data)
+    try:
+        job = build_job(job_data)
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc), "errors": [str(exc)]}
     catalog = load_provider_catalog()
     catalog_providers = catalog.get("providers") if isinstance(catalog, dict) else {}
     providers = [provider] if provider else sorted(str(name) for name in dict(catalog_providers).keys())

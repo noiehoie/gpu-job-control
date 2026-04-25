@@ -1,0 +1,173 @@
+{
+  "catalog_version": "gpu-job-operation-catalog-v1",
+  "operations": {
+    "asr.transcribe": {
+      "job_type": "asr",
+      "description": "Speech-to-text transcription without speaker diarization.",
+      "input_contract": {
+        "required_input_uri_schemes": ["s3", "local", "http", "https", "text"],
+        "required_parameters": []
+      },
+      "output_contract": {
+        "format": "transcript",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["text", "segments"]
+      },
+      "failure_taxonomy": ["provider_backpressure", "cold_start_timeout", "artifact_contract_failure"],
+      "required_secrets": [],
+      "job_defaults": {
+        "gpu_profile": "asr_fast",
+        "worker_image": "auto",
+        "model": "whisper-large-v3"
+      },
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
+    },
+    "asr.transcribe_diarize": {
+      "job_type": "asr",
+      "description": "Speech-to-text with speaker diarization.",
+      "input_contract": {
+        "required_input_uri_schemes": ["s3", "local", "http", "https", "text"],
+        "required_parameters": ["speaker_diarization"]
+      },
+      "output_contract": {
+        "format": "transcript_with_speakers",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["text", "segments"]
+      },
+      "failure_taxonomy": ["secret_missing", "provider_backpressure", "cold_start_timeout", "artifact_contract_failure"],
+      "required_secrets": ["hf_token"],
+      "job_defaults": {
+        "gpu_profile": "asr_diarization",
+        "worker_image": "auto",
+        "model": "whisper-large-v3"
+      },
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
+    },
+    "llm.generate": {
+      "job_type": "llm_heavy",
+      "description": "Deterministic GPU-backed text generation.",
+      "input_contract": {
+        "required_input_uri_schemes": ["text", "s3", "local", "http", "https"],
+        "required_parameters": []
+      },
+      "output_contract": {
+        "format": "text",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["text"]
+      },
+      "failure_taxonomy": ["provider_backpressure", "context_overflow", "artifact_contract_failure"],
+      "required_secrets": [],
+      "job_defaults": {
+        "gpu_profile": "llm_heavy",
+        "worker_image": "auto",
+        "model": "default-llm"
+      },
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless"],
+      "forbidden_lanes": ["vast_instance", "vast_pyworker_serverless"]
+    },
+    "embedding.embed": {
+      "job_type": "embedding",
+      "description": "Generate embeddings for caller-supplied text inputs.",
+      "input_contract": {
+        "required_input_uri_schemes": ["text", "s3", "local", "http", "https"],
+        "required_parameters": ["texts"]
+      },
+      "output_contract": {
+        "format": "embedding_vectors",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["items", "count", "dimensions"]
+      },
+      "failure_taxonomy": ["provider_backpressure", "artifact_contract_failure"],
+      "required_secrets": [],
+      "job_defaults": {
+        "gpu_profile": "embedding",
+        "worker_image": "auto",
+        "model": "default-embedding"
+      },
+      "allowed_lanes": ["modal_function"],
+      "forbidden_lanes": ["runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"]
+    },
+    "ocr.document": {
+      "job_type": "pdf_ocr",
+      "description": "OCR a PDF or document source into structured text.",
+      "input_contract": {
+        "required_input_uri_schemes": ["s3", "local", "http", "https", "text"],
+        "required_parameters": []
+      },
+      "output_contract": {
+        "format": "ocr_text",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["text"]
+      },
+      "failure_taxonomy": ["provider_backpressure", "artifact_contract_failure"],
+      "required_secrets": [],
+      "job_defaults": {
+        "gpu_profile": "vlm_ocr",
+        "worker_image": "auto",
+        "model": "default-pdf-ocr"
+      },
+      "allowed_lanes": ["modal_function"],
+      "forbidden_lanes": ["runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"]
+    },
+    "ocr.image": {
+      "job_type": "vlm_ocr",
+      "description": "OCR an image or frame sequence into text.",
+      "input_contract": {
+        "required_input_uri_schemes": ["s3", "local", "http", "https", "text"],
+        "required_parameters": []
+      },
+      "output_contract": {
+        "format": "ocr_text",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["text"]
+      },
+      "failure_taxonomy": ["provider_backpressure", "artifact_contract_failure"],
+      "required_secrets": [],
+      "job_defaults": {
+        "gpu_profile": "vlm_ocr",
+        "worker_image": "auto",
+        "model": "default-vlm-ocr"
+      },
+      "allowed_lanes": ["modal_function"],
+      "forbidden_lanes": ["runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"]
+    },
+    "smoke.gpu": {
+      "job_type": "smoke",
+      "description": "Minimal GPU smoke request for external caller integration checks.",
+      "input_contract": {
+        "required_input_uri_schemes": ["none"],
+        "required_parameters": []
+      },
+      "output_contract": {
+        "format": "smoke",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["ok"]
+      },
+      "failure_taxonomy": ["provider_backpressure", "cold_start_timeout", "artifact_contract_failure"],
+      "required_secrets": [],
+      "job_defaults": {
+        "gpu_profile": "asr_fast",
+        "worker_image": "auto",
+        "model": "nvidia-smi"
+      },
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
+    }
+  }
+}

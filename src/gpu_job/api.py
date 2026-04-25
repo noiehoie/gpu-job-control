@@ -387,6 +387,12 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 result = catalog_snapshot()
                 _json_response(self, 200, {"ok": True, "catalog": result["providers"], "lanes": result["lanes"]})
                 return
+            if path == "/catalog/operations":
+                _json_response(self, 200, catalog_snapshot()["operations"])
+                return
+            if path == "/catalog/caller-prompt":
+                _json_response(self, 200, catalog_snapshot()["caller_prompt"])
+                return
             if path == "/catalog/requirements":
                 _json_response(self, 200, {"ok": True, "registry": catalog_snapshot()["requirements"]})
                 return
@@ -416,6 +422,9 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 return
             if path == "/schemas/provider-contract-probe":
                 _json_response(self, 200, schema_snapshot()["provider_contract_probe"])
+                return
+            if path == "/schemas/caller-request":
+                _json_response(self, 200, schema_snapshot()["caller_request"])
                 return
             if path == "/schemas/failure-taxonomy":
                 _json_response(self, 200, failure_taxonomy())
@@ -641,23 +650,42 @@ class GPUJobHandler(BaseHTTPRequestHandler):
             if path == "/drain/clear":
                 _json_response(self, 200, clear_drain())
                 return
+            if path == "/validate":
+                provider_name = str(payload.get("provider") or _first(qs, "provider", ""))
+                job_data = payload.get("job", payload)
+                result = validate_public_job(job_data, provider=provider_name)
+                _json_response(self, 200, result)
+                return
+            if path == "/route":
+                job_data = payload.get("job", payload)
+                _json_response(self, 200, route_public_job(job_data))
+                return
+            if path == "/plan":
+                provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
+                job_data = payload.get("job", payload)
+                _json_response(self, 200, plan_public_job(job_data, provider=provider_name))
+                return
+            if path == "/submit":
+                provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
+                execute = bool(payload.get("execute", False)) or _truthy(_first(qs, "execute", ""))
+                job_data = payload.get("job", payload)
+                result = submit_public_job(job_data, provider=provider_name, execute=execute)
+                status = int(result.get("status_code") or (200 if result.get("ok") else 500))
+                if result.get("error") == "pre-submit cost guard failed":
+                    status = 409
+                headers = {}
+                if status == 429:
+                    headers["Retry-After"] = str(int(result.get("retry_after_seconds") or 30))
+                _json_response(self, status, _submit_response(result), headers=headers)
+                return
             job_data = payload.get("job", payload)
             job = Job.from_dict(job_data)
             _apply_provider_module_payload(job, payload, qs)
-
-            if path == "/validate":
-                provider_name = str(payload.get("provider") or _first(qs, "provider", ""))
-                result = validate_public_job(job.to_dict(), provider=provider_name)
-                _json_response(self, 200, result)
-                return
             if path == "/timeout":
                 _json_response(self, 200, timeout_contract(job))
                 return
             if path == "/attestation":
                 _json_response(self, 200, {"ok": True, "subject_sha256": expected_attestation_hash(job)})
-                return
-            if path == "/route":
-                _json_response(self, 200, route_public_job(job.to_dict()))
                 return
             if path == "/invariants":
                 provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
@@ -693,22 +721,6 @@ class GPUJobHandler(BaseHTTPRequestHandler):
                 return
             if path == "/remediation":
                 _json_response(self, 200, remediation_decision(job))
-                return
-            if path == "/plan":
-                provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
-                _json_response(self, 200, plan_public_job(job.to_dict(), provider=provider_name))
-                return
-            if path == "/submit":
-                provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))
-                execute = bool(payload.get("execute", False)) or _truthy(_first(qs, "execute", ""))
-                result = submit_public_job(job.to_dict(), provider=provider_name, execute=execute)
-                status = int(result.get("status_code") or (200 if result.get("ok") else 500))
-                if result.get("error") == "pre-submit cost guard failed":
-                    status = 409
-                headers = {}
-                if status == 429:
-                    headers["Retry-After"] = str(int(result.get("retry_after_seconds") or 30))
-                _json_response(self, status, _submit_response(result), headers=headers)
                 return
             if path == "/enqueue":
                 provider_name = str(payload.get("provider") or _first(qs, "provider", "auto"))

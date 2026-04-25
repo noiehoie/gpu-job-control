@@ -1,0 +1,26 @@
+{
+  "contract_version": "gpu-job-caller-request-v1",
+  "operation": "asr.transcribe",
+  "input": {
+    "uri": "s3://example-input/asr/sample.mp4",
+    "parameters": {}
+  },
+  "output_expectation": {
+    "target_uri": "s3://example-output/asr/sample/",
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "limits": {
+    "max_runtime_minutes": 120,
+    "max_cost_usd": 10,
+    "max_output_gb": 20
+  },
+  "idempotency": {
+    "key": "caller-asr-transcribe-example"
+  },
+  "caller": {
+    "system": "example-system",
+    "operation": "transcribe",
+    "request_id": "req-asr-transcribe-001",
+    "version": "2026.04.25"
+  }
+}
