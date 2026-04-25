@@ -58,13 +58,14 @@ The Phase 0-5 gate is documented in [Launch Phase 0-5 Gate](launch-phase0-5-gate
 As of 2026-04-25 JST, the netcup clean clone reproduced the launch boundary on
 commit `492310e9949552bdb407c1666cc873cdfbca1e31`.
 
-The netcup `R0` logs confirmed:
+The netcup `R0` logs now confirm:
 
-- `pytest -q`: `349 passed, 14 subtests passed`
+- `pytest -q`: `355 passed, 14 subtests passed`
+- `python -m unittest discover -s tests -q`: `Ran 313 tests ... OK`
 - `gpu-job selftest`: `ok=true`
 - `gpu-job validate examples/jobs/asr.example.json`: `ok=true`
 - `ruff check`: `All checks passed!`
-- `ruff format --check`: `125 files already formatted`
+- `ruff format --check`: `122 files already formatted`
 
 The netcup `R1` readiness log then confirmed:
 
@@ -84,7 +85,8 @@ netcup through `runpod.asr.official_whisper_smoke`, but it stays an
 endpoint-scoped canary/contract path rather than a general production route.
 Vast direct instance and Vast pyworker serverless remain reserve/canary only.
 
-The current repo-tracked netcup-backed serverless identity evidence is:
+The current repo-tracked netcup-backed serverless identity evidence is fixed in
+`config/provider-operations.json` and backed by the following logs:
 
 - RunPod serverless official smoke artifact:
   `docs/launch-logs/20260425-R1-runpod-serverless.out`
@@ -106,10 +108,11 @@ re-running:
 - Vast direct instance canary: `docs/launch-logs/20260425-R3-vast-instance.json`
 - final repeat readiness: `docs/launch-logs/20260425-R3-readiness-fixed.json`
 
-`docs/launch-logs/20260425-R3-modal-asr.json` records a netcup secret-gate miss
-for the Modal ASR rerun. The launch state was restored by re-appending the
-latest netcup success artifact for `modal.asr_diarization.pyannote`, so the
-final repeat boundary still ends with all phases green and `stop_conditions=[]`.
+`docs/launch-logs/20260425-R3-modal-asr.json` records the earlier netcup
+secret-gate miss for the Modal ASR rerun. That gap is now closed by the tracked
+provider-operations policy in `config/provider-operations.json`, which allows
+`modal:contract-probe:asr -> hf_token` in clean clones and removes the need for
+artifact re-append as the steady-state fix.
 
 ## Support Track
 

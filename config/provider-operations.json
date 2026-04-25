@@ -1,0 +1,62 @@
+{
+  "persistent_storage": {
+    "runpod": {
+      "network_volume_price_usd_per_gb_month": 0.07,
+      "allowed_monthly_usd": 9.1,
+      "warning_monthly_usd": 5,
+      "fail_monthly_usd": 10,
+      "allowed_network_volumes": [
+        {
+          "id": "le9b9gqqu6",
+          "name": "news-llm-models",
+          "data_center_id": "US-NC-1",
+          "size_gb": 80,
+          "purpose": "approved RunPod model cache volume"
+        },
+        {
+          "id": "vb25y1avw1",
+          "name": "news-llm-models-nl",
+          "data_center_id": "EU-NL-1",
+          "size_gb": 50,
+          "purpose": "approved RunPod model cache volume"
+        }
+      ]
+    }
+  },
+  "secret_policy": {
+    "allowed_refs": {
+      "modal:manual-video-test:asr": [
+        "hf_token"
+      ],
+      "modal:contract-probe:asr": [
+        "hf_token"
+      ],
+      "vast:manual-video-test:asr": [
+        "hf_token"
+      ],
+      "vast:contract-probe:asr": [
+        "hf_token"
+      ],
+      "runpod:contract-probe:asr": [
+        "hf_token"
+      ],
+      "*:*:*": []
+    }
+  },
+  "launch_identity_evidence": {
+    "runpod_serverless": {
+      "probe_name": "runpod.asr.official_whisper_smoke",
+      "endpoint_id": "rqtykb8zkwylk2",
+      "template_id": "bem34sz6ol",
+      "provider_job_id": "3babbc1c-00a5-4546-93c2-f68a1fbdb137-e1",
+      "artifact_log": "docs/launch-logs/20260425-R1-runpod-serverless.out"
+    },
+    "vast_pyworker_serverless": {
+      "probe_name": "vast.asr.serverless_template",
+      "endpoint_id": "21119",
+      "workergroup_id": "27643",
+      "provider_job_id": "bbab1656-1c75-429e-98ee-ab5fad47e417",
+      "artifact_log": "docs/launch-logs/20260425-R1-vast-serverless.out"
+    }
+  }
+}

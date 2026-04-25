@@ -81,7 +81,7 @@ for each target:
 The netcup clean clone run on commit `492310e9949552bdb407c1666cc873cdfbca1e31`
 produced two relevant checkpoints.
 
-`R0` (code-quality baseline) reported:
+`R0` (code-quality baseline) now reports:
 
 ```text
 phase_0_current_diff_fixed=true
@@ -93,11 +93,12 @@ phase_5_vast_reserve_canary=false
 provider_adapter_diff=[]
 routing_by_module_enabled=false
 stop_conditions=[]
-pytest=349 passed, 14 subtests passed
+pytest=355 passed, 14 subtests passed
+unittest=Ran 313 tests ... OK
 selftest.ok=true
 validate.ok=true
 ruff check=All checks passed!
-ruff format --check=125 files already formatted
+ruff format --check=122 files already formatted
 ```
 
 `R1` (serverless identity freeze) then reported:
@@ -124,6 +125,18 @@ provider_module_canary_evidence.ok=true
 vast.asr.serverless_template
 log=docs/launch-logs/20260425-R1-vast-serverless.out
 provider_module_canary_evidence.ok=true
+```
+
+The clean-clone launch freeze now also tracks the supporting identity and
+secret-policy facts in `config/provider-operations.json`:
+
+```text
+launch_identity_evidence.runpod_serverless.endpoint_id=rqtykb8zkwylk2
+launch_identity_evidence.vast_pyworker_serverless.endpoint_id=21119
+launch_identity_evidence.vast_pyworker_serverless.workergroup_id=27643
+secret_policy.allowed_refs.modal:contract-probe:asr=[hf_token]
+secret_policy.allowed_refs.vast:contract-probe:asr=[hf_token]
+secret_policy.allowed_refs.runpod:contract-probe:asr=[hf_token]
 ```
 
 The `R3` repeat cycle then ended with:

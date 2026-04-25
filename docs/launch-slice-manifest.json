@@ -76,6 +76,7 @@
       "files": [
         "config/README.md",
         "config/execution-policy.json",
+        "config/provider-operations.json",
         "config/provider-operations.example.json",
         "pyproject.toml",
         "src/gpu_job/api.py",

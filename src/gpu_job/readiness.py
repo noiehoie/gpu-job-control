@@ -20,8 +20,13 @@ from .wal import wal_recovery_status
 READINESS_VERSION = "gpu-job-readiness-v1"
 
 
-def launch_readiness(limit: int = 100) -> dict[str, Any]:
-    guard = collect_cost_guard()
+def launch_readiness(
+    limit: int = 100,
+    *,
+    guard_provider_names: list[str] | None = None,
+    include_provider_stability: bool = True,
+) -> dict[str, Any]:
+    guard = collect_cost_guard(provider_names=guard_provider_names)
     policy = policy_activation_record()
     audit = verify_audit_chain()
     wal = wal_recovery_status()
@@ -33,7 +38,7 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
     drain = drain_status()
     retention = retention_report()
     metrics = metrics_snapshot()
-    provider_stability = _provider_stability_snapshot()
+    provider_stability = _provider_stability_snapshot() if include_provider_stability else {"ok": True, "skipped": True}
     checks = {
         "billing_guard": bool(guard.get("ok")),
         "policy": bool(policy.get("ok")),
@@ -45,6 +50,7 @@ def launch_readiness(limit: int = 100) -> dict[str, Any]:
         "drain_state": bool(drain.get("ok")),
         "retention_report": bool(retention.get("ok")),
         "metrics": bool(metrics.get("ok")),
+        "provider_stability": bool(provider_stability.get("ok")),
     }
     ok = all(checks.values())
     return {

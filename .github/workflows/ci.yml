@@ -43,3 +43,6 @@ jobs:
 
       - name: Validate example job
         run: uv run gpu-job validate examples/jobs/asr.example.json
+
+      - name: Launch freeze guards
+        run: uv run python -m pytest -q tests/test_launch_freeze_guards.py

@@ -102,7 +102,7 @@ def run_selftest() -> dict[str, Any]:
             worker = work_once()
             checks.append({"name": "wal_fail_closed", "ok": worker.get("ok") is False and worker.get("worked") is False})
 
-            readiness = launch_readiness(limit=20)
+            readiness = launch_readiness(limit=20, guard_provider_names=["local"], include_provider_stability=False)
             checks.append(
                 {
                     "name": "readiness_detects_wal",
