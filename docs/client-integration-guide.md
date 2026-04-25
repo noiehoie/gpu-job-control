@@ -112,6 +112,7 @@ Treat the job as failed even if provider execution returned success.
 - LLM: `examples/caller-requests/llm.generate.json`
 - OCR document: `examples/caller-requests/ocr.document.json`
 - OCR image: `examples/caller-requests/ocr.image.json`
+- Generic GPU container: `examples/caller-requests/gpu.container.run.json`
 
 ## Non-Python Callers
 

@@ -20,6 +20,8 @@ during launch pressure.
 - Public caller requests use `gpu-job-caller-request-v1`.
 - External GPUs are strictly for workloads unsuitable for local fixed resources.
 - Production `llm.generate` judges require 70B+ class models and are strictly external.
+- ASR is a validation workload, not a provider-lane product boundary.
+- All five cloud GPU lanes remain generic candidates for closed public GPU operations.
 - Public callers choose `operation`, not provider-specific `job_type`.
 - Free-form public operations are rejected.
 - Same valid caller request compiles to the same internal plan.
@@ -33,7 +35,7 @@ during launch pressure.
 - Modal is the production primary route after repeat LLM and ASR canary evidence.
 - RunPod Pod is a bounded conditional batch route.
 - RunPod Serverless is approved endpoint only.
-- Vast direct instance and Vast pyworker serverless are reserve/canary routes.
+- Vast direct instance and Vast pyworker serverless are generic reserve/canary routes.
 - Vast must not be promoted to production primary without a new release gate.
 
 ## Verification

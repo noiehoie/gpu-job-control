@@ -65,6 +65,7 @@ See [Error Codes](error-codes.md) for the caller-facing failure taxonomy.
 - current caller contract: `gpu-job-caller-request-v1`
 - current public job contract: `gpu-job-contract-v1`
 - current product boundary: `external GPUs for unsuitable workloads only`
+- current lane boundary: `all cloud provider lanes are generic GPU candidates; ASR is validation evidence, not a lane restriction`
 - current routing invariant: `routing_by_module_enabled=false`
 - current OpenAPI document: `schemas/gpu-job-public-api.openapi.json`
 

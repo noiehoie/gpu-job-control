@@ -25,13 +25,13 @@ That route is deferred because the current evidence shows endpoint/template crea
 
 | Route | Launch Status | Rule |
 | --- | --- | --- |
-| Modal GPU worker / `modal_function` | Production primary | Use for external GPU `llm_heavy`, ASR diarization, and bursty short jobs when guard is clean. |
+| Modal GPU worker / `modal_function` | Production primary | Use for external GPU workloads allowed by the operation catalog when guard is clean. `llm.generate` production quality still requires 70B+ external GPU evidence. |
 | Ollama on netcup | Fixed-capacity local | Use only within resource guard and token limits. |
-| RunPod serverless handler / `runpod_serverless` | Contracted canary path | Approved endpoint identity evidence exists on netcup; production dispatch still remains endpoint-scoped and conservative. RunPod Serverless vLLM / Hub-template is not included. |
-| RunPod bounded Pod HTTP worker / `runpod_pod` | Conditional batch route | Use only through create -> health/generate canary -> artifact verification -> terminate -> post-guard. |
+| RunPod serverless handler / `runpod_serverless` | Contracted canary path | Approved endpoint identity evidence exists on netcup; production dispatch still remains endpoint-scoped and conservative. The lane is generic, though RunPod Serverless vLLM / Hub-template is not included. |
+| RunPod bounded Pod HTTP worker / `runpod_pod` | Conditional batch route | Generic bounded GPU batch route; use only through create -> health/generate canary -> artifact verification -> terminate -> post-guard. |
 | RunPod Network Volumes | Approved fixed-cost storage | Use only approved volumes within monthly storage budget. |
-| Vast serverless pyworker / `vast_pyworker_serverless` | Canary / reserve | Use only after endpoint/workergroup canary evidence and cleanup proof. The reserve role is proven; it is not a production-primary route. |
-| Vast direct instance / `vast_instance` | Canary / reserve | Use only through guarded prebuilt-image lifecycle routes; no unbounded instance execution. |
+| Vast serverless pyworker / `vast_pyworker_serverless` | Canary / reserve | Generic pyworker GPU lane; use only after endpoint/workergroup canary evidence and cleanup proof. The reserve role is proven; it is not a production-primary route. |
+| Vast direct instance / `vast_instance` | Canary / reserve | Generic direct-instance GPU lane; use only through guarded prebuilt-image lifecycle routes; no unbounded instance execution. |
 
 ## Deferred Routes
 
@@ -83,7 +83,9 @@ Modal remains the production-primary route. RunPod Pod remains the conditional
 batch route. RunPod serverless now has approved endpoint identity evidence on
 netcup through `runpod.asr.official_whisper_smoke`, but it stays an
 endpoint-scoped canary/contract path rather than a general production route.
-Vast direct instance and Vast pyworker serverless remain reserve/canary only.
+That ASR-labeled evidence is historical proof of the serverless lane identity,
+not an ASR-only product boundary. Vast direct instance and Vast pyworker
+serverless remain generic reserve/canary lanes only.
 
 The current repo-tracked netcup-backed serverless identity evidence is fixed in
 `config/provider-operations.json` and backed by the following logs:

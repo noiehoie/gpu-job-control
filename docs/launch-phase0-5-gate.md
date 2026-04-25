@@ -32,11 +32,11 @@ The launch target is five execution systems:
 
 | System | Module id | Current launch status |
 | --- | --- | --- |
-| Modal function execution | `modal_function` | production primary after repeat LLM and ASR canaries |
-| Vast serverless pyworker execution | `vast_pyworker_serverless` | reserve/canary with endpoint/workergroup evidence fixed on netcup |
-| Vast direct instance execution | `vast_instance` | reserve/canary with direct smoke lifecycle evidence |
-| RunPod serverless handler execution | `runpod_serverless` | contracted canary path with approved endpoint evidence on netcup; RunPod Serverless vLLM/Hub-template deferred |
-| RunPod bounded Pod execution | `runpod_pod` | conditional batch route with explicit create/verify/terminate lifecycle |
+| Modal function execution | `modal_function` | generic production primary after repeat external-GPU canaries |
+| Vast serverless pyworker execution | `vast_pyworker_serverless` | generic reserve/canary with endpoint/workergroup evidence fixed on netcup |
+| Vast direct instance execution | `vast_instance` | generic reserve/canary with direct smoke lifecycle evidence |
+| RunPod serverless handler execution | `runpod_serverless` | generic contracted canary path with approved endpoint evidence on netcup; RunPod Serverless vLLM/Hub-template deferred |
+| RunPod bounded Pod execution | `runpod_pod` | generic conditional batch route with explicit create/verify/terminate lifecycle |
 
 These module IDs are not routing keys yet. They are contract and audit metadata
 until a separate routing feature flag is designed and approved.
@@ -48,9 +48,9 @@ until a separate routing feature flag is designed and approved.
 | Phase 0 | policy valid, module routing false, true rejected, provider adapter diff empty, guard clean, contract-probe schema exposes module canary evidence | current diff can be frozen as the audit baseline |
 | Phase 1 | `01_contract_core=locally_verified`, `02_runtime_binding=locally_verified_after_ci`, `03_lifecycle_reconciliation=locally_verified_conservative_only` | contract core launch candidate |
 | Phase 2 | `05_runtime_configuration=needs_provider_slice_cross_check`, unverified provider-image routing remains blocked, module routing false | runtime config is planning-only until provider canaries pass |
-| Phase 3 | guard clean, Modal LLM and ASR contract probe evidence present, Modal slice remains high-risk until repeat live canary | Modal production primary evidence |
-| Phase 4 | no RunPod billable resources, bounded Pod canary evidence separated from serverless endpoint evidence, RunPod slice remains high-risk, Serverless vLLM deferred | RunPod remains bounded Pod/conditional route; approved serverless endpoint evidence is present but still conservative |
-| Phase 5 | guard clean, Vast direct instance evidence separated from Vast pyworker endpoint/workergroup evidence, Vast slice remains high-risk, Vast primary forbidden | Vast remains reserve/canary only, with pyworker endpoint/workergroup evidence fixed |
+| Phase 3 | guard clean, Modal production-relevant GPU contract probe evidence present, Modal slice remains high-risk until repeat live canary | Modal production primary evidence |
+| Phase 4 | no RunPod billable resources, bounded Pod canary evidence separated from serverless endpoint evidence, RunPod slice remains high-risk, Serverless vLLM deferred | RunPod remains generic bounded Pod/conditional route; approved serverless endpoint evidence is present but still conservative |
+| Phase 5 | guard clean, Vast direct instance evidence separated from Vast pyworker endpoint/workergroup evidence, Vast slice remains high-risk, Vast primary forbidden | Vast remains generic reserve/canary only, with pyworker endpoint/workergroup evidence fixed |
 
 ## Stop Conditions
 
@@ -126,6 +126,12 @@ vast.asr.serverless_template
 log=docs/launch-logs/20260425-R1-vast-serverless.out
 provider_module_canary_evidence.ok=true
 ```
+
+These ASR-labeled probes are accepted as historical lane identity evidence.
+Future generic probes such as `runpod.generic.serverless_endpoint`,
+`runpod.generic.pod_http`, `vast.generic.instance`, and
+`vast.generic.pyworker_serverless` are also valid launch-gate evidence when
+they carry the same provider module canary evidence schema.
 
 The clean-clone launch freeze now also tracks the supporting identity and
 secret-policy facts in `config/provider-operations.json`:

@@ -44,9 +44,32 @@ class ProviderCatalogContractTest(unittest.TestCase):
         self.assertTrue(modal["support_contract"]["levels"]["registered"])
         self.assertTrue(modal["support_contract"]["levels"]["catalog_routable"])
         self.assertIn("asr", modal["supported_job_types"])
+        self.assertIn("gpu_task", modal["supported_job_types"])
         self.assertIn({"gpu_profile": "asr", "max_concurrent": 2}, modal["gpu_profiles"])
         self.assertEqual(provider_profile_catalog_limit("modal", "asr", {"provider_limits": {"modal": {"asr": 2}}}), 2)
         self.assertTrue(provider_supports_job_type("modal", "llm_heavy", catalog))
+
+    def test_cloud_lanes_expose_generic_gpu_capabilities_without_production_promotion(self) -> None:
+        catalog = build_provider_catalog(
+            {
+                "provider_limits": {
+                    "modal": {"gpu_task": 1},
+                    "runpod": {"gpu_task": 1},
+                    "vast": {"gpu_task": 1},
+                },
+                "provider_regions": {"modal": "external", "runpod": "external", "vast": "external"},
+                "provider_price_usd_per_second": {"modal": 0.0009, "runpod": 0.0008, "vast": 0.0005},
+            }
+        )
+
+        for provider in ("modal", "runpod", "vast"):
+            self.assertTrue(provider_supports_job_type(provider, "gpu_task", catalog))
+            self.assertTrue(provider_supports_job_type(provider, "llm_heavy", catalog))
+            self.assertTrue(provider_supports_job_type(provider, "vlm_ocr", catalog))
+
+        self.assertEqual(catalog["providers"]["modal"]["support_contract"]["highest_support_level"], "production_route")
+        self.assertEqual(catalog["providers"]["runpod"]["support_contract"]["highest_support_level"], "canary_executable")
+        self.assertEqual(catalog["providers"]["vast"]["support_contract"]["highest_support_level"], "canary_executable")
 
     def test_catalog_distinguishes_cloud_canary_from_local_production_routes(self) -> None:
         catalog = build_provider_catalog(

@@ -29,11 +29,11 @@ class OllamaEmbeddingTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertIn("embedding", result["supported_job_types"])
 
-    def test_embedding_profile_prefers_ollama_with_local_fallback(self) -> None:
+    def test_embedding_profile_prefers_ollama_with_generic_cloud_fallbacks(self) -> None:
         config = json.loads(Path("config/gpu-profiles.json").read_text())
         profile = config["profiles"]["embedding"]
         self.assertEqual(profile["preferred_provider"], "ollama")
-        self.assertEqual(profile["fallback_providers"], ["local"])
+        self.assertEqual(profile["fallback_providers"], ["local", "modal", "runpod", "vast"])
 
     def test_bge_m3_capability_is_registered(self) -> None:
         config = json.loads(Path("config/model-capabilities.json").read_text())

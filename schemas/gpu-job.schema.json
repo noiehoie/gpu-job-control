@@ -7,7 +7,7 @@
     "job_id": {"type": "string"},
     "job_type": {
       "type": "string",
-      "enum": ["asr", "pdf_ocr", "vlm_ocr", "avatar_video", "image_generation", "llm_heavy", "embedding", "smoke"]
+      "enum": ["asr", "pdf_ocr", "vlm_ocr", "avatar_video", "image_generation", "llm_heavy", "embedding", "gpu_task", "smoke"]
     },
     "input_uri": {"type": "string"},
     "output_uri": {"type": "string"},
@@ -47,7 +47,7 @@
         "idempotency_key": {"type": "string"},
         "provider_module_id": {
           "type": "string",
-          "description": "Provider-native module contract id such as runpod_serverless, runpod_pod, vast_instance, vast_pyworker_serverless, or modal_function. This is recorded and validated; it does not change parent provider routing."
+          "description": "Provider-native module contract id such as runpod_serverless, runpod_pod, vast_instance, vast_pyworker_serverless, or modal_function. These are generic GPU execution lanes, not ASR-specific lanes. This is recorded and validated; it does not change parent provider routing."
         },
         "provider_contract_unit": {
           "type": "string",

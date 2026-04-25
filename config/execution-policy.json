@@ -5,16 +5,17 @@
   },
   "provider_limits": {
     "local": {"*": 1},
-    "modal": {"llm_heavy": 1, "vlm_ocr": 1, "asr": 2, "asr_diarization": 1, "*": 1},
+    "modal": {"llm_heavy": 1, "vlm_ocr": 1, "asr": 2, "asr_diarization": 1, "gpu_task": 1, "*": 1},
     "ollama": {"embedding": 1, "llm_heavy": 1, "vlm_ocr": 1, "*": 1},
-    "runpod": {"llm_heavy": 1, "asr": 2, "*": 1},
-    "vast": {"asr": 1, "asr_diarization": 1, "*": 1}
+    "runpod": {"llm_heavy": 1, "asr": 2, "gpu_task": 1, "*": 1},
+    "vast": {"llm_heavy": 1, "asr": 1, "asr_diarization": 1, "gpu_task": 1, "*": 1}
   },
   "default_job_timeout_seconds": 14400,
   "job_type_timeouts_seconds": {
     "smoke": 60,
     "embedding": 300,
     "llm_heavy": 3600,
+    "gpu_task": 14400,
     "vlm_ocr": 3600,
     "pdf_ocr": 7200,
     "asr": 14400,

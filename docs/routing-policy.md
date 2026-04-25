@@ -16,7 +16,7 @@ Short interactive jobs use strict startup limits. Long batch jobs use amortized 
 - `metadata.routing.deadline_seconds`: maximum useful end-to-end latency for this job.
 - `metadata.routing.quality_requires_gpu`: allow GPU even when it is not faster than CPU/local because quality requires it.
 
-This keeps low-latency canaries on Modal while allowing Vast.ai or RunPod for longer ASR batches, VLM/OCR, video generation, and heavy LLM jobs when their lower hourly cost or larger GPU availability justifies cold start.
+This keeps low-latency canaries on Modal while allowing Vast.ai or RunPod for longer non-interactive GPU batches, including ASR, VLM/OCR, video generation, generic container workloads, and heavy LLM jobs when their lower hourly cost or larger GPU availability justifies cold start.
 
 Routing now evaluates each candidate as:
 

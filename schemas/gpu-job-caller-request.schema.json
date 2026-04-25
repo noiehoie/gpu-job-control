@@ -137,7 +137,8 @@
         },
         "provider_module_id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Optional generic provider-lane audit metadata. It is not an ASR-only marker and does not bypass product routing policy."
         },
         "quality_requires_gpu": {
           "type": "boolean"

@@ -64,7 +64,7 @@
     },
     "embedding": {
       "preferred_provider": "ollama",
-      "fallback_providers": ["local"],
+      "fallback_providers": ["local", "modal", "runpod", "vast"],
       "min_vram_gb": 0,
       "min_compute_cap": 0,
       "max_cost_usd": 0,
@@ -80,11 +80,11 @@
         "runpod_preferred_runtime_seconds": 3600,
         "interactive_deadline_seconds": 60
       },
-      "notes": "Production embedding profile. Prefer fixed-cost resident Ollama bge-m3, with deterministic local fallback for canary-only validation."
+      "notes": "Production embedding profile. Prefer fixed-cost resident Ollama bge-m3; external GPU lanes remain available as generic canary/conditional capacity."
     },
     "vlm_ocr": {
       "preferred_provider": "ollama",
-      "fallback_providers": ["local", "modal"],
+      "fallback_providers": ["local", "modal", "runpod", "vast"],
       "min_vram_gb": 48,
       "min_compute_cap": 800,
       "max_cost_usd": 20,
@@ -101,11 +101,11 @@
         "runpod_preferred_runtime_seconds": 1800,
         "interactive_deadline_seconds": 300
       },
-      "notes": "Document VLM/OCR. Prefer fixed-cost local Ollama until paid VLM workers are registered."
+      "notes": "Document VLM/OCR. Prefer fixed-cost local Ollama until paid VLM workers are registered; all cloud GPU lanes remain generic candidates after evidence."
     },
     "video_4k": {
       "preferred_provider": "modal",
-      "fallback_providers": [],
+      "fallback_providers": ["runpod", "vast"],
       "min_vram_gb": 48,
       "min_compute_cap": 800,
       "max_cost_usd": 50,
@@ -122,11 +122,11 @@
         "runpod_preferred_runtime_seconds": 1800,
         "interactive_deadline_seconds": 300
       },
-      "notes": "4K avatar or video generation canary. Modal only until RunPod/Vast are promoted."
+      "notes": "4K avatar or video generation canary. Modal first, with RunPod/Vast available as generic conditional/reserve GPU lanes after evidence."
     },
     "llm_heavy": {
       "preferred_provider": "modal",
-      "fallback_providers": ["ollama"],
+      "fallback_providers": ["ollama", "runpod", "vast"],
       "min_vram_gb": 80,
       "min_compute_cap": 800,
       "max_cost_usd": 50,
@@ -146,6 +146,28 @@
         "interactive_deadline_seconds": 300
       },
       "notes": "Heavy LLM jobs. Modal is production-ready for quality_required_gpu and burst canaries; fixed-cost local Ollama remains available for bounded short non-GPU jobs."
+    },
+    "generic_gpu": {
+      "preferred_provider": "modal",
+      "fallback_providers": ["runpod", "vast"],
+      "min_vram_gb": 24,
+      "min_compute_cap": 750,
+      "max_cost_usd": 50,
+      "max_runtime_minutes": 240,
+      "max_startup_seconds": 300,
+      "estimated_gpu_runtime_seconds": 600,
+      "startup_policy": {
+        "mode": "amortized",
+        "hard_max_startup_seconds": 900,
+        "max_startup_fraction": 0.15
+      },
+      "burst_policy": {
+        "ollama_max_burst_size": 0,
+        "modal_preferred_burst_size": 3,
+        "runpod_preferred_runtime_seconds": 1800,
+        "interactive_deadline_seconds": 300
+      },
+      "notes": "Generic external GPU workload profile. All cloud lanes are candidates; lane promotion remains evidence-gated."
     }
   }
 }

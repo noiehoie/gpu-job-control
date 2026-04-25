@@ -49,6 +49,31 @@ def test_operation_catalog_snapshot_is_closed() -> None:
     assert snapshot["ok"] is True
     assert snapshot["free_form_job_type_allowed"] is False
     assert "llm.generate" in snapshot["operations"]
+    assert "gpu.container.run" in snapshot["operations"]
+
+
+def test_cloud_gpu_lanes_are_generic_catalog_candidates() -> None:
+    snapshot = operation_catalog_snapshot()
+    expected_lanes = {
+        "modal_function",
+        "runpod_pod",
+        "runpod_serverless",
+        "vast_instance",
+        "vast_pyworker_serverless",
+    }
+    for operation in (
+        "asr.transcribe",
+        "asr.transcribe_diarize",
+        "llm.generate",
+        "embedding.embed",
+        "ocr.document",
+        "ocr.image",
+        "gpu.container.run",
+        "smoke.gpu",
+    ):
+        spec = snapshot["operations"][operation]
+        assert set(spec["allowed_lanes"]) == expected_lanes
+        assert spec["forbidden_lanes"] == []
 
 
 def test_validate_caller_request_accepts_valid_payload() -> None:
@@ -170,3 +195,41 @@ def test_validate_caller_request_rejects_unknown_preferences() -> None:
 
     assert result["ok"] is False
     assert "unsupported preferences present: provider" in result["errors"]
+
+
+def test_generic_gpu_container_operation_requires_workload_and_compiles() -> None:
+    payload = _caller_request()
+    payload["operation"] = "gpu.container.run"
+    payload["input"] = {
+        "uri": "none://generic-gpu-task",
+        "parameters": {
+            "workload": {
+                "kind": "container",
+                "entrypoint": ["python", "-m", "worker"],
+            }
+        },
+    }
+    payload["preferences"] = {
+        "worker_image": "auto",
+        "quality_requires_gpu": True,
+        "quality_tier": "development",
+        "local_fixed_resource_policy": "unsuitable",
+    }
+
+    result = compile_caller_request(payload)
+
+    assert result["ok"] is True
+    assert result["job"]["job_type"] == "gpu_task"
+    assert result["job"]["gpu_profile"] == "generic_gpu"
+    assert result["job"]["metadata"]["operation_contract"]["allowed_lanes"] == [
+        "modal_function",
+        "runpod_pod",
+        "runpod_serverless",
+        "vast_instance",
+        "vast_pyworker_serverless",
+    ]
+
+    del payload["input"]["parameters"]["workload"]
+    result = validate_caller_request(payload)
+    assert result["ok"] is False
+    assert "input.parameters.workload is required for operation gpu.container.run" in result["errors"]

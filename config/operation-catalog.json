@@ -81,8 +81,8 @@
         "worker_image": "auto",
         "model": "default-llm"
       },
-      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless"],
-      "forbidden_lanes": ["vast_instance", "vast_pyworker_serverless"]
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
     },
     "embedding.embed": {
       "job_type": "embedding",
@@ -105,8 +105,8 @@
         "worker_image": "auto",
         "model": "default-embedding"
       },
-      "allowed_lanes": ["modal_function"],
-      "forbidden_lanes": ["runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"]
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
     },
     "ocr.document": {
       "job_type": "pdf_ocr",
@@ -129,8 +129,8 @@
         "worker_image": "auto",
         "model": "default-pdf-ocr"
       },
-      "allowed_lanes": ["modal_function"],
-      "forbidden_lanes": ["runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"]
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
     },
     "ocr.image": {
       "job_type": "vlm_ocr",
@@ -153,8 +153,32 @@
         "worker_image": "auto",
         "model": "default-vlm-ocr"
       },
-      "allowed_lanes": ["modal_function"],
-      "forbidden_lanes": ["runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"]
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
+    },
+    "gpu.container.run": {
+      "job_type": "gpu_task",
+      "description": "Run a bounded generic GPU workload through a declared worker image and artifact contract.",
+      "input_contract": {
+        "required_input_uri_schemes": ["s3", "local", "http", "https", "text", "none"],
+        "required_parameters": ["workload"]
+      },
+      "output_contract": {
+        "format": "artifact_bundle",
+        "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+      },
+      "artifact_contract": {
+        "required_result_fields": ["ok"]
+      },
+      "failure_taxonomy": ["provider_backpressure", "image_missing_dependency", "cold_start_timeout", "artifact_contract_failure"],
+      "required_secrets": [],
+      "job_defaults": {
+        "gpu_profile": "generic_gpu",
+        "worker_image": "auto",
+        "model": "declared-by-caller"
+      },
+      "allowed_lanes": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+      "forbidden_lanes": []
     },
     "smoke.gpu": {
       "job_type": "smoke",

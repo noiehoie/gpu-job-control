@@ -44,6 +44,7 @@ The caller must emit one strict JSON object with these top-level fields:
 4. Required field rules
 - `contract_version` must equal the published current version.
 - `operation` must be a closed product-defined operation identifier, not free text.
+- Use a named operation when one fits. Use `gpu.container.run` only for bounded GPU workloads that do not fit the named ASR, LLM, embedding, or OCR operations.
 - `input.uri` must be explicit and machine-readable.
 - `output_expectation.target_uri` must be explicit.
 - `limits` must always be present and finite.
@@ -53,6 +54,7 @@ The caller must emit one strict JSON object with these top-level fields:
 - `gpu-job-control` is not a generic small-LLM wrapper. Use it for workloads that are unsuitable for local fixed resources.
 - For production-quality `llm.generate`, set `preferences.quality_tier` to `production_quality`, `preferences.quality_requires_gpu` to `true`, `preferences.local_fixed_resource_policy` to `unsuitable`, and either `preferences.model_size_billion_parameters` to at least `70` or `preferences.model_size_class` to `at_least_70b`.
 - 27B/32B-class LLMs may be used for `smoke`, `development`, or `degraded` flows, but must not be treated as production-quality external-GPU evidence.
+- ASR is not the product boundary. Do not assume RunPod or Vast are ASR-only; every cloud provider lane is a generic GPU execution lane, with production use controlled by product policy and evidence.
 
 5. Deterministic behavior requirements
 - Same caller intent plus same inputs must produce the same canonical request.

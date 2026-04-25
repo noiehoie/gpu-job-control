@@ -73,3 +73,17 @@ of these are true:
 
 Smaller LLMs may be used for `smoke`, `development`, or `degraded` requests, but
 they are not a production-quality external-GPU contract.
+
+## Generic GPU Workloads
+
+`gpu-job-control` is a generic GPU broker, not an ASR service. ASR canaries prove
+provider lifecycle, cleanup, artifact, and secret handling, but they do not
+limit provider lanes to ASR.
+
+When no named operation fits, callers may use `gpu.container.run`. The request
+must still be deterministic and bounded:
+
+- `input.parameters.workload` is required.
+- `limits` must be finite.
+- `output_expectation.required_files` must list the artifact contract.
+- provider credentials and provider-native routing hints remain forbidden.

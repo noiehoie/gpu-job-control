@@ -14,10 +14,10 @@ CATALOG_VERSION = "gpu-job-provider-catalog-v1"
 SUPPORT_LEVELS = ("registered", "catalog_routable", "canary_executable", "production_route")
 ADAPTER_EXECUTABLE_JOB_TYPES = {
     "local": {"smoke", "embedding", "llm_heavy", "pdf_ocr", "vlm_ocr", "cpu_workflow_helper"},
-    "modal": {"smoke", "asr", "llm_heavy", "pdf_ocr", "vlm_ocr"},
+    "modal": {"smoke", "asr", "llm_heavy", "pdf_ocr", "vlm_ocr", "gpu_task"},
     "ollama": {"embedding", "llm_heavy", "vlm_ocr"},
-    "runpod": {"smoke", "llm_heavy", "asr"},
-    "vast": {"smoke", "asr"},
+    "runpod": {"smoke", "llm_heavy", "asr", "embedding", "pdf_ocr", "vlm_ocr", "gpu_task"},
+    "vast": {"smoke", "llm_heavy", "asr", "embedding", "pdf_ocr", "vlm_ocr", "gpu_task"},
 }
 PROVIDER_SUPPORT_BASELINES = {
     "local": "production_route",
