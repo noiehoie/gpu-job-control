@@ -144,7 +144,7 @@ def main() -> None:
                     result["disabled"] = json.loads(resp.read().decode())
             except Exception as e:
                 result["disabled"] = {"ok": False, "error": str(e)}
-            
+
             time.sleep(3)
             if args.keep_endpoint_for_console:
                 result["deleted"] = None
@@ -165,7 +165,7 @@ def main() -> None:
                         result["deleted"] = {"ok": True, "status": resp.status}
                 except Exception as e:
                     result["deleted"] = {"ok": False, "error": str(e)}
-        
+
         if template and not args.keep_endpoint_for_console:
             delete_template_req = urllib.request.Request(
                 f"https://api.runpod.io/v1/templates/{template['id']}",

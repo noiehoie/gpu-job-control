@@ -126,10 +126,13 @@ class RunPodServerlessProbeScriptTests(unittest.TestCase):
         )
         plan = {"template": {"imageName": "ignored", "name": "gpu-job-asr"}}
 
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
-            self.module,
-            "_read_existing_template",
-            return_value={"id": "tpl-public", "name": "official", "imageName": "runpod/ai-api-faster-whisper:0.4.1"},
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(
+                self.module,
+                "_read_existing_template",
+                return_value={"id": "tpl-public", "name": "official", "imageName": "runpod/ai-api-faster-whisper:0.4.1"},
+            ),
         ):
             template, template_id, provenance = self.module._prepare_managed_template(
                 api_key="token",
@@ -153,10 +156,13 @@ class RunPodServerlessProbeScriptTests(unittest.TestCase):
         )
         plan = {"template": {"imageName": "fallback/image", "name": "gpu-job-asr"}}
 
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
-            self.module,
-            "_read_existing_template",
-            return_value={},
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(
+                self.module,
+                "_read_existing_template",
+                return_value={},
+            ),
         ):
             template, template_id, provenance = self.module._prepare_managed_template(
                 api_key="token",

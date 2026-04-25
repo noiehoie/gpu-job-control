@@ -587,11 +587,7 @@ def _submit_payload_preview(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _official_template_smoke_ok(run_result: dict[str, Any]) -> bool:
-    return (
-        isinstance(run_result, dict)
-        and bool(run_result.get("ok"))
-        and str(run_result.get("status") or "").upper() == "COMPLETED"
-    )
+    return isinstance(run_result, dict) and bool(run_result.get("ok")) and str(run_result.get("status") or "").upper() == "COMPLETED"
 
 
 def _probe_name_for_contract(success_contract: str) -> str:
@@ -845,9 +841,7 @@ def _normalized_output(raw_output: dict[str, Any]) -> dict[str, Any]:
         "gpu_probe": nested_probe_info.get("gpu_probe") or nested_result.get("gpu_probe") or {},
         "runtime_checks": nested_result.get("checks") if isinstance(nested_result.get("checks"), dict) else {},
         "runtime_seconds": (
-            raw_output.get("runtime_seconds")
-            or nested_metrics.get("runtime_seconds")
-            or nested_result.get("runtime_seconds")
+            raw_output.get("runtime_seconds") or nested_metrics.get("runtime_seconds") or nested_result.get("runtime_seconds")
         ),
         "cleanup": {"ok": True, "source": "serverless_handler_nested_artifacts"},
         "actual_cost_guard": {"ok": True, "source": "serverless_handler_nested_artifacts"},
@@ -856,8 +850,7 @@ def _normalized_output(raw_output: dict[str, Any]) -> dict[str, Any]:
 
 def _guard_clean(guard: dict[str, Any]) -> bool:
     return bool(guard.get("ok")) and (
-        (isinstance(guard.get("billable_resources"), list) and not guard.get("billable_resources"))
-        or guard.get("billable_count") == 0
+        (isinstance(guard.get("billable_resources"), list) and not guard.get("billable_resources")) or guard.get("billable_count") == 0
     )
 
 
@@ -900,9 +893,7 @@ def _blocker_chain(*, run_result: dict[str, Any], endpoint: dict[str, Any], mana
     last_sample = samples[-1] if isinstance(samples, list) and samples else {}
     endpoint_health = last_sample.get("endpoint_health") if isinstance(last_sample, dict) else {}
     active_workers = _health_has_active_worker(endpoint_health) if isinstance(endpoint_health, dict) else False
-    zero_capacity = (
-        endpoint_scale["workersMin"] == 0 and endpoint_scale["workersMax"] == 0 and endpoint_scale["workersStandby"] == 0
-    )
+    zero_capacity = endpoint_scale["workersMin"] == 0 and endpoint_scale["workersMax"] == 0 and endpoint_scale["workersStandby"] == 0
     unexpected_warm_standby = endpoint_scale["workersStandby"] > 0
     if managed_resources and status in {"IN_QUEUE", "CANCELLED", "TIMEOUT", "TIMED_OUT"} and unexpected_warm_standby:
         blockers.append("warm_standby_unexpected")

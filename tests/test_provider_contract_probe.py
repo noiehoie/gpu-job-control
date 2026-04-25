@@ -1184,9 +1184,7 @@ class ProviderContractProbeTest(unittest.TestCase):
             # 3. 条件付きキーが存在する場合だけ型を固定する
             for key, expected_type in conditional_keys.items():
                 if key in spec:
-                    self.assertIsInstance(
-                        spec[key], expected_type, f"Probe {probe_name} key {key} must be {expected_type}"
-                    )
+                    self.assertIsInstance(spec[key], expected_type, f"Probe {probe_name} key {key} must be {expected_type}")
 
             # 4. planned = plan_contract_probe(spec["provider"], probe_name) を実行
             planned = plan_contract_probe(spec["provider"], probe_name)

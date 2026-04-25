@@ -38,10 +38,13 @@ class VastServerlessProbeScriptTests(unittest.TestCase):
             discover_template_image_substring="",
             discover_template_bootstrap_substring="",
         )
-        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
-            self.module,
-            "_lookup_template",
-            return_value={"hash_id": "hash-1", "image": "vastai/vllm", "tag": "0.8.4"},
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(
+                self.module,
+                "_lookup_template",
+                return_value={"hash_id": "hash-1", "image": "vastai/vllm", "tag": "0.8.4"},
+            ),
         ):
             record, resolution = self.module._resolve_template_record(
                 args=args,
@@ -85,7 +88,7 @@ class VastServerlessProbeScriptTests(unittest.TestCase):
             "tag": "v0.11.0-cuda-12.8-mvc-cuda-12.0",
             "created_at": 1767006399.0,
             "onstart": "curl https://raw.githubusercontent.com/vast-ai/pyworker/main/start_server.sh | bash",
-            "extra_filters": "{\"inet_down\":{\"gt\":500}}",
+            "extra_filters": '{"inet_down":{"gt":500}}',
         }
         newer_better = {
             "id": 322483,
@@ -95,7 +98,7 @@ class VastServerlessProbeScriptTests(unittest.TestCase):
             "tag": "@vastai-automatic-tag",
             "created_at": 1767205458.0,
             "onstart": "curl https://raw.githubusercontent.com/vast-ai/pyworker/main/start_server.sh | bash",
-            "extra_filters": "{\"gpu_ram\":{\"gte\":16000}}",
+            "extra_filters": '{"gpu_ram":{"gte":16000}}',
         }
 
         rows = sorted([older, newer_better], key=self.module._template_candidate_sort_key, reverse=True)
