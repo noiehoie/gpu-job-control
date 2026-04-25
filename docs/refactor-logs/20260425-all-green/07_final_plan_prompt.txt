@@ -1,0 +1,15 @@
+以下の3文書を踏まえて、「リファクタリング最終計画」を作成せよ。
+- docs/refactor-logs/20260425-all-green/04_gpt54_review.md
+- docs/refactor-logs/20260425-all-green/05_gemini_review.md
+- docs/refactor-logs/20260425-all-green/06_claude_review.md
+
+条件:
+- 現在の事実として repo は all green である。Claude 文書内の stale な前提は、他の最新事実と矛盾するなら棄却してよい。
+- green を壊さない最小安全集合だけを採用すること
+- provider adapter は触らない
+- routing_by_module_enabled=false 維持
+- 変更対象ファイル、変更しないファイル、実装順、検証順を確定させること
+- 実装内容は曖昧にせず、具体的な関数名・定数名・テスト名まで落とし込むこと
+- 最後に「この計画で実装してよい」と明示せよ
+
+出力は日本語。曖昧語禁止。

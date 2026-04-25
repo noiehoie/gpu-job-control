@@ -1,0 +1,15 @@
+以下の2文書を精読し、リファクタリング基本計画をまとめよ。
+- docs/refactor-logs/20260425-all-green/01_gpt54_report.md
+- docs/refactor-logs/20260425-all-green/02_gemini_audit.md
+
+要件:
+- Gemini が指摘した誤認と危険提案を反映して訂正すること
+- green を保つことを最優先にすること
+- provider adapter は触らないこと
+- routing_by_module_enabled=false 維持
+- 目的は、all green を維持したままコードを短く・読みやすくすること
+- 基本計画は実装順に並べること
+- 各ステップで「何を変えるか」「何を変えないか」「なぜ安全か」「どのテストで守るか」を明記すること
+- 最後に、この基本計画を GPT-5.4 High / Gemini / Claude に再審査させるための論点一覧を付けること
+
+出力は日本語。曖昧語禁止。ファイルパスと関数名を明示せよ。

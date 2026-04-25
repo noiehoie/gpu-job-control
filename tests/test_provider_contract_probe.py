@@ -1154,6 +1154,61 @@ class ProviderContractProbeTest(unittest.TestCase):
             )
         raise AssertionError(f"unknown provider module fixture: {module_id}")
 
+    def test_default_contract_probes_keep_required_shape_for_plan_and_canary_job(self) -> None:
+        required_keys = {
+            "provider",
+            "provider_module_id",
+            "workload_family",
+            "job_type",
+            "gpu_profile",
+            "expected_model",
+            "expected_image",
+            "expected_image_digest",
+            "forbidden_models",
+            "required_files",
+            "require_gpu_utilization",
+            "cache_required",
+        }
+        conditional_keys = {
+            "workspace_contract_required": bool,
+            "image_contract_id": str,
+            "serverless_handler_contract_required": bool,
+            "official_template_smoke_required": bool,
+        }
+
+        for probe_name, spec in DEFAULT_CONTRACT_PROBES.items():
+            # 2. required_keys.issubset(spec.keys()) を確認
+            missing = required_keys - set(spec.keys())
+            self.assertEqual(missing, set(), f"Probe {probe_name} is missing required keys: {missing}")
+
+            # 3. 条件付きキーが存在する場合だけ型を固定する
+            for key, expected_type in conditional_keys.items():
+                if key in spec:
+                    self.assertIsInstance(
+                        spec[key], expected_type, f"Probe {probe_name} key {key} must be {expected_type}"
+                    )
+
+            # 4. planned = plan_contract_probe(spec["provider"], probe_name) を実行
+            planned = plan_contract_probe(spec["provider"], probe_name)
+
+            # 5. job = _canary_job(spec) を実行
+            job = _canary_job(spec)
+
+            # 6. planned["probe_name"] == probe_name
+            self.assertEqual(planned["probe_name"], probe_name)
+
+            # 7. planned["provider"] == spec["provider"]
+            self.assertEqual(planned["provider"], spec["provider"])
+
+            # 8. planned["spec"]["provider_module_id"] == spec["provider_module_id"]
+            self.assertEqual(planned["spec"]["provider_module_id"], spec["provider_module_id"])
+
+            # 9. job.provider == spec["provider"]
+            self.assertEqual(job.provider, spec["provider"])
+
+            # 10. job.gpu_profile == spec["gpu_profile"]
+            self.assertEqual(job.gpu_profile, spec["gpu_profile"])
+
 
 if __name__ == "__main__":
     unittest.main()
