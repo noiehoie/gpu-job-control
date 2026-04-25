@@ -45,6 +45,22 @@ class ModalProviderCommandTest(unittest.TestCase):
         self.assertIn("--speaker-model", command)
         self.assertNotIn("--input-uri", command)
 
+    def test_gpu_task_command_names_generic_entrypoint(self) -> None:
+        job = Job(
+            job_id="gpu-task-command-test",
+            job_type="gpu_task",
+            input_uri="none://gpu-task",
+            output_uri="local://out",
+            worker_image="auto",
+            gpu_profile="generic_gpu",
+            metadata={"input": {"workload": {"kind": "container", "entrypoint": ["true"]}}},
+        )
+
+        command = ModalProvider()._command("/usr/bin/modal", job, Path("/tmp/artifacts"))
+
+        self.assertEqual(command[0:2], ["/usr/bin/modal", "run"])
+        self.assertIn("modal_gpu_task.py::main", command[2])
+
 
 if __name__ == "__main__":
     unittest.main()

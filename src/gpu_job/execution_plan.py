@@ -46,6 +46,21 @@ def build_execution_plan(job: Job, provider: str) -> dict[str, Any]:
     if bool(metadata_input.get("diarize") or metadata_input.get("speaker_diarization")):
         command.append("--diarize")
         command.extend(["--speaker-model", str(metadata_input.get("speaker_model") or "pyannote/speaker-diarization-3.1")])
+
+    if job.job_type == "gpu_task":
+        parameters = metadata_input.get("parameters") if isinstance(metadata_input.get("parameters"), dict) else {}
+        workload = metadata_input.get("workload") if isinstance(metadata_input.get("workload"), dict) else parameters.get("workload") or {}
+        if workload.get("kind") == "container":
+            entrypoint = workload.get("entrypoint")
+            arguments = workload.get("arguments") or []
+            if entrypoint:
+                if isinstance(entrypoint, list):
+                    command = [str(item) for item in entrypoint]
+                else:
+                    command = [str(entrypoint)]
+                if arguments:
+                    command.extend(str(item) for item in arguments)
+
     return {
         "execution_plan_version": EXECUTION_PLAN_VERSION,
         "provider": provider,

@@ -65,3 +65,8 @@ do not fit the named operations. It is still a closed operation: the caller must
 provide `input.parameters.workload`, explicit limits, artifact expectations, and
 an idempotency key. It is not permission to send provider-specific payloads or
 credentials.
+
+When a caller needs a specific lane, it sets
+`preferences.execution_lane_id` to one of the `allowed_lanes`. The router pins
+the parent provider for that lane and does not fall back to another provider. An
+unknown lane is rejected before provider selection.

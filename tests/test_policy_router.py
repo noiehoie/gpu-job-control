@@ -11,7 +11,13 @@ from gpu_job.models import Job, now_unix
 from gpu_job.policy import load_execution_policy
 from gpu_job.policy_engine import validate_policy
 from gpu_job.queue import next_runnable_job
-from gpu_job.router import capability_policy_decision, route_job, startup_policy_decision, workload_policy_decision
+from gpu_job.router import (
+    capability_policy_decision,
+    requested_execution_lane_provider,
+    route_job,
+    startup_policy_decision,
+    workload_policy_decision,
+)
 from gpu_job.secrets_policy import secret_check
 from gpu_job.store import JobStore
 
@@ -278,6 +284,49 @@ class PolicyAndRouterTest(unittest.TestCase):
         )
         result = capability_policy_decision(job, "modal")
         self.assertTrue(result["ok"])
+
+    def test_requested_execution_lane_pins_provider_without_enabling_module_routing(self) -> None:
+        job = Job(
+            job_id="gpu-task-runpod-serverless",
+            job_type="gpu_task",
+            input_uri="none://gpu-task",
+            output_uri="local://out",
+            worker_image="auto",
+            gpu_profile="generic_gpu",
+            limits={"max_runtime_minutes": 10},
+            metadata={
+                "execution_lane_id": "runpod_serverless",
+                "provider_module_id": "runpod_serverless",
+                "routing": {"quality_requires_gpu": True},
+            },
+        )
+
+        def _signal(name, _profile):
+            return {
+                "provider": name,
+                "available": True,
+                "estimated_startup_seconds": 1,
+            }
+
+        with (
+            patch("gpu_job.router.provider_signal", side_effect=_signal),
+            patch("gpu_job.router.collect_stats", return_value={"ok": True, "groups": {}}),
+            patch("gpu_job.router.provider_circuit_state", return_value={"ok": True, "state": "closed"}),
+        ):
+            result = route_job(job)
+
+        self.assertEqual(requested_execution_lane_provider(job), "runpod")
+        self.assertEqual(result["candidates"], ["runpod"])
+        self.assertEqual(result["selected_provider"], "runpod")
+        self.assertEqual(result["decision"]["requested_execution_lane_provider"], "runpod")
+
+    def test_unknown_execution_lane_fails_closed_before_provider_fallback(self) -> None:
+        job = make_job(execution_lane_id="unknown_lane")
+
+        with self.assertRaises(ValueError) as raised:
+            route_job(job)
+
+        self.assertIn("unknown execution_lane_id: unknown_lane", str(raised.exception))
 
     def test_secret_policy_denies_unlisted_refs(self) -> None:
         job = make_job(source_system="my-app", secret_refs=["allowed", "denied"])

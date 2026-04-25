@@ -208,6 +208,18 @@ class ModalProvider(Provider):
                 "--artifact-dir",
                 str(artifact_dir),
             ]
+        if job.job_type == "gpu_task":
+            script = package_dir / "modal_gpu_task.py"
+            job_json = JobStore().job_path(job.job_id)
+            return [
+                binary,
+                "run",
+                f"{script}::main",
+                "--job-json",
+                str(job_json),
+                "--artifact-dir",
+                str(artifact_dir),
+            ]
         raise ValueError(f"Modal execute does not support job_type: {job.job_type}")
 
     def submit(self, job: Job, store: JobStore, execute: bool = False) -> Job:

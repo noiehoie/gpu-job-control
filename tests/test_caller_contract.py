@@ -130,6 +130,28 @@ def test_all_caller_request_examples_validate_and_compile() -> None:
         assert compiled["ok"] is True, path.name
 
 
+def test_generic_gpu_lane_examples_cover_every_public_lane() -> None:
+    expected_lanes = {
+        "modal_function",
+        "runpod_pod",
+        "runpod_serverless",
+        "vast_instance",
+        "vast_pyworker_serverless",
+    }
+    observed_lanes = set()
+    for path in sorted(Path("examples/caller-requests").glob("gpu.container.run.*.json")):
+        payload = json.loads(path.read_text())
+        compiled = compile_caller_request(payload)
+        assert compiled["ok"] is True, path.name
+        job = compiled["job"]
+        assert job["job_type"] == "gpu_task", path.name
+        observed_lanes.add(job["metadata"].get("execution_lane_id"))
+        assert job["metadata"].get("execution_lane_id") == payload["preferences"]["execution_lane_id"]
+        assert job["metadata"].get("provider_module_id") == payload["preferences"]["execution_lane_id"]
+
+    assert observed_lanes == expected_lanes
+
+
 def test_validate_caller_request_enforces_production_quality_constraints() -> None:
     payload = _caller_request()
     payload["preferences"] = {
@@ -233,3 +255,46 @@ def test_generic_gpu_container_operation_requires_workload_and_compiles() -> Non
     result = validate_caller_request(payload)
     assert result["ok"] is False
     assert "input.parameters.workload is required for operation gpu.container.run" in result["errors"]
+
+
+def test_generic_gpu_container_operation_accepts_explicit_execution_lane() -> None:
+    payload = _caller_request()
+    payload["operation"] = "gpu.container.run"
+    payload["input"] = {
+        "uri": "none://generic-gpu-task",
+        "parameters": {"workload": {"kind": "container", "entrypoint": ["true"]}},
+    }
+    payload["preferences"] = {
+        "execution_lane_id": "runpod_serverless",
+        "worker_image": "auto",
+        "quality_requires_gpu": True,
+        "quality_tier": "development",
+        "local_fixed_resource_policy": "unsuitable",
+    }
+
+    result = compile_caller_request(payload)
+
+    assert result["ok"] is True
+    assert result["job"]["metadata"]["execution_lane_id"] == "runpod_serverless"
+    assert result["job"]["metadata"]["provider_module_id"] == "runpod_serverless"
+
+
+def test_execution_lane_id_is_closed_by_operation_catalog() -> None:
+    payload = _caller_request()
+    payload["operation"] = "gpu.container.run"
+    payload["input"] = {
+        "uri": "none://generic-gpu-task",
+        "parameters": {"workload": {"kind": "container", "entrypoint": ["true"]}},
+    }
+    payload["preferences"] = {
+        "execution_lane_id": "unknown_lane",
+        "worker_image": "auto",
+        "quality_requires_gpu": True,
+        "quality_tier": "development",
+        "local_fixed_resource_policy": "unsuitable",
+    }
+
+    result = validate_caller_request(payload)
+
+    assert result["ok"] is False
+    assert "preferences.execution_lane_id is not allowed for operation gpu.container.run: unknown_lane" in result["errors"]

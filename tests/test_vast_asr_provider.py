@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import json
 from pathlib import Path
 from subprocess import CompletedProcess
 from tempfile import TemporaryDirectory
@@ -333,6 +334,79 @@ class VastAsrProviderTest(unittest.TestCase):
                 "last_known_vast_state": "",
             },
         )
+
+    def test_vast_gpu_task_direct_path_uses_explicit_allow_flag(self) -> None:
+        with TemporaryDirectory() as tmp:
+            store = JobStore(Path(tmp) / "store")
+            job = Job(
+                job_id="vast-gpu-task-lifecycle",
+                job_type="gpu_task",
+                input_uri="none://gpu-task",
+                output_uri=str(Path(tmp) / "out"),
+                worker_image="nvidia/cuda:12.4.1-base-ubuntu22.04",
+                gpu_profile="generic_gpu",
+                metadata={
+                    "allow_vast_direct_instance_gpu_task": True,
+                    "input": {"workload": {"kind": "container", "entrypoint": ["true"]}},
+                },
+                limits={"max_startup_seconds": 30},
+            )
+            provider = VastProvider()
+
+            def fake_run(args, **kwargs):
+                if args[:3] == ["/usr/bin/vastai", "create", "instance"]:
+                    return CompletedProcess(args, 0, stdout='{"new_contract": 22345}', stderr="")
+                if args[:2] == ["/usr/bin/vastai", "logs"]:
+                    return CompletedProcess(
+                        args,
+                        0,
+                        stdout=(
+                            "GPU_JOB_TASK_START\n"
+                            "NVIDIA RTX 4090, 24576 MiB, 550.00\n"
+                            "GPU_JOB_COMMAND_START\n"
+                            "GPU_JOB_COMMAND_EXIT:0\n"
+                            "GPU_JOB_TASK_DONE\n"
+                        ),
+                        stderr="",
+                    )
+                if args[:3] == ["/usr/bin/vastai", "destroy", "instance"]:
+                    return CompletedProcess(args, 0, stdout='{"success": true}', stderr="")
+                raise AssertionError(f"unexpected command: {args!r}")
+
+            with (
+                patch("gpu_job.providers.vast.vast_bin", return_value="/usr/bin/vastai"),
+                patch("gpu_job.providers.vast.run", side_effect=fake_run),
+                patch.object(provider, "offers", return_value={"offers": [{"id": 99, "dph_total": 0.5, "gpu_name": "RTX 4090"}]}),
+                patch.object(provider, "_instance_ids", return_value=set()),
+                patch.object(provider, "_instances_by_label", return_value=[]),
+            ):
+                result = provider.submit(job, store, execute=True)
+
+            self.assertEqual(result.status, "succeeded")
+            payload = json.loads((store.artifact_dir(job.job_id) / "result.json").read_text())
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["lane"], "vast_instance")
+            self.assertEqual(payload["command_exit_code"], 0)
+
+    def test_vast_pyworker_serverless_gpu_task_requires_endpoint_url(self) -> None:
+        with TemporaryDirectory() as tmp:
+            store = JobStore(Path(tmp) / "store")
+            job = Job(
+                job_id="vast-pyworker-gpu-task-missing-url",
+                job_type="gpu_task",
+                input_uri="none://gpu-task",
+                output_uri=str(Path(tmp) / "out"),
+                worker_image="auto",
+                gpu_profile="generic_gpu",
+                metadata={"provider_module_id": "vast_pyworker_serverless"},
+                limits={"max_runtime_minutes": 1},
+            )
+
+            with patch.dict("os.environ", {"VAST_PYWORKER_ENDPOINT_URL": ""}, clear=False):
+                result = VastProvider().submit(job, store, execute=True)
+
+        self.assertEqual(result.status, "failed")
+        self.assertIn("Vast pyworker serverless gpu_task requires", result.error)
 
 
 if __name__ == "__main__":

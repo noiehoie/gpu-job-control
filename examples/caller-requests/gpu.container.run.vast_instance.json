@@ -1,0 +1,43 @@
+{
+  "contract_version": "gpu-job-caller-request-v1",
+  "operation": "gpu.container.run",
+  "input": {
+    "uri": "none://generic-gpu-task-vast-instance",
+    "parameters": {
+      "workload": {
+        "kind": "container",
+        "entrypoint": ["python", "-c"],
+        "arguments": ["import json; print(json.dumps({'ok': True, 'lane': 'vast_instance'}))"]
+      }
+    }
+  },
+  "output_expectation": {
+    "target_uri": "local://caller-generic-gpu-task-vast-instance",
+    "format": "artifact_bundle",
+    "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
+  },
+  "limits": {
+    "max_runtime_minutes": 10,
+    "max_cost_usd": 2,
+    "max_output_gb": 1
+  },
+  "idempotency": {
+    "key": "caller-generic-gpu-task-vast-instance"
+  },
+  "caller": {
+    "system": "example-caller",
+    "operation": "generic_gpu_task_vast_instance",
+    "request_id": "req-generic-gpu-task-vast-instance-001",
+    "version": "1.0.0"
+  },
+  "trace_context": {
+    "trace_id": "trace-generic-gpu-task-vast-instance-001"
+  },
+  "preferences": {
+    "execution_lane_id": "vast_instance",
+    "quality_requires_gpu": true,
+    "quality_tier": "development",
+    "local_fixed_resource_policy": "unsuitable",
+    "worker_image": "auto"
+  }
+}

@@ -8,6 +8,7 @@ from .config import config_path
 from .circuit import provider_circuit_state
 from .concurrency import provider_profile_limit
 from .models import Job
+from .lanes import LANES
 from .policy import load_execution_policy
 from .providers import PROVIDERS
 from .stats import collect_stats
@@ -24,6 +25,14 @@ def default_config_path() -> Path:
 def load_routing_config(path: Path | None = None) -> dict[str, Any]:
     config_path = path or default_config_path()
     return json.loads(config_path.read_text())
+
+
+def requested_execution_lane_provider(job: Job) -> str:
+    lane_id = str(job.metadata.get("execution_lane_id") or job.metadata.get("provider_module_id") or "")
+    if lane_id and lane_id not in LANES:
+        raise ValueError(f"unknown execution_lane_id: {lane_id}")
+    lane = LANES.get(lane_id)
+    return lane.provider if lane else ""
 
 
 def provider_signal(name: str, profile: dict[str, Any]) -> dict[str, Any]:
@@ -300,7 +309,10 @@ def route_job(job: Job, config_path: Path | None = None) -> dict[str, Any]:
     profile = profiles.get(job.gpu_profile)
     if not profile:
         raise ValueError(f"unknown gpu_profile in routing config: {job.gpu_profile}")
-    candidates = [profile["preferred_provider"], *profile.get("fallback_providers", [])]
+    requested_lane_provider = requested_execution_lane_provider(job)
+    candidates = (
+        [requested_lane_provider] if requested_lane_provider else [profile["preferred_provider"], *profile.get("fallback_providers", [])]
+    )
     seen: set[str] = set()
     ordered = []
     for name in candidates:
@@ -357,6 +369,7 @@ def route_job(job: Job, config_path: Path | None = None) -> dict[str, Any]:
             ),
             "reason": provider_decisions[selected]["workload_policy"]["reason"],
             "preferences": provider_decisions[selected]["workload_policy"].get("preferences", []),
+            "requested_execution_lane_provider": requested_lane_provider,
         },
     }
 

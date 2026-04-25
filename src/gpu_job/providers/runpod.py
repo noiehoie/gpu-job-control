@@ -524,6 +524,7 @@ query {
         hf_secret_name: str = "",
         container_registry_auth_id: str = "",
         prompt: str = "",
+        command: list[str] | None = None,
         execute: bool,
     ) -> dict[str, Any]:
         docker_args = _pod_http_worker_docker_args(worker_mode=worker_mode)
@@ -608,15 +609,19 @@ query {
                     health = _fetch_json_url(health_url, timeout=10)
                     health_samples.append(health)
                     if health.get("ok") and health.get("gpu_probe", {}).get("exit_code") == 0:
-                        if worker_mode in {"llm", "asr_diarization"}:
+                        if worker_mode in {"llm", "asr_diarization", "gpu_task"}:
+                            payload = {
+                                "prompt": prompt,
+                                "model": "runpod-pod-deterministic-gpu-canary",
+                                "max_tokens": 64,
+                            }
+                            if worker_mode == "gpu_task":
+                                payload["command"] = command or []
+
                             generate_result = _post_json_url(
                                 generate_url,
-                                {
-                                    "prompt": prompt,
-                                    "model": "runpod-pod-deterministic-gpu-canary",
-                                    "max_tokens": 64,
-                                },
-                                timeout=20,
+                                payload,
+                                timeout=max(30, max_uptime_seconds),
                             )
                         break
                 time.sleep(min(5, max(1, int(deadline - time.time()))))
@@ -1922,9 +1927,21 @@ mutation {{
             return self._submit_pod_worker(job, store, worker_mode="asr_diarization")
         if job.job_type == "llm_heavy" and str(job.metadata.get("runpod_execution_mode") or "") == "pod_http":
             return self._submit_pod_worker(job, store, worker_mode="llm")
+        if job.job_type == "gpu_task":
+            lane_id = str(job.metadata.get("provider_module_id") or "")
+            if lane_id == "runpod_serverless":
+                endpoint = self._gpu_task_endpoint((self._api_snapshot().get("endpoints") or []))
+                if not endpoint:
+                    job.status = "failed"
+                    job.error = "no RunPod gpu_task serverless endpoint configured"
+                    job.exit_code = 2
+                    store.save(job)
+                    return job
+                return self._submit_gpu_task_endpoint(job, store, endpoint)
+            return self._submit_pod_worker(job, store, worker_mode="gpu_task")
         if job.job_type != "llm_heavy":
             job.status = "failed"
-            job.error = "runpod execute currently supports smoke, llm_heavy, and asr_diarization canary jobs only"
+            job.error = "runpod execute currently supports smoke, llm_heavy, asr_diarization, and gpu_task jobs only"
             job.exit_code = 2
             store.save(job)
             return job
@@ -2049,6 +2066,7 @@ mutation {{
             hf_secret_name=str(job.metadata.get("runpod_hf_secret_name") or "gpu_job_hf_read"),
             container_registry_auth_id=container_registry_auth_id,
             prompt=_job_prompt(job),
+            command=list(((job.metadata.get("provider_plan") or {}).get("execution_plan") or {}).get("command") or []),
             execute=True,
         )
         stdout = _runpod_smoke_stdout(output)
@@ -2084,6 +2102,17 @@ mutation {{
             "cleanup": output.get("cleanup"),
             "pod": output.get("pod"),
         }
+        if worker_mode == "gpu_task" and isinstance(output.get("generate_result"), dict):
+            gpu_result = dict(output["generate_result"])
+            result.update(
+                {
+                    "ok": bool(output.get("ok") and gpu_result.get("ok")),
+                    "gpu_task_exit_code": gpu_result.get("exit_code"),
+                    "gpu_task_stdout": gpu_result.get("stdout"),
+                    "gpu_task_stderr": gpu_result.get("stderr"),
+                    "gpu_task_runtime_seconds": gpu_result.get("runtime_seconds"),
+                }
+            )
         workspace_observation = (
             _runpod_asr_workspace_observation(output, worker_image=worker_image) if worker_mode == "asr_diarization" else {}
         )
@@ -2177,6 +2206,161 @@ mutation {{
                     return endpoint
             return {"id": configured, "name": "RUNPOD_LLM_ENDPOINT_ID", "mode": os.getenv("RUNPOD_LLM_ENDPOINT_MODE", "").strip()}
         return None
+
+    def _gpu_task_endpoint(self, endpoints: list[dict[str, Any]]) -> dict[str, Any] | None:
+        configured = str(os.getenv("RUNPOD_GPU_TASK_ENDPOINT_ID", "") or "").strip()
+        if not configured:
+            return None
+        for endpoint in endpoints:
+            if str(endpoint.get("id")) == configured:
+                return {**endpoint, "mode": str(os.getenv("RUNPOD_GPU_TASK_ENDPOINT_MODE", "") or "").strip()}
+        return {
+            "id": configured,
+            "name": "RUNPOD_GPU_TASK_ENDPOINT_ID",
+            "mode": str(os.getenv("RUNPOD_GPU_TASK_ENDPOINT_MODE", "") or "").strip(),
+        }
+
+    def _submit_gpu_task_endpoint(self, job: Job, store: JobStore, endpoint: dict[str, Any]) -> Job:
+        artifact_dir = store.artifact_dir(job.job_id)
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        start = now_unix()
+        job.started_at = start
+        job.status = "running"
+        store.save(job)
+        stdout = ""
+        stderr = ""
+        try:
+            output = self._run_gpu_task_endpoint(endpoint, job)
+            endpoint_output = output.get("output") if isinstance(output, dict) else output
+            if isinstance(endpoint_output, dict) and isinstance(endpoint_output.get("output"), dict):
+                endpoint_output = endpoint_output["output"]
+            result = {
+                "job_id": job.job_id,
+                "job_type": job.job_type,
+                "provider": self.name,
+                "lane": "runpod_serverless",
+                "endpoint_id": endpoint.get("id"),
+                "provider_job_id": output.get("id") if isinstance(output, dict) else None,
+                "ok": bool(endpoint_output.get("ok")) if isinstance(endpoint_output, dict) else False,
+                "raw_output": endpoint_output,
+            }
+            stdout = json.dumps(endpoint_output, ensure_ascii=False, sort_keys=True) + "\n"
+            if not result["ok"]:
+                raise RuntimeError(f"RunPod gpu_task endpoint returned non-ok output: {stdout.strip()}")
+        except Exception as exc:
+            result = {
+                "job_id": job.job_id,
+                "job_type": job.job_type,
+                "provider": self.name,
+                "lane": "runpod_serverless",
+                "endpoint_id": endpoint.get("id"),
+                "ok": False,
+                "error": str(exc),
+            }
+            stderr = str(exc)
+            job.error = stderr
+            job.exit_code = 1
+        metrics = {
+            "job_id": job.job_id,
+            "job_type": job.job_type,
+            "provider": self.name,
+            "endpoint_id": endpoint.get("id"),
+            "runtime_seconds": max(0, now_unix() - start),
+        }
+        probe_info = {
+            "provider": self.name,
+            "worker_image": job.worker_image,
+            "endpoint_id": endpoint.get("id"),
+            "execution_mode": "serverless_endpoint",
+        }
+        (artifact_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "probe_info.json").write_text(json.dumps(probe_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "stdout.log").write_text(stdout)
+        (artifact_dir / "stderr.log").write_text(stderr)
+        app_verify = application_verify_payload(job.job_type, result, error=stderr)
+        (artifact_dir / "verify.json").write_text(json.dumps(app_verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        verify = verify_artifacts(artifact_dir)
+        (artifact_dir / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        job.finished_at = now_unix()
+        job.runtime_seconds = max(0, job.finished_at - start)
+        job.artifact_count = verify["artifact_count"]
+        job.artifact_bytes = verify["artifact_bytes"]
+        if not job.error and verify["ok"] and result.get("ok"):
+            job.status = "succeeded"
+            job.exit_code = 0
+        else:
+            job.status = "failed"
+            if job.exit_code is None:
+                job.exit_code = 1
+        job.provider_job_id = str(result.get("provider_job_id") or endpoint.get("id") or "")
+        store.save(job)
+        return job
+
+    def _run_gpu_task_endpoint(self, endpoint: dict[str, Any], job: Job) -> dict[str, Any]:
+        python_bin = runpod_python()
+        if not python_bin:
+            raise RuntimeError("runpod python SDK not importable; install gpu-job-control[providers] or set RUNPOD_PYTHON")
+        endpoint_id = str(endpoint.get("id") or "").strip()
+        if not endpoint_id:
+            raise RuntimeError("RunPod gpu_task endpoint id is required")
+        queue_timeout = _int_from_metadata(job, "max_queue_seconds", default=0)
+        if not queue_timeout:
+            queue_timeout = _int_from_metadata(job, "max_startup_seconds", default=0) or 300
+        timeout_seconds = int(job.limits.get("max_runtime_minutes", 10)) * 60
+        execution_plan = dict((job.metadata.get("provider_plan") or {}).get("execution_plan") or build_execution_plan(job, self.name))
+        payload = {
+            "endpoint_id": endpoint_id,
+            "input": {
+                "job": job.to_dict(),
+                "command": execution_plan.get("command") or [],
+                "workload": (job.metadata.get("input") or {}).get("workload") if isinstance(job.metadata.get("input"), dict) else {},
+                "artifact_contract": execution_plan.get("artifact_contract") or [],
+            },
+            "timeout": timeout_seconds,
+            "queue_timeout": queue_timeout,
+        }
+        proc = run(
+            [
+                python_bin,
+                "-c",
+                (
+                    "import json,runpod,sys,time; "
+                    "p=json.loads(sys.stdin.read()); "
+                    "e=runpod.Endpoint(p['endpoint_id']); "
+                    "j=e.run({'input': p['input'], 'policy': {"
+                    "'executionTimeout': int(p['timeout']*1000), "
+                    "'ttl': int(max(p['timeout'], p['queue_timeout'])*1000)}}); "
+                    "start=time.time(); last={'id': j.job_id, 'status': 'SUBMITTED'}; "
+                    "\nwhile True:\n"
+                    "    status=j.status(); last={'id': j.job_id, 'status': status}\n"
+                    "    if status == 'COMPLETED':\n"
+                    "        print(json.dumps({'id': j.job_id, 'status': status, 'output': j.output()}, ensure_ascii=False)); break\n"
+                    "    if status in {'FAILED', 'ERROR', 'CANCELLED', 'TIMED_OUT'}:\n"
+                    "        print(json.dumps({'id': j.job_id, 'status': status, 'output': j.output()}, ensure_ascii=False)); break\n"
+                    "    if status == 'IN_QUEUE' and time.time() - start > p['queue_timeout']:\n"
+                    "        cancel=j.cancel(timeout=10); "
+                    "print(json.dumps({'id': j.job_id, 'status': 'QUEUE_TIMEOUT_CANCELLED', "
+                    "'cancel': cancel, 'last': last}, ensure_ascii=False)); break\n"
+                    "    if time.time() - start > p['timeout']:\n"
+                    "        cancel=j.cancel(timeout=10); "
+                    "print(json.dumps({'id': j.job_id, 'status': 'EXECUTION_TIMEOUT_CANCELLED', "
+                    "'cancel': cancel, 'last': last}, ensure_ascii=False)); break\n"
+                    "    time.sleep(5)"
+                ),
+            ],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds + 60,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stderr.strip() or proc.stdout.strip() or "runpod gpu_task endpoint failed")
+        output = json.loads(proc.stdout)
+        status = str(output.get("status") or "")
+        if status != "COMPLETED":
+            raise RuntimeError(f"RunPod gpu_task endpoint job did not complete: {json.dumps(output, ensure_ascii=False, sort_keys=True)}")
+        return output
 
     def _run_llm_endpoint(self, endpoint: dict[str, Any], job: Job) -> Any:
         if endpoint.get("mode") == "openai":
@@ -2642,6 +2826,31 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/generate":
             if WORKER_MODE == "asr_diarization":
                 self._send_json(200, asr_diarization_probe())
+                return
+            if WORKER_MODE == "gpu_task":
+                cmd = payload.get("command") or payload.get("argv") or []
+                if not cmd and prompt:
+                    if prompt.startswith("[") and prompt.endswith("]"):
+                        try:
+                            cmd = json.loads(prompt)
+                        except:
+                            pass
+                if not cmd:
+                    cmd = ["echo", prompt]
+                start_run = time.time()
+                try:
+                    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                    self._send_json(200, {
+                        "ok": proc.returncode == 0,
+                        "exit_code": proc.returncode,
+                        "stdout": proc.stdout,
+                        "stderr": proc.stderr,
+                        "runtime_seconds": round(time.time() - start_run, 3),
+                        "gpu_probe": gpu_probe(),
+                        "volume_probe": volume_probe(),
+                    })
+                except Exception as exc:
+                    self._send_json(200, {"ok": False, "error": str(exc), "exit_code": 1})
                 return
             text = generate_text(prompt)
             self._send_json(

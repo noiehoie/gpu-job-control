@@ -233,6 +233,7 @@ def artifact_manifest_schema() -> dict[str, Any]:
             "llm_heavy": ["text"],
             "vlm_ocr": ["text"],
             "embedding": ["items", "count", "dimensions"],
+            "gpu_task": ["ok"],
         },
     }
 

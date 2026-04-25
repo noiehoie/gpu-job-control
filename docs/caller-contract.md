@@ -28,6 +28,26 @@ Optional:
 - `trace_context`
 - `preferences`
 
+## Lane Request Field
+
+Use `preferences.execution_lane_id` when a caller must exercise a specific
+published product lane. It is a closed enum:
+
+- `modal_function`
+- `runpod_pod`
+- `runpod_serverless`
+- `vast_instance`
+- `vast_pyworker_serverless`
+
+This field pins the parent provider for that lane and disables provider
+fallback for that request. If the lane is unknown, or if the lane's provider
+cannot pass health, capability, startup, endpoint, or policy checks, the request
+fails closed. It does not enable
+`provider_module_routing.routing_by_module_enabled`; that flag remains `false`.
+
+`preferences.provider_module_id` is kept only as a compatibility alias. New
+integrations must use `execution_lane_id`.
+
 ## Forbidden top-level fields
 
 Caller requests must not send execution-job fields directly:
@@ -87,3 +107,11 @@ must still be deterministic and bounded:
 - `limits` must be finite.
 - `output_expectation.required_files` must list the artifact contract.
 - provider credentials and provider-native routing hints remain forbidden.
+
+Reference lane-specific examples:
+
+- [`gpu.container.run.modal_function.json`](../examples/caller-requests/gpu.container.run.modal_function.json)
+- [`gpu.container.run.runpod_pod.json`](../examples/caller-requests/gpu.container.run.runpod_pod.json)
+- [`gpu.container.run.runpod_serverless.json`](../examples/caller-requests/gpu.container.run.runpod_serverless.json)
+- [`gpu.container.run.vast_instance.json`](../examples/caller-requests/gpu.container.run.vast_instance.json)
+- [`gpu.container.run.vast_pyworker_serverless.json`](../examples/caller-requests/gpu.container.run.vast_pyworker_serverless.json)

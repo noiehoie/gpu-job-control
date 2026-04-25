@@ -135,6 +135,11 @@
           "type": "string",
           "minLength": 1
         },
+        "execution_lane_id": {
+          "type": "string",
+          "enum": ["modal_function", "runpod_pod", "runpod_serverless", "vast_instance", "vast_pyworker_serverless"],
+          "description": "Optional explicit product execution lane request. It is validated against the operation catalog and does not enable provider_module_routing."
+        },
         "provider_module_id": {
           "type": "string",
           "minLength": 1,

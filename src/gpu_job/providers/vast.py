@@ -10,6 +10,8 @@ import ast
 import os
 import shlex
 import time
+import urllib.error
+import urllib.request
 
 from gpu_job.models import Job, now_unix
 from gpu_job.execution_plan import build_execution_plan
@@ -200,16 +202,22 @@ class VastProvider(Provider):
             return job
         if job.job_type == "asr":
             return self._submit_direct_instance_asr(job, store)
-        allow_direct = bool(job.metadata.get("allow_vast_direct_instance_smoke"))
+        if job.job_type == "gpu_task" and str(job.metadata.get("provider_module_id") or "") == "vast_pyworker_serverless":
+            return self._submit_pyworker_serverless_gpu_task(job, store)
+        allow_direct = bool(
+            job.metadata.get("allow_vast_direct_instance_gpu_task")
+            if job.job_type == "gpu_task"
+            else job.metadata.get("allow_vast_direct_instance_smoke")
+        )
         if not allow_direct:
             job.status = "failed"
-            job.error = "vast direct instance execution is disabled; use serverless/workergroup with a known-good template"
+            job.error = "vast direct instance execution is disabled; use an explicit allow flag or serverless/workergroup endpoint"
             job.exit_code = 2
             store.save(job)
             return job
-        if job.job_type != "smoke":
+        if job.job_type not in {"smoke", "gpu_task"}:
             job.status = "failed"
-            job.error = "vast execute currently supports smoke jobs only"
+            job.error = "vast execute currently supports smoke, asr, and gpu_task jobs only"
             job.exit_code = 2
             store.save(job)
             return job
@@ -249,13 +257,29 @@ class VastProvider(Provider):
             reserving_open = False
             store.save(job)
             max_startup = int(job.limits.get("max_startup_seconds") or job.metadata.get("max_startup_seconds") or 60)
-            command = (
-                "mkdir -p /workspace/gpu-job-smoke; "
-                "echo GPU_JOB_SMOKE_START; "
-                "nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader; "
-                "echo GPU_JOB_SMOKE_DONE; "
-                "sleep 20"
-            )
+            execution_plan = dict((job.metadata.get("provider_plan") or {}).get("execution_plan") or build_execution_plan(job, self.name))
+            marker = "GPU_JOB_TASK_DONE" if job.job_type == "gpu_task" else "GPU_JOB_SMOKE_DONE"
+            if job.job_type == "gpu_task":
+                planned_command = [str(item) for item in (execution_plan.get("command") or ["true"])]
+                worker_command = " ".join(shlex.quote(item) for item in planned_command)
+                command = (
+                    "mkdir -p /workspace/gpu-job-task; "
+                    "echo GPU_JOB_TASK_START; "
+                    "nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader; "
+                    "echo GPU_JOB_COMMAND_START; "
+                    f"{worker_command}; "
+                    "echo GPU_JOB_COMMAND_EXIT:$?; "
+                    "echo GPU_JOB_TASK_DONE; "
+                    "sleep 20"
+                )
+            else:
+                command = (
+                    "mkdir -p /workspace/gpu-job-smoke; "
+                    "echo GPU_JOB_SMOKE_START; "
+                    "nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader; "
+                    "echo GPU_JOB_SMOKE_DONE; "
+                    "sleep 20"
+                )
             label = f"gpu-job:{job.job_id}"
             job.metadata["vast_instance_label"] = label
             job.metadata["vast_lifecycle_evidence"] = {
@@ -276,7 +300,10 @@ class VastProvider(Provider):
                     "instance",
                     str(offer["id"]),
                     "--image",
-                    "nvidia/cuda:12.4.1-base-ubuntu22.04",
+                    str(
+                        job.metadata.get("vast_image")
+                        or (job.worker_image if job.worker_image != "auto" else "nvidia/cuda:12.4.1-base-ubuntu22.04")
+                    ),
                     "--disk",
                     "10",
                     "--label",
@@ -344,15 +371,15 @@ class VastProvider(Provider):
             while time.time() < deadline:
                 logs = run([binary, "logs", instance_id, "--tail", "200"], capture_output=True, text=True, timeout=30)
                 logs_text = logs.stdout + logs.stderr
-                if "GPU_JOB_SMOKE_DONE" in logs_text:
+                if marker in logs_text:
                     break
                 time.sleep(5)
             exit_phase(
                 job,
                 "running_worker",
                 provider=self.name,
-                status="ok" if "GPU_JOB_SMOKE_DONE" in logs_text else "failed",
-                error_class="" if "GPU_JOB_SMOKE_DONE" in logs_text else "worker_failed",
+                status="ok" if marker in logs_text else "failed",
+                error_class="" if marker in logs_text else "worker_failed",
             )
             running_open = False
             store.save(job)
@@ -361,17 +388,29 @@ class VastProvider(Provider):
             store.save(job)
             (artifact_dir / "stdout.log").write_text(logs_text)
             (artifact_dir / "stderr.log").write_text("\n".join(s for s in stderr_lines if s))
-            if "GPU_JOB_SMOKE_DONE" not in logs_text:
-                raise RuntimeError(f"vast smoke did not finish within {max_startup}s")
+            if marker not in logs_text:
+                raise RuntimeError(f"vast {job.job_type} did not finish within {max_startup}s")
             gpu_line = ""
+            command_exit_code = 0
             for line in logs_text.splitlines():
                 if "," in line and ("MiB" in line or "RTX" in line or "Tesla" in line or "NVIDIA" in line):
                     gpu_line = line.strip()
                     break
+            for line in logs_text.splitlines():
+                if line.startswith("GPU_JOB_COMMAND_EXIT:"):
+                    try:
+                        command_exit_code = int(line.split(":", 1)[1])
+                    except ValueError:
+                        command_exit_code = 1
             result = {
                 "provider": self.name,
                 "job_id": job.job_id,
+                "job_type": job.job_type,
+                "lane": "vast_instance",
+                "ok": bool(gpu_line) and command_exit_code == 0,
                 "instance_id": instance_id,
+                "command": execution_plan.get("command") or [],
+                "command_exit_code": command_exit_code,
                 "nvidia_smi_exit_code": 0 if gpu_line else 1,
                 "nvidia_smi_stdout": gpu_line,
                 "offer": offer,
@@ -394,11 +433,11 @@ class VastProvider(Provider):
                 "gpu_count": 1 if gpu_line else None,
                 "gpu_memory_used_mb": 1 if gpu_line else None,
                 "offer_id": offer.get("id"),
-                "template_mode": "direct_instance_smoke",
+                "template_mode": "direct_instance_gpu_task" if job.job_type == "gpu_task" else "direct_instance_smoke",
                 "serverless_contract": self._serverless_contract_from_job(job),
             }
             verify_data = {
-                "ok": bool(gpu_line),
+                "ok": bool(result["ok"]),
                 "required": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
                 "missing": [],
             }
@@ -813,6 +852,122 @@ class VastProvider(Provider):
             job.exit_code = 0 if not job.error and verify["ok"] else 1
             job.status = "succeeded" if job.exit_code == 0 else "failed"
             store.save(job)
+        return job
+
+    def _submit_pyworker_serverless_gpu_task(self, job: Job, store: JobStore) -> Job:
+        artifact_dir = store.artifact_dir(job.job_id)
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        start = now_unix()
+        job.started_at = start
+        job.status = "running"
+        store.save(job)
+        endpoint_url = str(job.metadata.get("vast_serverless_url") or os.getenv("VAST_PYWORKER_ENDPOINT_URL", "")).strip()
+        endpoint_id = str(job.metadata.get("vast_endpoint_id") or os.getenv("VAST_PYWORKER_ENDPOINT_ID", "")).strip()
+        workergroup_id = str(job.metadata.get("vast_workergroup_id") or os.getenv("VAST_PYWORKER_WORKERGROUP_ID", "")).strip()
+        stdout = ""
+        stderr = ""
+        try:
+            if not endpoint_url:
+                raise RuntimeError("Vast pyworker serverless gpu_task requires vast_serverless_url or VAST_PYWORKER_ENDPOINT_URL")
+            execution_plan = dict((job.metadata.get("provider_plan") or {}).get("execution_plan") or build_execution_plan(job, self.name))
+            timeout = max(30, int(job.limits.get("max_runtime_minutes", 10)) * 60)
+            request_payload = {
+                "job": job.to_dict(),
+                "command": execution_plan.get("command") or [],
+                "workload": (job.metadata.get("input") or {}).get("workload") if isinstance(job.metadata.get("input"), dict) else {},
+                "artifact_contract": execution_plan.get("artifact_contract") or [],
+            }
+            headers = {"Content-Type": "application/json", "User-Agent": "gpu-job-control"}
+            api_key = os.getenv("VAST_API_KEY", "").strip()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            req = urllib.request.Request(
+                endpoint_url,
+                data=json.dumps(request_payload).encode(),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                output = json.loads(response.read().decode())
+            result = {
+                "provider": self.name,
+                "job_id": job.job_id,
+                "job_type": job.job_type,
+                "lane": "vast_pyworker_serverless",
+                "ok": bool(output.get("ok")) if isinstance(output, dict) else False,
+                "endpoint_id": endpoint_id,
+                "workergroup_id": workergroup_id,
+                "raw_output": output,
+            }
+            stdout = json.dumps(output, ensure_ascii=False, sort_keys=True) + "\n"
+            if not result["ok"]:
+                raise RuntimeError(f"Vast pyworker serverless returned non-ok output: {stdout.strip()}")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode(errors="replace")
+            result = {
+                "provider": self.name,
+                "job_id": job.job_id,
+                "job_type": job.job_type,
+                "lane": "vast_pyworker_serverless",
+                "ok": False,
+                "endpoint_id": endpoint_id,
+                "workergroup_id": workergroup_id,
+                "error": f"http {exc.code}: {body}",
+            }
+            stderr = result["error"]
+            job.error = stderr
+            job.exit_code = 1
+        except Exception as exc:
+            result = {
+                "provider": self.name,
+                "job_id": job.job_id,
+                "job_type": job.job_type,
+                "lane": "vast_pyworker_serverless",
+                "ok": False,
+                "endpoint_id": endpoint_id,
+                "workergroup_id": workergroup_id,
+                "error": str(exc),
+            }
+            stderr = str(exc)
+            job.error = stderr
+            job.exit_code = 1
+        metrics = {
+            "provider": self.name,
+            "job_id": job.job_id,
+            "job_type": job.job_type,
+            "runtime_seconds": max(0, now_unix() - start),
+            "endpoint_id": endpoint_id,
+            "workergroup_id": workergroup_id,
+        }
+        probe_info = {
+            "provider": self.name,
+            "worker_image": job.worker_image,
+            "execution_mode": "vast_pyworker_serverless",
+            "endpoint_id": endpoint_id,
+            "workergroup_id": workergroup_id,
+            "serverless_contract": self._serverless_contract_from_job(job),
+        }
+        (artifact_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "probe_info.json").write_text(json.dumps(probe_info, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        (artifact_dir / "stdout.log").write_text(stdout)
+        (artifact_dir / "stderr.log").write_text(stderr)
+        verify_data = {
+            "ok": bool(result.get("ok")),
+            "required": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+            "missing": [],
+        }
+        (artifact_dir / "verify.json").write_text(json.dumps(verify_data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        verify = verify_artifacts(artifact_dir)
+        (artifact_dir / "verify.json").write_text(json.dumps(verify, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        job.finished_at = now_unix()
+        job.runtime_seconds = max(0, job.finished_at - start)
+        job.artifact_count = verify["artifact_count"]
+        job.artifact_bytes = verify["artifact_bytes"]
+        job.exit_code = 0 if not job.error and verify["ok"] and result.get("ok") else 1
+        job.status = "succeeded" if job.exit_code == 0 else "failed"
+        job.provider_job_id = endpoint_id
+        store.save(job)
         return job
 
     def _wait_ssh_parts(self, instance_id: str, *, timeout_seconds: int) -> list[str]:

@@ -74,6 +74,26 @@ def test_public_api_golden_response_contract_is_documented() -> None:
     assert "| 409 | `quota_block` | no |" in error_codes
 
 
+def test_generic_gpu_lane_examples_are_documented() -> None:
+    caller_contract = _read("docs/caller-contract.md")
+    integration = _read("docs/client-integration-guide.md")
+    operation_catalog = _read("docs/operation-catalog.md")
+    for lane in (
+        "modal_function",
+        "runpod_pod",
+        "runpod_serverless",
+        "vast_instance",
+        "vast_pyworker_serverless",
+    ):
+        example_name = f"gpu.container.run.{lane}.json"
+        assert lane in caller_contract
+        assert lane in integration
+        assert example_name in caller_contract
+        assert example_name in integration
+    assert "preferences.execution_lane_id" in operation_catalog
+    assert "does not fall back" in operation_catalog
+
+
 def test_caller_schema_and_python_forbidden_fields_stay_aligned() -> None:
     schema = caller_request_schema()
     payload = {

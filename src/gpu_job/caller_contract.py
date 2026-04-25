@@ -21,6 +21,7 @@ ALLOWED_PREFERENCE_FIELDS = {
     "model",
     "gpu_profile",
     "worker_image",
+    "execution_lane_id",
     "provider_module_id",
     "quality_requires_gpu",
     "allow_quality_downgrade",
@@ -180,6 +181,15 @@ def validate_caller_request(payload: dict[str, Any]) -> dict[str, Any]:
     unknown_preferences = sorted(key for key in prefs if key not in ALLOWED_PREFERENCE_FIELDS)
     if unknown_preferences:
         errors.append(f"unsupported preferences present: {', '.join(unknown_preferences)}")
+    execution_lane_id = str(prefs.get("execution_lane_id") or "")
+    provider_module_id = str(prefs.get("provider_module_id") or "")
+    if execution_lane_id and provider_module_id and execution_lane_id != provider_module_id:
+        errors.append("preferences.execution_lane_id and preferences.provider_module_id must match when both are present")
+    allowed_lanes = set(str(item) for item in (op_spec.get("allowed_lanes") or []) if item)
+    if execution_lane_id and allowed_lanes and execution_lane_id not in allowed_lanes:
+        errors.append(f"preferences.execution_lane_id is not allowed for operation {operation}: {execution_lane_id}")
+    if provider_module_id and allowed_lanes and provider_module_id not in allowed_lanes:
+        errors.append(f"preferences.provider_module_id is not allowed for operation {operation}: {provider_module_id}")
     quality_tier = str(prefs.get("quality_tier") or "")
     if quality_tier and quality_tier not in QUALITY_TIERS:
         errors.append(f"preferences.quality_tier must be one of {', '.join(sorted(QUALITY_TIERS))}")
@@ -286,8 +296,10 @@ def compile_caller_request(payload: dict[str, Any]) -> dict[str, Any]:
             "routing": routing,
         },
     }
-    if preferences.get("provider_module_id"):
-        job["metadata"]["provider_module_id"] = str(preferences["provider_module_id"])
+    execution_lane_id = str(preferences.get("execution_lane_id") or preferences.get("provider_module_id") or "")
+    if execution_lane_id:
+        job["metadata"]["provider_module_id"] = execution_lane_id
+        job["metadata"]["execution_lane_id"] = execution_lane_id
     return {
         "ok": True,
         "caller_request": payload,

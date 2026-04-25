@@ -711,6 +711,95 @@ class RunPodConfigTest(unittest.TestCase):
             else:
                 os.environ["RUNPOD_LLM_ENDPOINT_MODE"] = old_mode
 
+    def test_gpu_task_pod_path_writes_generic_artifacts(self) -> None:
+        with TemporaryDirectory() as tmp:
+            store = JobStore(Path(tmp) / "store")
+            job = Job(
+                job_id="runpod-gpu-task-pod",
+                job_type="gpu_task",
+                input_uri="none://gpu-task",
+                output_uri=str(Path(tmp) / "out"),
+                worker_image="auto",
+                gpu_profile="generic_gpu",
+                metadata={"input": {"workload": {"kind": "container", "entrypoint": ["true"]}}},
+                limits={"max_runtime_minutes": 1, "max_cost_usd": 0.02},
+            )
+            output = {
+                "ok": True,
+                "runtime_seconds": 3.0,
+                "observed_runtime": True,
+                "observed_http_worker": True,
+                "health_samples": [{"ok": True, "gpu_probe": {"exit_code": 0, "stdout": "NVIDIA RTX 3090, 24576 MiB"}}],
+                "generate_result": {"ok": True, "exit_code": 0, "stdout": "", "stderr": "", "runtime_seconds": 0.1},
+                "cleanup": {"ok": True},
+                "pod": {"id": "pod-gpu-task"},
+            }
+            provider = RunPodProvider()
+
+            with patch.object(provider, "canary_pod_http_worker", return_value=output) as canary:
+                result = provider.submit(job, store, execute=True)
+
+            self.assertEqual(result.status, "succeeded")
+            self.assertEqual(canary.call_args.kwargs["worker_mode"], "gpu_task")
+            self.assertEqual(canary.call_args.kwargs["command"], ["true"])
+            payload = json.loads((store.artifact_dir(job.job_id) / "result.json").read_text())
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["gpu_task_exit_code"], 0)
+
+    def test_gpu_task_serverless_requires_explicit_endpoint(self) -> None:
+        old_endpoint = os.environ.pop("RUNPOD_GPU_TASK_ENDPOINT_ID", None)
+        try:
+            with TemporaryDirectory() as tmp:
+                store = JobStore(Path(tmp) / "store")
+                job = Job(
+                    job_id="runpod-gpu-task-serverless-missing",
+                    job_type="gpu_task",
+                    input_uri="none://gpu-task",
+                    output_uri=str(Path(tmp) / "out"),
+                    worker_image="auto",
+                    gpu_profile="generic_gpu",
+                    metadata={"provider_module_id": "runpod_serverless", "input": {"workload": {"kind": "container"}}},
+                    limits={"max_runtime_minutes": 1, "max_cost_usd": 0.02},
+                )
+                provider = RunPodProvider()
+                with patch.object(provider, "_api_snapshot", return_value={"endpoints": []}):
+                    result = provider.submit(job, store, execute=True)
+            self.assertEqual(result.status, "failed")
+            self.assertIn("no RunPod gpu_task serverless endpoint configured", result.error)
+        finally:
+            if old_endpoint is not None:
+                os.environ["RUNPOD_GPU_TASK_ENDPOINT_ID"] = old_endpoint
+
+    def test_gpu_task_serverless_endpoint_writes_artifacts(self) -> None:
+        old_endpoint = os.environ.get("RUNPOD_GPU_TASK_ENDPOINT_ID")
+        try:
+            os.environ["RUNPOD_GPU_TASK_ENDPOINT_ID"] = "ep-gpu-task"
+            with TemporaryDirectory() as tmp:
+                store = JobStore(Path(tmp) / "store")
+                job = Job(
+                    job_id="runpod-gpu-task-serverless",
+                    job_type="gpu_task",
+                    input_uri="none://gpu-task",
+                    output_uri=str(Path(tmp) / "out"),
+                    worker_image="auto",
+                    gpu_profile="generic_gpu",
+                    metadata={"provider_module_id": "runpod_serverless", "input": {"workload": {"kind": "container"}}},
+                    limits={"max_runtime_minutes": 1, "max_cost_usd": 0.02},
+                )
+                provider = RunPodProvider()
+                with (
+                    patch.object(provider, "_api_snapshot", return_value={"endpoints": [{"id": "ep-gpu-task", "name": "gpu-task"}]}),
+                    patch.object(provider, "_run_gpu_task_endpoint", return_value={"id": "rp-job-1", "output": {"ok": True}}),
+                ):
+                    result = provider.submit(job, store, execute=True)
+            self.assertEqual(result.status, "succeeded")
+            self.assertEqual(result.provider_job_id, "rp-job-1")
+        finally:
+            if old_endpoint is None:
+                os.environ.pop("RUNPOD_GPU_TASK_ENDPOINT_ID", None)
+            else:
+                os.environ["RUNPOD_GPU_TASK_ENDPOINT_ID"] = old_endpoint
+
 
 if __name__ == "__main__":
     unittest.main()

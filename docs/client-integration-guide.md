@@ -114,6 +114,23 @@ Treat the job as failed even if provider execution returned success.
 - OCR image: `examples/caller-requests/ocr.image.json`
 - Generic GPU container: `examples/caller-requests/gpu.container.run.json`
 
+## Generic GPU Lane Examples
+
+Use these examples when an external system must deliberately exercise one
+product lane. The only caller-facing lane selector is
+`preferences.execution_lane_id`.
+
+| Lane | Example | Runtime precondition |
+| --- | --- | --- |
+| `modal_function` | `examples/caller-requests/gpu.container.run.modal_function.json` | Modal credentials and guard clean |
+| `runpod_pod` | `examples/caller-requests/gpu.container.run.runpod_pod.json` | RunPod pod create/terminate guard clean |
+| `runpod_serverless` | `examples/caller-requests/gpu.container.run.runpod_serverless.json` | `RUNPOD_GPU_TASK_ENDPOINT_ID` points to an approved endpoint |
+| `vast_instance` | `examples/caller-requests/gpu.container.run.vast_instance.json` | explicit guarded direct-instance approval metadata at execution time |
+| `vast_pyworker_serverless` | `examples/caller-requests/gpu.container.run.vast_pyworker_serverless.json` | `VAST_PYWORKER_ENDPOINT_URL` points to an approved pyworker endpoint |
+
+If the precondition is missing, the server rejects or fails the job. Callers
+must not implement hidden local fallback or direct provider calls.
+
 ## Non-Python Callers
 
 Use the OpenAPI document and JSON Schema directly:
@@ -131,6 +148,7 @@ public endpoint set in [Public API](public-api.md).
 ## Integration constraints
 
 - callers do not select providers
+- callers may request a documented product lane with `preferences.execution_lane_id`
 - callers do not emit execution-job fields directly
 - callers must supply idempotency and limits
 - callers must fail closed on local validation failure

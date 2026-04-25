@@ -50,7 +50,8 @@ The caller must emit one strict JSON object with these top-level fields:
 - `limits` must always be present and finite.
 - `idempotency.key` must always be present.
 - `caller.system`, `caller.operation`, `caller.request_id`, and `caller.version` are mandatory.
-- `preferences.provider_module_id` is optional visibility metadata only. It must never be used as implicit permission to bypass product policy.
+- `preferences.execution_lane_id` is optional and must be one of the operation's published `allowed_lanes`. Use it only when the caller is deliberately testing or operating a specific approved product lane; it never enables provider-module routing or bypasses product policy.
+- `preferences.provider_module_id` is a legacy compatibility alias for `execution_lane_id`. Prefer `execution_lane_id` in new integrations.
 - `gpu-job-control` is not a generic small-LLM wrapper. Use it for workloads that are unsuitable for local fixed resources.
 - For production-quality `llm.generate`, set `preferences.quality_tier` to `production_quality`, `preferences.quality_requires_gpu` to `true`, `preferences.local_fixed_resource_policy` to `unsuitable`, and either `preferences.model_size_billion_parameters` to at least `70` or `preferences.model_size_class` to `at_least_70b`.
 - 27B/32B-class LLMs may be used for `smoke`, `development`, or `degraded` flows, but must not be treated as production-quality external-GPU evidence.
@@ -68,9 +69,8 @@ The caller must emit one strict JSON object with these top-level fields:
 Do not:
 - call cloud GPU providers directly,
 - embed provider credentials into request payloads,
-- select providers in the caller,
 - generate ad hoc shell pipelines as the execution plan,
-- use `provider_module_id` as a routing key,
+- use `provider_module_id` as a routing key; use `execution_lane_id` only as the documented product-lane request field,
 - hide retries, hidden fallbacks, or hidden local execution,
 - depend on conversational interpretation at runtime,
 - emit partially specified requests,
