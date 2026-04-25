@@ -33,6 +33,7 @@ Changelog = "https://github.com/noiehoie/gpu-job-control/blob/main/CHANGELOG.md"
 providers = [
   "modal==1.4.2",
   "runpod==1.9.0",
+  "vastai-sdk @ git+https://github.com/vast-ai/vast-sdk.git@1c39c420a50553f2c2c719f901e1463823b69a3b",
 ]
 dev = [
   "pytest==9.0.3",
@@ -53,6 +54,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gpu_job"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.ruff]
 line-length = 140

@@ -28,6 +28,13 @@ PROVIDER_NATIVE_RULES: dict[str, list[tuple[str, str, bool, str]]] = {
         ("concurrency", "backpressure", True, "Modal concurrency pressure"),
     ],
     "runpod": [
+        ("disabled_endpoint_queue", "disabled_endpoint_queue", False, "RunPod endpoint has zero capacity and queued jobs cannot start"),
+        (
+            "warm_standby_unexpected",
+            "warm_standby_unexpected",
+            False,
+            "RunPod endpoint returned warm standby capacity despite scale-to-zero request",
+        ),
         ("in_queue", "provider_backpressure", True, "RunPod endpoint queue backpressure"),
         ("no worker", "provider_backpressure", True, "RunPod has no active worker"),
         ("endpoint not found", "endpoint_unreachable", True, "RunPod endpoint is not reachable"),
@@ -43,6 +50,9 @@ PROVIDER_NATIVE_RULES: dict[str, list[tuple[str, str, bool, str]]] = {
         ("requires hf_token", "secret_block", False, "Vast speaker diarization Hugging Face token is missing"),
         ("no module named 'matplotlib'", "image_missing_dependency", False, "ASR diarization image missing pyannote lazy dependency"),
         ("ssh", "provider_transient", True, "Vast SSH/bootstrap transient failure"),
+        ("startup_timeout", "startup_timeout", True, "Vast worker stayed in startup phases and never became ready"),
+        ("manifest for", "image_not_found", False, "Vast worker could not find image manifest (tag mismatch?)"),
+        ("while pulling", "image_pull_failed", True, "Vast worker failed to pull image (registry 503?)"),
     ],
 }
 
@@ -54,8 +64,10 @@ RETRYABLE_CLASSES = {
     "provider_transient",
     "network_transient",
     "cold_start_timeout",
+    "startup_timeout",
     "cache_contract_missing",
     "endpoint_unreachable",
+    "image_pull_failed",
 }
 
 PERMANENT_CLASSES = {
@@ -81,6 +93,9 @@ PERMANENT_CLASSES = {
     "context_overflow",
     "empty_output_success",
     "verification_failed",
+    "image_not_found",
+    "disabled_endpoint_queue",
+    "warm_standby_unexpected",
 }
 
 

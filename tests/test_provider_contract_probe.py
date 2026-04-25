@@ -27,6 +27,10 @@ ASR_PROVIDER_IMAGE = (
     "sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8"
 )
 ASR_PROVIDER_IMAGE_DIGEST = "sha256:b06fd86a4d43d8fec294675e3ac7d3135934c61d422df567a5976636fb240be8"
+RUNPOD_ASR_SERVERLESS_IMAGE = (
+    "ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920"
+)
+RUNPOD_ASR_SERVERLESS_IMAGE_DIGEST = "sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920"
 
 
 class ProviderContractProbeTest(unittest.TestCase):
@@ -75,6 +79,12 @@ class ProviderContractProbeTest(unittest.TestCase):
         self.assertEqual(plan["spec"]["expected_model"], "Qwen/Qwen2.5-32B-Instruct")
         self.assertIn("provider_module_canary_evidence_schema", plan)
         self.assertIn("modal_function", plan["provider_module_canary_evidence_schema"]["modules"])
+        modal_evidence_schema = plan["provider_module_canary_evidence_schema"]["modules"]["modal_function"]
+        self.assertEqual(
+            modal_evidence_schema["requirement_observation_mapping"]["volume_visibility"],
+            ["artifact_contract"],
+        )
+        self.assertNotIn("workspace_cache", modal_evidence_schema["required_observation_categories"])
 
     def test_contract_probe_canary_jobs_use_dedicated_secret_scope(self) -> None:
         job = _canary_job(DEFAULT_CONTRACT_PROBES["runpod.asr_diarization.pyannote"])
@@ -105,8 +115,24 @@ class ProviderContractProbeTest(unittest.TestCase):
         self.assertEqual(job.worker_image, "nvidia/cuda:12.4.1-base-ubuntu22.04")
         self.assertEqual(job.metadata["contract_probe"]["provider_module_id"], "vast_instance")
 
+    def test_vast_pyworker_canary_does_not_use_direct_instance_fallback(self) -> None:
+        plan = plan_contract_probe("vast", "vast.asr.serverless_template")
+        job = _canary_job(DEFAULT_CONTRACT_PROBES["vast.asr.serverless_template"])
+
+        self.assertEqual(plan["spec"]["expected_model"], "Qwen/Qwen2.5-0.5B-Instruct")
+        self.assertEqual(plan["spec"]["expected_image"], "vastai/vllm")
+        self.assertEqual(job.provider, "vast")
+        self.assertEqual(job.job_type, "asr")
+        self.assertEqual(job.gpu_profile, "asr_fast")
+        self.assertEqual(job.metadata["vast_execution_mode"], "serverless_pyworker")
+        self.assertTrue(job.metadata["vast_serverless_contract_required"])
+        self.assertNotIn("allow_vast_direct_instance_smoke", job.metadata)
+        self.assertEqual(job.metadata["contract_probe"]["provider_module_id"], "vast_pyworker_serverless")
+        self.assertFalse(job.metadata["hardware_verification"]["require_gpu_utilization"])
+
     def test_runpod_serverless_asr_handler_probe_is_distinct(self) -> None:
         plan = plan_contract_probe("runpod", "runpod.asr_diarization.serverless_handler")
+        job = _canary_job(DEFAULT_CONTRACT_PROBES["runpod.asr_diarization.serverless_handler"])
 
         self.assertEqual(plan["probe_name"], "runpod.asr_diarization.serverless_handler")
         self.assertEqual(
@@ -114,13 +140,23 @@ class ProviderContractProbeTest(unittest.TestCase):
             "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
         )
         self.assertTrue(plan["spec"]["serverless_handler_contract_required"])
+        self.assertEqual(job.limits["max_startup_seconds"], 900)
+
+    def test_runpod_serverless_official_whisper_smoke_probe_is_distinct(self) -> None:
+        plan = plan_contract_probe("runpod", "runpod.asr.official_whisper_smoke")
+
+        self.assertEqual(plan["probe_name"], "runpod.asr.official_whisper_smoke")
+        self.assertEqual(plan["spec"]["expected_image"], "runpod/ai-api-faster-whisper:0.4.1")
+        self.assertFalse(plan["spec"]["workspace_contract_required"])
+        self.assertTrue(plan["spec"]["official_template_smoke_required"])
 
     def test_runpod_serverless_asr_handler_artifact_passes_contract(self) -> None:
         path = self._artifact(
             result={
                 "text": "GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY_OK",
                 "model": "pyannote/speaker-diarization-3.1",
-                "worker_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+                "worker_image": RUNPOD_ASR_SERVERLESS_IMAGE,
+                "provider_image_digest": RUNPOD_ASR_SERVERLESS_IMAGE_DIGEST,
                 "endpoint_id": "runpod-endpoint-123",
                 "workspace_contract_ok": True,
                 "hf_token_present": True,
@@ -133,7 +169,8 @@ class ProviderContractProbeTest(unittest.TestCase):
             metrics={"cache_hit": True},
             verify={"ok": True},
             probe_info={
-                "provider_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+                "provider_image": RUNPOD_ASR_SERVERLESS_IMAGE,
+                "provider_image_digest": RUNPOD_ASR_SERVERLESS_IMAGE_DIGEST,
                 "cache_hit": True,
                 "gpu_probe": {"ok": True, "stdout": "NVIDIA"},
             },
@@ -153,6 +190,48 @@ class ProviderContractProbeTest(unittest.TestCase):
         self.assertEqual(evidence["provider_module_probe_name"], "runpod_serverless.asr_diarization.serverless_handler")
         self.assertIn("endpoint_health", evidence["requirements"])
         self.assertEqual(set(evidence["observation_categories"]), set(WORKSPACE_OBSERVATION_CATEGORIES))
+
+    def test_runpod_serverless_official_whisper_smoke_artifact_passes_contract(self) -> None:
+        path = self._artifact(
+            result={
+                "text": "",
+                "provider_job_id": "runpod-job-456",
+                "worker_image": "runpod/ai-api-faster-whisper:0.4.1",
+                "provider_image": "runpod/ai-api-faster-whisper:0.4.1",
+                "endpoint_id": "runpod-endpoint-456",
+                "workspace_contract_ok": False,
+                "official_template_smoke_ok": True,
+                "worker_startup_ok": False,
+                "cleanup": {"ok": True},
+                "actual_cost_guard": {"ok": True},
+                "final_job_status": "COMPLETED",
+            },
+            metrics={
+                "worker_image": "runpod/ai-api-faster-whisper:0.4.1",
+                "provider_image": "runpod/ai-api-faster-whisper:0.4.1",
+                "official_template_smoke_ok": True,
+            },
+            verify={"ok": True, "checks": {"official_template_smoke_ok": True}},
+            probe_info={
+                "provider_image": "runpod/ai-api-faster-whisper:0.4.1",
+                "endpoint_id": "runpod-endpoint-456",
+                "provider_job_id": "runpod-job-456",
+                "official_template_smoke_ok": True,
+            },
+        )
+
+        record = parse_contract_probe_artifact(
+            path,
+            provider="runpod",
+            probe_name="runpod.asr.official_whisper_smoke",
+        )
+
+        self.assertTrue(record["ok"])
+        self.assertTrue(record["checks"]["official_template_smoke_ok"])
+        self.assertTrue(record["checks"]["workspace_contract_ok"])
+        self.assertTrue(record["provider_module_canary_evidence"]["ok"])
+        evidence = record["provider_module_canary_evidence"]
+        self.assertEqual(evidence["provider_module_id"], "runpod_serverless")
 
     def test_modal_success_warm_cache_passes(self) -> None:
         path = self._artifact(
@@ -367,6 +446,52 @@ class ProviderContractProbeTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertTrue(result["record"]["ok"])
 
+    def test_modal_asr_module_evidence_accepts_submit_job_id_and_gpu_hardware(self) -> None:
+        path = self._artifact(
+            result={
+                "text": "GPU_JOB_ASR_DIARIZATION_CANARY_OK",
+                "model": "pyannote/speaker-diarization-3.1",
+                "worker_image": "gpu-job-modal-asr",
+                "worker_startup_ok": True,
+            },
+            metrics={
+                "model": "pyannote/speaker-diarization-3.1",
+                "worker_image": "gpu-job-modal-asr",
+                "gpu_name": "NVIDIA A10G",
+            },
+            verify={"ok": True, "checks": {"text_nonempty": True}},
+            probe_info={
+                "worker_image": "gpu-job-modal-asr",
+                "workspace_contract_ok": True,
+                "worker_startup_ok": True,
+            },
+            submit_result={
+                "ok": True,
+                "job_id": "contract-probe-asr-20260422-modal",
+                "status": "succeeded",
+                "post_submit_guard": {
+                    "providers": {
+                        "modal": {
+                            "ok": True,
+                            "estimated_hourly_usd": 0.0,
+                            "billable_resources": [],
+                            "reason": "no running Modal apps",
+                        }
+                    }
+                },
+            },
+        )
+
+        record = parse_contract_probe_artifact(path, provider="modal", probe_name="modal.asr_diarization.pyannote")
+        evidence = record["provider_module_canary_evidence"]
+
+        self.assertTrue(record["ok"], record["failure"])
+        self.assertEqual(record["observed"]["workspace_contract"]["provider_job_id"], "contract-probe-asr-20260422-modal")
+        self.assertTrue(record["observed"]["workspace_observation_coverage"]["categories"]["gpu_execution"]["ok"])
+        self.assertTrue(evidence["ok"], evidence)
+        self.assertEqual(evidence["missing_categories"], [])
+        self.assertEqual(evidence["failed_categories"], [])
+
     def test_runpod_asr_diarization_contract_probe_requires_cache_evidence(self) -> None:
         path = self._artifact(
             result={
@@ -419,6 +544,43 @@ class ProviderContractProbeTest(unittest.TestCase):
         self.assertIn("terminate", evidence["requirements"])
         self.assertTrue(evidence["requirements"]["terminate"]["ok"])
         self.assertEqual(set(evidence["observation_categories"]), set(WORKSPACE_OBSERVATION_CATEGORIES))
+
+    def test_runpod_serverless_gpu_execution_accepts_required_nvidia_smi_runtime_check(self) -> None:
+        path = self._artifact(
+            result={
+                "text": "GPU_JOB_ASR_SERVERLESS_CANARY_OK",
+                "model": "pyannote/speaker-diarization-3.1",
+                "worker_image": RUNPOD_ASR_SERVERLESS_IMAGE,
+                "provider_image_digest": RUNPOD_ASR_SERVERLESS_IMAGE_DIGEST,
+                "endpoint_id": "runpod-endpoint-123",
+                "provider_job_id": "rp-job-123",
+                "workspace_contract_ok": True,
+                "hf_token_present": True,
+                "image_contract_marker_present": True,
+                "cache_hit": True,
+                "worker_startup_ok": True,
+                "require_gpu": True,
+                "runtime_checks": {
+                    "faster_whisper_import": True,
+                    "pyannote_import": True,
+                    "matplotlib_import": True,
+                    "image_contract_marker_present": True,
+                    "nvidia_smi_present": True,
+                },
+                "cleanup": {"ok": True},
+                "actual_cost_guard": {"ok": True},
+            },
+            metrics={
+                "provider_image": RUNPOD_ASR_SERVERLESS_IMAGE,
+                "provider_image_digest": RUNPOD_ASR_SERVERLESS_IMAGE_DIGEST,
+            },
+            verify={"ok": True, "checks": {"text_nonempty": True}},
+        )
+
+        record = parse_contract_probe_artifact(path, provider="runpod", probe_name="runpod.asr_diarization.serverless_handler")
+
+        self.assertTrue(record["observed"]["workspace_observation_coverage"]["categories"]["gpu_execution"]["ok"])
+        self.assertNotIn("gpu_execution", record["provider_module_canary_evidence"]["failed_categories"])
 
     def test_runpod_asr_diarization_contract_probe_rejects_cold_workspace(self) -> None:
         path = self._artifact(
@@ -728,6 +890,65 @@ class ProviderContractProbeTest(unittest.TestCase):
         self.assertIn("provider_resource_identity", evidence["failed_categories"])
         self.assertIn("endpoint_id and workergroup_id", evidence["module_specific_failures"][0]["reason"])
 
+    def test_vast_pyworker_serverless_accepts_endpoint_workers_as_gpu_evidence(self) -> None:
+        path = self._artifact(
+            result={
+                "text": "GPU_JOB_ASR_SERVERLESS_CANARY_OK",
+                "model": "Qwen/Qwen2.5-0.5B-Instruct",
+                "endpoint_id": "21119",
+                "workergroup_id": "27643",
+                "provider_job_id": "bbab1656-1c75-429e-98ee-ab5fad47e417",
+                "workspace_contract_ok": True,
+                "worker_startup_ok": True,
+                "cleanup": {"ok": True},
+                "actual_cost_guard": {"ok": True},
+                "worker_request": {
+                    "endpoint_workers": [
+                        {
+                            "id": 35508355,
+                            "status": "idle",
+                            "perf": 2651.69,
+                            "reqs_working": 1,
+                        }
+                    ]
+                },
+            },
+            metrics={
+                "model": "Qwen/Qwen2.5-0.5B-Instruct",
+                "provider_image": "vastai/vllm:v0.11.0-cuda-12.8-mvc-cuda-12.0",
+                "expected_image_ref": "vastai/vllm:v0.11.0-cuda-12.8-mvc-cuda-12.0",
+            },
+            verify={"ok": True, "checks": {"text_nonempty": True}},
+            probe_info={
+                "provider_image": "vastai/vllm:v0.11.0-cuda-12.8-mvc-cuda-12.0",
+                "endpoint_id": "21119",
+                "workergroup_id": "27643",
+                "provider_job_id": "bbab1656-1c75-429e-98ee-ab5fad47e417",
+                "workspace_contract_ok": True,
+                "worker_startup_ok": True,
+                "cleanup": {"ok": True},
+                "actual_cost_guard": {"ok": True},
+                "worker_request": {
+                    "endpoint_workers": [
+                        {
+                            "id": 35508355,
+                            "status": "idle",
+                            "perf": 2651.69,
+                            "reqs_working": 1,
+                        }
+                    ]
+                },
+            },
+        )
+
+        record = parse_contract_probe_artifact(path, provider="vast", probe_name="vast.asr.serverless_template")
+        evidence = record["provider_module_canary_evidence"]
+
+        self.assertTrue(record["ok"], record["failure"])
+        self.assertTrue(evidence["ok"])
+        self.assertEqual(evidence["failed_categories"], [])
+        self.assertTrue(evidence["observation_categories"]["gpu_execution"]["ok"])
+
     def test_active_runpod_asr_diarization_probe_uses_prebuilt_workspace_image(self) -> None:
         def fake_submit(job, provider_name: str, execute: bool):
             self.assertEqual(provider_name, "runpod")
@@ -856,7 +1077,8 @@ class ProviderContractProbeTest(unittest.TestCase):
                     "text": "GPU_JOB_ASR_DIARIZATION_WORKSPACE_CANARY_OK",
                     "model": "pyannote/speaker-diarization-3.1",
                     "provider_job_id": "runpod-job-123",
-                    "worker_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+                    "worker_image": RUNPOD_ASR_SERVERLESS_IMAGE,
+                    "provider_image_digest": RUNPOD_ASR_SERVERLESS_IMAGE_DIGEST,
                     "workspace_contract_ok": True,
                     "cache_hit": True,
                     "worker_startup_ok": True,
@@ -867,7 +1089,8 @@ class ProviderContractProbeTest(unittest.TestCase):
                 verify={"ok": True, "checks": {"text_nonempty": True}},
                 probe_info={
                     **common_probe_info,
-                    "provider_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+                    "provider_image": RUNPOD_ASR_SERVERLESS_IMAGE,
+                    "provider_image_digest": RUNPOD_ASR_SERVERLESS_IMAGE_DIGEST,
                     "endpoint_id": "runpod-endpoint-123",
                     "provider_job_id": "runpod-job-123",
                 },
@@ -904,7 +1127,7 @@ class ProviderContractProbeTest(unittest.TestCase):
             return self._artifact(
                 result={
                     "text": "GPU_JOB_ASR_SERVERLESS_CANARY_OK",
-                    "model": "whisper-large-v3",
+                    "model": "Qwen/Qwen2.5-0.5B-Instruct",
                     "endpoint_id": "vast-endpoint-123",
                     "workergroup_id": "vast-workergroup-123",
                     "provider_job_id": "vast-pyworker-request-123",
@@ -915,17 +1138,15 @@ class ProviderContractProbeTest(unittest.TestCase):
                     "actual_cost_guard": {"ok": True},
                 },
                 metrics={
-                    "model": "whisper-large-v3",
-                    "worker_image": "gpu-job-asr-worker",
-                    "provider_image": "gpu-job-asr-worker",
-                    "gpu_utilization_percent": 12,
-                    "gpu_memory_used_mb": 12000,
+                    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+                    "worker_image": "vastai/vllm:v0.11.0-cuda-12.8-mvc-cuda-12.0",
+                    "provider_image": "vastai/vllm:v0.11.0-cuda-12.8-mvc-cuda-12.0",
                     "cache_hit": True,
                 },
                 verify={"ok": True, "checks": {"text_nonempty": True}},
                 probe_info={
                     **common_probe_info,
-                    "provider_image": "gpu-job-asr-worker",
+                    "provider_image": "vastai/vllm:v0.11.0-cuda-12.8-mvc-cuda-12.0",
                     "endpoint_id": "vast-endpoint-123",
                     "workergroup_id": "vast-workergroup-123",
                     "provider_job_id": "vast-pyworker-request-123",

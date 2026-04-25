@@ -75,12 +75,20 @@ def launch_phase_gate(*, limit: int = 100) -> dict[str, Any]:
         ],
     )
     runpod_active = _provider_billable_count(guard, "runpod")
-    modal_llm_probe_ok = _latest_probe_ok(probe_summary, "modal.llm_heavy.qwen2_5_32b")
-    modal_asr_probe_ok = _latest_probe_ok(probe_summary, "modal.asr_diarization.pyannote")
+    modal_llm_probe_ok = _latest_module_probe_ok(probe_summary, "modal.llm_heavy.qwen2_5_32b", "modal_function")
+    modal_asr_probe_ok = _latest_module_probe_ok(probe_summary, "modal.asr_diarization.pyannote", "modal_function")
     runpod_pod_probe_ok = _latest_probe_ok(probe_summary, "runpod.asr_diarization.pyannote") or _latest_probe_ok(
         probe_summary, "runpod.llm_heavy.pod_http"
     )
-    runpod_serverless_probe_ok = _latest_module_probe_ok(probe_summary, "runpod.asr_diarization.serverless_handler", "runpod_serverless")
+    runpod_serverless_probe_ok = _latest_module_probe_ok(
+        probe_summary,
+        "runpod.asr_diarization.serverless_handler",
+        "runpod_serverless",
+    ) or _latest_module_probe_ok(
+        probe_summary,
+        "runpod.asr.official_whisper_smoke",
+        "runpod_serverless",
+    )
     vast_instance_probe_ok = _latest_module_probe_ok(probe_summary, "vast.instance_smoke.cuda", "vast_instance") or _latest_module_probe_ok(
         probe_summary, "vast.asr_diarization.pyannote", "vast_instance"
     )

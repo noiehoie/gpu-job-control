@@ -68,9 +68,9 @@
     "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4": {
       "contract_id": "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
       "description": "RunPod serverless handler image contract for faster-whisper large-v3 plus pyannote speaker diarization",
-      "status": "unverified",
-      "image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
-      "entrypoint": "gpu-job-runpod-asr-worker",
+      "status": "verified",
+      "image": "ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920",
+      "entrypoint": "python3.11 -u /rp_handler.py",
       "provides_backends": ["runpod_serverless_handler", "faster_whisper", "pyannote"],
       "required_packages": {
         "runpod": "1.9.0",
@@ -83,8 +83,8 @@
       },
       "provider_images": {
         "runpod": {
-          "status": "missing",
-          "image": "",
+          "status": "verified",
+          "image": "ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920",
           "registry_auth": {
             "type": "runpod_container_registry_auth",
             "registry": "ghcr.io",
@@ -95,10 +95,67 @@
       },
       "required_secrets": ["hf_token"],
       "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
-      "probe_command": ["gpu-job-runpod-asr-worker"],
+      "probe_command": ["python3.11", "-u", "/rp_handler.py"],
       "build_action": {
         "dockerfile": "docker/runpod-asr-worker.Dockerfile",
         "reason": "RunPod serverless ASR requires a handler entrypoint image; command/HTTP worker images are not production serverless dispatch contracts"
+      }
+    },
+    "llm-vllm-runpod-worker-vllm-reference": {
+      "contract_id": "llm-vllm-runpod-worker-vllm-reference",
+      "description": "RunPod official worker-vllm reference image contract for OpenAI-compatible vLLM serverless serving",
+      "status": "reference_only",
+      "image": "registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d",
+      "entrypoint": "python3 /src/handler.py",
+      "provides_backends": ["runpod_serverless_handler", "vllm", "openai_compatible"],
+      "required_packages": {
+        "vllm": "0.16.0",
+        "runpod": "1.9.0"
+      },
+      "provider_images": {
+        "runpod": {
+          "status": "reference_only",
+          "image": "registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d",
+          "source_repo": "https://github.com/runpod-workers/worker-vllm",
+          "source_commit": "9d1686960d14de370eb3ecbcadc7e25542105c2d"
+        }
+      },
+      "required_secrets": ["hf_token"],
+      "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+      "probe_command": ["python3", "/src/handler.py", "--help"],
+      "build_action": {
+        "source_repo": "https://github.com/runpod-workers/worker-vllm",
+        "source_commit": "9d1686960d14de370eb3ecbcadc7e25542105c2d",
+        "reason": "Use the official RunPod worker-vllm image/Hub-derived registry image instead of maintaining a custom vLLM worker"
+      }
+    },
+    "runpod-serverless-heartbeat-python3.12": {
+      "contract_id": "runpod-serverless-heartbeat-python3.12",
+      "description": "Minimal RunPod serverless heartbeat handler for create/run/status/cleanup module canaries",
+      "status": "verified",
+      "image": "ghcr.io/noiehoie/gpu-job-control-runpod-heartbeat@sha256:7154eae0eadf556cd7f26df7e0a60d68cd714da2add2fbd54a6eb8686f41443b",
+      "entrypoint": "python -u /app/runpod_llm.py",
+      "provides_backends": ["runpod_serverless_handler", "deterministic_heartbeat"],
+      "required_packages": {
+        "runpod": "1.9.0"
+      },
+      "provider_images": {
+        "runpod": {
+          "status": "verified",
+          "image": "ghcr.io/noiehoie/gpu-job-control-runpod-heartbeat@sha256:7154eae0eadf556cd7f26df7e0a60d68cd714da2add2fbd54a6eb8686f41443b",
+          "registry_auth": {
+            "type": "runpod_container_registry_auth",
+            "registry": "ghcr.io",
+            "auth_id": "cmo69c98l00iyjj07z22tsrzm"
+          }
+        }
+      },
+      "required_secrets": [],
+      "artifact_contract": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"],
+      "probe_command": ["python", "-u", "/app/runpod_llm.py"],
+      "build_action": {
+        "dockerfile": "docker/runpod-llm-worker.Dockerfile",
+        "reason": "Small digest-pinned serverless heartbeat isolates RunPod module lifecycle from large ASR image cold starts"
       }
     }
   }

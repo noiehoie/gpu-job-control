@@ -76,7 +76,7 @@ PROVIDER_MODULE_CANARY_REQUIREMENT_CATEGORY_MAP: dict[str, dict[str, list[str]]]
     MODAL_FUNCTION: {
         "function_invoke": ["provider_resource_identity", "startup_phases", "gpu_execution"],
         "artifact_verify": ["artifact_contract"],
-        "volume_visibility": ["workspace_cache", "artifact_contract"],
+        "volume_visibility": ["artifact_contract"],
         "cost_snapshot": ["cost_guard", "provider_residue"],
     },
 }

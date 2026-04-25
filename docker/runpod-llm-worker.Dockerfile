@@ -16,8 +16,10 @@ COPY src/gpu_job/workers/runpod_llm.py /app/runpod_llm.py
 
 RUN uv venv /opt/venv \
     && uv pip install --python /opt/venv/bin/python runpod==1.9.0 \
+    && mkdir -p /opt/gpu-job-control/image-contracts \
+    && printf '%s\n' '{"contract_id":"runpod-serverless-heartbeat-python3.12","prebuilt_dependencies":["runpod==1.9.0"],"runtime_dependency_install_allowed":false,"serverless_handler":"runpod_llm:handler"}' > /opt/gpu-job-control/image-contracts/runpod-serverless-heartbeat-python3.12.json \
     && useradd --create-home --shell /usr/sbin/nologin worker \
-    && chown -R worker:worker /app
+    && chown -R worker:worker /app /opt/gpu-job-control
 
 ENV PATH="/opt/venv/bin:$PATH"
 

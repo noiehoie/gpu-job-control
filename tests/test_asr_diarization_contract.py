@@ -219,6 +219,44 @@ class AsrDiarizationContractTest(unittest.TestCase):
         self.assertEqual(result["class"], "image_missing_dependency")
         self.assertFalse(result["retryable"])
 
+    def test_vast_manifest_not_found_is_classified_as_permanent_image_not_found(self) -> None:
+        result = classify_error(
+            "Worker 35504760 encountered error: Error response from daemon: manifest for vastai/vllm:latest not found",
+            provider="vast",
+        )
+
+        self.assertEqual(result["class"], "image_not_found")
+        self.assertFalse(result["retryable"])
+
+    def test_vast_registry_503_while_pulling_is_classified_as_retryable_image_pull_failure(self) -> None:
+        result = classify_error(
+            "unexpected status from HEAD request to https://docker1.vast.ai/v2/vastai/vllm/manifests/latest"
+            "?ns=docker.io: 503 Service Unavailable while pulling",
+            provider="vast",
+        )
+
+        self.assertEqual(result["class"], "image_pull_failed")
+        self.assertTrue(result["retryable"])
+
+    def test_vast_startup_timeout_is_classified_as_retryable_startup_timeout(self) -> None:
+        result = classify_error("blocker_type=startup_timeout worker_status=loading", provider="vast")
+
+        self.assertEqual(result["class"], "startup_timeout")
+        self.assertTrue(result["retryable"])
+
+    def test_runpod_disabled_endpoint_queue_is_classified_as_permanent_disabled_endpoint_queue(self) -> None:
+        result = classify_error("blocker_type=disabled_endpoint_queue final_job_status=CANCELLED", provider="runpod")
+
+        self.assertEqual(result["class"], "disabled_endpoint_queue")
+        self.assertFalse(result["retryable"])
+
+    def test_runpod_warm_standby_unexpected_is_classified_as_permanent(self) -> None:
+        result = classify_error("blocker_type=warm_standby_unexpected workersStandby=1 status=IN_QUEUE", provider="runpod")
+
+        self.assertEqual(result["class"], "warm_standby_unexpected")
+        self.assertFalse(result["retryable"])
+        self.assertTrue(result["permanent"])
+
     def test_missing_matplotlib_is_classified_as_image_dependency(self) -> None:
         result = classify_error("No module named 'matplotlib'", provider="vast")
 

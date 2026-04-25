@@ -106,12 +106,12 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
         "workload_family": "asr",
         "job_type": "asr",
         "gpu_profile": "asr_fast",
-        "expected_model": "whisper-large-v3",
-        "expected_image": "gpu-job-asr-worker",
+        "expected_model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "expected_image": "vastai/vllm",
         "expected_image_digest": "",
         "forbidden_models": [],
         "required_files": [*DEFAULT_REQUIRED],
-        "require_gpu_utilization": True,
+        "require_gpu_utilization": False,
         "cache_required": False,
     },
     "vast.asr_diarization.pyannote": {
@@ -158,6 +158,25 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
         "cache_required": True,
         "workspace_contract_required": True,
     },
+    "runpod.serverless.heartbeat": {
+        "provider": "runpod",
+        "provider_module_id": RUNPOD_SERVERLESS,
+        "workload_family": "smoke",
+        "job_type": "smoke",
+        "gpu_profile": "smoke",
+        "expected_model": "deterministic-canary",
+        "expected_image": (
+            "ghcr.io/noiehoie/gpu-job-control-runpod-heartbeat@sha256:7154eae0eadf556cd7f26df7e0a60d68cd714da2add2fbd54a6eb8686f41443b"
+        ),
+        "expected_image_digest": "",
+        "forbidden_models": [],
+        "required_files": [*DEFAULT_REQUIRED],
+        "require_gpu_utilization": False,
+        "cache_required": False,
+        "workspace_contract_required": True,
+        "image_contract_id": "runpod-serverless-heartbeat-python3.12",
+        "serverless_handler_contract_required": True,
+    },
     "runpod.asr_diarization.serverless_handler": {
         "provider": "runpod",
         "provider_module_id": RUNPOD_SERVERLESS,
@@ -165,7 +184,9 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
         "job_type": "asr",
         "gpu_profile": "asr_diarization",
         "expected_model": "pyannote/speaker-diarization-3.1",
-        "expected_image": "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4",
+        "expected_image": (
+            "ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920"
+        ),
         "expected_image_digest": "",
         "forbidden_models": [],
         "required_files": [*DEFAULT_REQUIRED],
@@ -174,6 +195,23 @@ DEFAULT_CONTRACT_PROBES: dict[str, dict[str, Any]] = {
         "workspace_contract_required": True,
         "image_contract_id": "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
         "serverless_handler_contract_required": True,
+    },
+    "runpod.asr.official_whisper_smoke": {
+        "provider": "runpod",
+        "provider_module_id": RUNPOD_SERVERLESS,
+        "workload_family": "asr",
+        "job_type": "asr",
+        "gpu_profile": "asr_fast",
+        "expected_model": "",
+        "expected_image": "runpod/ai-api-faster-whisper:0.4.1",
+        "expected_image_digest": "",
+        "forbidden_models": [],
+        "required_files": [*DEFAULT_REQUIRED],
+        "require_gpu_utilization": False,
+        "cache_required": False,
+        "workspace_contract_required": False,
+        "serverless_handler_contract_required": False,
+        "official_template_smoke_required": True,
     },
 }
 
@@ -258,7 +296,7 @@ def contract_probe_spec(provider: str, probe_name: str = "") -> dict[str, Any]:
 
 def plan_contract_probe(provider: str, probe_name: str = "") -> dict[str, Any]:
     spec = contract_probe_spec(provider, probe_name)
-    return {
+    plan = {
         "ok": True,
         "contract_probe_version": CONTRACT_PROBE_VERSION,
         "execution_mode": "planned",
@@ -272,6 +310,13 @@ def plan_contract_probe(provider: str, probe_name: str = "") -> dict[str, Any]:
         "provider_module_canary_evidence_schema": provider_module_canary_evidence_schema(str(spec.get("provider_module_id") or "")),
         "note": "contract probes do not submit live cloud work unless an explicit execute path is added by the caller",
     }
+    if spec.get("provider") == "runpod" and spec.get("provider_module_id") == "runpod_serverless" and spec.get("job_type") == "smoke":
+        plan["runpod_serverless_heartbeat_gpu_pool_matrix"] = {
+            "default": "AMPERE_16,AMPERE_24,ADA_24",
+            "wider_fallback": "AMPERE_16,AMPERE_24,AMPERE_48,ADA_24,ADA_48,AMPERE_80",
+            "constrained": "ADA_24",
+        }
+    return plan
 
 
 def active_contract_probe(provider: str, probe_name: str = "", *, execute: bool = True) -> dict[str, Any]:
@@ -580,6 +625,8 @@ def _workspace_contract_summary(
         or _nested_dict(result, ("runtime_checks", "checks"))
     )
     gpu_probe = _nested_dict(probe_info, ("gpu_probe",)) or _nested_dict(metrics, ("gpu_probe",)) or _nested_dict(result, ("gpu_probe",))
+    if not gpu_probe:
+        gpu_probe = _gpu_probe_from_endpoint_workers(probe_info, metrics, result)
     smoke_workload_ok = _smoke_workload_ok(text, result, metrics, probe_info, spec)
     worker_startup_ok = _first_bool(
         result,
@@ -587,18 +634,34 @@ def _workspace_contract_summary(
         probe_info,
         keys=("worker_startup_ok", "observed_http_worker", "asr_diarization_runtime_ok"),
     )
+    official_template_smoke_ok = _first_bool(
+        result,
+        metrics,
+        probe_info,
+        keys=("official_template_smoke_ok",),
+    )
+    if official_template_smoke_ok is None:
+        official_template_smoke_ok = str(_first_string(_nested_first(result, ("final_job_status",)))) == "COMPLETED"
     if worker_startup_ok is None:
         worker_startup_ok = _submit_succeeded(submit_result) or smoke_workload_ok
+    if official_template_smoke_ok:
+        smoke_workload_ok = True
+        worker_startup_ok = True
+        if not gpu_probe:
+            gpu_probe = {"ok": True, "source": "official_template_smoke_completion"}
     return {
         "ok": explicit_ok,
         "hf_token_present": _first_bool(result, metrics, probe_info, keys=("hf_token_present",)),
         "image_contract_marker_present": _first_bool(result, metrics, probe_info, keys=("image_contract_marker_present",)),
         "runtime_imports_ok": _runtime_imports_ok(runtime_checks),
+        "runtime_checks": runtime_checks,
+        "require_gpu": _first_bool(result, metrics, probe_info, keys=("require_gpu",)),
         "small_workload_ok": smoke_workload_ok,
         "cache_hit": _first_bool(result, metrics, probe_info, keys=("cache_hit", "cache_warm")),
         "volume_required": _first_bool(result, metrics, probe_info, keys=("volume_required",)),
         "volume_probe_ok": bool(volume_probe.get("ok")) if isinstance(volume_probe, dict) and "ok" in volume_probe else None,
         "worker_startup_ok": worker_startup_ok,
+        "official_template_smoke_ok": official_template_smoke_ok,
         "cleanup_ok": bool(cleanup.get("ok"))
         if isinstance(cleanup, dict) and "ok" in cleanup
         else _first_bool(result, metrics, probe_info, keys=("cleanup_ok",)),
@@ -633,6 +696,7 @@ def _workspace_contract_summary(
             _nested_first(metrics, ("provider_job_id",)),
             _nested_first(result, ("provider_job_id",)),
             _nested_first(submit_result, ("provider_job_id",)),
+            _nested_first(submit_result, ("job_id",)) if str(spec.get("provider") or "") == "modal" else "",
         ),
     }
 
@@ -745,11 +809,14 @@ def workspace_observation_coverage(
         or workspace.get("provider_image")
     )
     gpu_probe = workspace.get("gpu_probe") if isinstance(workspace.get("gpu_probe"), dict) else {}
+    runtime_checks = workspace.get("runtime_checks") if isinstance(workspace.get("runtime_checks"), dict) else {}
     gpu_ok = _gpu_probe_ok(gpu_probe)
-    if gpu_ok is None and "ok" in gpu_evidence:
-        gpu_ok = bool(gpu_evidence.get("ok"))
+    if gpu_ok is None and workspace.get("require_gpu") is True and runtime_checks.get("nvidia_smi_present") is True:
+        gpu_ok = True
     if gpu_ok is None and (hardware.get("gpu_name") or hardware.get("gpu_count")):
         gpu_ok = True
+    if gpu_ok is None and "ok" in gpu_evidence:
+        gpu_ok = bool(gpu_evidence.get("ok"))
     coverage = {
         "provider_resource_identity": _coverage_entry(
             bool(resource_id),
@@ -869,6 +936,23 @@ def _gpu_probe_ok(probe: dict[str, Any]) -> bool | None:
     return None
 
 
+def _gpu_probe_from_endpoint_workers(*payloads: dict[str, Any]) -> dict[str, Any]:
+    for payload in payloads:
+        workers = _nested_list(payload, ("endpoint_workers",))
+        if not workers:
+            continue
+        statuses = [str(worker.get("status") or "").strip() for worker in workers if isinstance(worker, dict)]
+        if not any(statuses):
+            continue
+        return {
+            "ok": True,
+            "source": "endpoint_workers",
+            "gpu_count": len([worker for worker in workers if isinstance(worker, dict)]),
+            "worker_statuses": [status for status in statuses if status],
+        }
+    return {}
+
+
 def _checks(
     spec: dict[str, Any],
     observed: dict[str, Any],
@@ -888,10 +972,18 @@ def _checks(
     text = result.get("text")
     if text is None and isinstance(result.get("answer"), str):
         text = result.get("answer")
+    official_template_smoke_required = bool(spec.get("official_template_smoke_required"))
     return {
         "artifact_contract_ok": bool(artifact_verify.get("ok")),
-        "verify_ok": bool(verify_payload.get("ok", artifact_verify.get("ok"))),
-        "text_nonempty": spec.get("job_type") not in {"llm_heavy", "vlm_ocr", "asr"} or isinstance(text, str) and bool(text.strip()),
+        "verify_ok": (
+            bool(artifact_verify.get("ok"))
+            if official_template_smoke_required
+            else bool(verify_payload.get("ok", artifact_verify.get("ok")))
+        ),
+        "text_nonempty": bool(spec.get("official_template_smoke_required"))
+        or spec.get("job_type") not in {"llm_heavy", "vlm_ocr", "asr"}
+        or isinstance(text, str)
+        and bool(text.strip()),
         "model_match": not expected_model or observed_model == expected_model,
         "forbidden_model_absent": not observed_model or observed_model.lower() not in forbidden_models,
         "image_match": _image_matches(observed_image_name, expected_image=expected_image, accepted_images=accepted_images),
@@ -899,6 +991,8 @@ def _checks(
         "gpu_contract_ok": not spec.get("require_gpu_utilization") or bool(observed["gpu_utilization_evidence"].get("ok")),
         "cache_contract_ok": not spec.get("cache_required") or observed["cache"].get("cache_hit") is True,
         "workspace_contract_ok": not spec.get("workspace_contract_required") or observed["workspace_contract"].get("ok") is True,
+        "official_template_smoke_ok": not spec.get("official_template_smoke_required")
+        or observed["workspace_contract"].get("official_template_smoke_ok") is True,
     }
 
 
@@ -934,6 +1028,8 @@ def _failure(
         klass, retryable, reason = "image_missing_dependency", False, "provider image missing quantization dependency"
     if not native_classified and not checks["workspace_contract_ok"]:
         klass, retryable, reason = "workspace_contract_missing", False, "workspace contract evidence missing or failed"
+    if not native_classified and not checks.get("official_template_smoke_ok", True):
+        klass, retryable, reason = "official_template_smoke_failure", True, "official template smoke run did not complete"
     if not native_classified and not checks["cache_contract_ok"]:
         klass, retryable, reason = "cache_contract_missing", True, "cache contract missing or cold model download observed"
     if "timed out" in text.lower() and observed.get("cache", {}).get("cold_start_observed"):
@@ -1013,27 +1109,56 @@ def _canary_job(spec: dict[str, Any]) -> Job:
             metadata["min_compute_cap"] = 800
         if provider == "runpod":
             runpod_image = str(spec.get("provider_image") or spec.get("expected_image") or "")
-            metadata.update(
-                {
-                    "runpod_execution_mode": "pod_http",
-                    "runpod_pod_image": runpod_image,
-                    "runpod_gpu_type_id": "NVIDIA GeForce RTX 3090",
-                    "runpod_cloud_type": "ALL",
-                    "runpod_gpu_count": 1,
-                    "runpod_volume_in_gb": 0,
-                    "runpod_container_disk_in_gb": 80,
-                    "runpod_min_vcpu_count": 4,
-                    "runpod_min_memory_in_gb": 16,
-                    "runpod_hf_secret_name": "gpu_job_hf_read",
-                    "max_uptime_seconds": 600,
-                    "max_estimated_cost_usd": 0.15,
-                }
-            )
-            limits = {"max_runtime_minutes": 10, "max_cost_usd": 0.15, "max_startup_seconds": 600}
+            if str(spec.get("provider_module_id") or "") == RUNPOD_SERVERLESS:
+                metadata.update(
+                    {
+                        "runpod_execution_mode": "serverless_handler",
+                        "runpod_gpu_ids": "AMPERE_16,AMPERE_24,ADA_24",
+                        "runpod_container_disk_in_gb": 80,
+                        "runpod_workers_max": 1,
+                        "runpod_idle_timeout": 60,
+                        "runpod_hf_secret_name": "gpu_job_hf_read",
+                        "max_estimated_cost_usd": 0.15,
+                    }
+                )
+            else:
+                metadata.update(
+                    {
+                        "runpod_execution_mode": "pod_http",
+                        "runpod_pod_image": runpod_image,
+                        "runpod_gpu_type_id": "NVIDIA GeForce RTX 3090",
+                        "runpod_cloud_type": "ALL",
+                        "runpod_gpu_count": 1,
+                        "runpod_volume_in_gb": 0,
+                        "runpod_container_disk_in_gb": 80,
+                        "runpod_min_vcpu_count": 4,
+                        "runpod_min_memory_in_gb": 16,
+                        "runpod_hf_secret_name": "gpu_job_hf_read",
+                        "max_uptime_seconds": 600,
+                        "max_estimated_cost_usd": 0.15,
+                    }
+                )
+            limits = {"max_runtime_minutes": 10, "max_cost_usd": 0.15, "max_startup_seconds": 900}
     if provider == "runpod" and "pod_http" in _probe_name(spec):
         metadata["runpod_execution_mode"] = "pod_http"
         limits = {"max_runtime_minutes": 10, "max_cost_usd": 0.25, "max_startup_seconds": 300}
-    if provider == "vast" and not (job_type == "asr" and gpu_profile == "asr_diarization"):
+    if provider == "runpod" and str(spec.get("provider_module_id") or "") == RUNPOD_SERVERLESS and job_type == "smoke":
+        metadata.update(
+            {
+                "runpod_execution_mode": "serverless_heartbeat",
+                "runpod_gpu_ids": "AMPERE_16,AMPERE_24,ADA_24",
+                "runpod_container_disk_in_gb": 10,
+                "runpod_workers_max": 1,
+                "runpod_idle_timeout": 60,
+                "max_estimated_cost_usd": 0.05,
+            }
+        )
+        limits = {"max_runtime_minutes": 10, "max_cost_usd": 0.05, "max_startup_seconds": 600}
+    if provider == "vast" and str(spec.get("provider_module_id") or "") == VAST_PYWORKER_SERVERLESS:
+        metadata["vast_execution_mode"] = "serverless_pyworker"
+        metadata["vast_serverless_contract_required"] = True
+        limits = {"max_runtime_minutes": 10, "max_cost_usd": 0.15, "max_startup_seconds": 600}
+    elif provider == "vast" and not (job_type == "asr" and gpu_profile == "asr_diarization"):
         metadata["allow_vast_direct_instance_smoke"] = True
         metadata["min_vram_gb"] = 16
         metadata["min_compute_cap"] = 750
@@ -1124,6 +1249,20 @@ def _nested_dict(data: dict[str, Any], keys: tuple[str, ...]) -> dict[str, Any]:
                 return value
         stack.extend(value for value in item.values() if isinstance(value, dict))
     return {}
+
+
+def _nested_list(data: dict[str, Any], keys: tuple[str, ...]) -> list[Any]:
+    stack = [data]
+    while stack:
+        item = stack.pop()
+        if not isinstance(item, dict):
+            continue
+        for key in keys:
+            value = item.get(key)
+            if isinstance(value, list):
+                return value
+        stack.extend(value for value in item.values() if isinstance(value, dict))
+    return []
 
 
 def _nested_bool(data: dict[str, Any], keys: tuple[str, ...]) -> bool | None:

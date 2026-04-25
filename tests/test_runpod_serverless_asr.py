@@ -69,7 +69,7 @@ def test_runpod_serverless_asr_is_plan_only_until_workspace_contract_probe_passe
 
     assert plan["ok"] is True
     assert plan["safety_invariants"]["production_dispatch"] == "blocked_until_serverless_handler_and_workspace_contract_probe_pass"
-    assert plan["serverless_handler_contract"]["status"] == "unverified"
+    assert plan["serverless_handler_contract"]["status"] == "verified"
     assert plan["endpoint"]["workersMin"] == 0
     assert plan["endpoint"]["workersMax"] == 1
     assert "provider_residue" in plan["workspace_observation_contract"]["required_categories"]

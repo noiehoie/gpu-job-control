@@ -20,10 +20,10 @@ class ImageDistributionTest(unittest.TestCase):
         result = image_mirror_plan(
             "ghcr.io/example/gpu-job@sha256:abc",
             "registry.example.com/gpu-job@sha256:abc",
-            builder="gpu-builder",
+            builder="netcup",
         )
         self.assertTrue(result["ok"])
-        self.assertEqual(result["builder"], "gpu-builder")
+        self.assertEqual(result["builder"], "netcup")
         self.assertEqual(result["command"][0], "ssh")
         self.assertIn("operator-controlled registry", result["runtime_policy"])
 
@@ -31,7 +31,7 @@ class ImageDistributionTest(unittest.TestCase):
         result = image_mirror(
             "ghcr.io/example/gpu-job@sha256:abc",
             "registry.example.com/gpu-job@sha256:abc",
-            builder="gpu-builder",
+            builder="netcup",
             execute=False,
         )
         self.assertTrue(result["ok"])
@@ -52,17 +52,26 @@ class ImageDistributionTest(unittest.TestCase):
         self.assertEqual(result["missing_fields"], [])
         self.assertTrue(result["dockerfile_check"]["ok"])
 
-    def test_runpod_serverless_asr_handler_contract_is_registered_but_unverified(self) -> None:
+    def test_runpod_serverless_asr_handler_contract_is_registered_and_verified(self) -> None:
         result = image_contract_plan("asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4")
         check = image_contract_check("asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4")
 
         self.assertTrue(result["ok"])
-        self.assertEqual(result["status"], "unverified")
-        self.assertEqual(result["image"], "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4")
-        self.assertEqual(result["contract"]["entrypoint"], "gpu-job-runpod-asr-worker")
+        self.assertEqual(result["status"], "verified")
+        self.assertTrue(result["image"].startswith("ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:"))
+        self.assertEqual(result["contract"]["entrypoint"], "python3.11 -u /rp_handler.py")
         self.assertEqual(result["dockerfile"], "docker/runpod-asr-worker.Dockerfile")
         self.assertTrue(check["ok"])
         self.assertTrue(check["dockerfile_check"]["ok"])
+
+    def test_runpod_official_worker_vllm_reference_contract_is_registered(self) -> None:
+        result = image_contract_plan("llm-vllm-runpod-worker-vllm-reference")
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["status"], "reference_only")
+        self.assertEqual(result["contract"]["provider_images"]["runpod"]["source_repo"], "https://github.com/runpod-workers/worker-vllm")
+        self.assertEqual(result["image"], "registry.runpod.net/runpod-workers-worker-vllm-main-dockerfile:17efb0e7d")
+        self.assertIn("openai_compatible", result["contract"]["provides_backends"])
 
     def test_image_contract_probe_without_execute_is_plan_only(self) -> None:
         result = image_contract_probe("asr-diarization-large-v3-pyannote3.3.2-cuda12.4", execute=False)

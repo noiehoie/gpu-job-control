@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-builder="${GPU_JOB_DOCKER_BUILDER:-gpu-builder}"
-workdir="${GPU_JOB_REMOTE_WORKDIR:-/opt/gpu-job-control}"
+builder="${GPU_JOB_DOCKER_BUILDER:-netcup}"
+workdir="${GPU_JOB_REMOTE_WORKDIR:-/home/admin/gpu-job-control-codex-netcup}"
 ssh "$builder" "cd '$workdir' && docker $*"

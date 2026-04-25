@@ -439,6 +439,158 @@ post_promotion_guard.providers.runpod.billable_resources=[]
 
 These retests show that using the Hub-derived image and 150GB disk did not make the GraphQL-created Serverless vLLM endpoint usable. `ADA_24` still gets throttled/queued, while `AMPERE_80` fails earlier with an internal server error. This strengthens the question of whether the Hub deployment path sets additional non-template fields or uses a backend deployment path that is not reproduced by public `saveTemplate` + `saveEndpoint`.
 
+## New Evidence: Official CLI and Official Public Template Also Surface Warm Standby
+
+After the earlier GraphQL and REST tests, we ran additional netcup canaries on
+2026-04-24 using only official `runpodctl` surfaces.
+
+### Official CLI create with our verified custom handler image
+
+We created a scratch serverless template and endpoint through `runpodctl` using
+the verified custom ASR serverless handler image:
+
+```text
+image=ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd5c99eb0d281b5527f35dd1062dcd5157b5057e2f0d05d95ee89ba920
+template_id=rtm2v05aww
+endpoint_id=cq3osv9k1bcjei
+```
+
+Result:
+
+```text
+workersMax=1
+workersStandby=1
+worker_id=x7sk98ca5jkn9e
+desiredStatus=EXITED
+RUNPOD_GPU_SIZE=ADA_24
+imageName=ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:e73ac9bd...
+```
+
+Our direct probe did not even submit work to that endpoint because pre-guard
+was already dirty at observation time:
+
+```text
+error=RunPod pre-guard is not clean
+billable_resources=[serverless_endpoint_warm_capacity]
+```
+
+This is important because it reproduces the same `workersStandby=1` symptom on
+the official CLI create path, not only on GraphQL or sidecar REST create.
+
+### Official public Faster Whisper template
+
+We also tested the official public RunPod template:
+
+```text
+template_id=bem34sz6ol
+imageName=runpod/ai-api-faster-whisper:0.4.1
+repoUrl=https://github.com/runpod-workers/worker-faster_whisper
+```
+
+#### Variant 1: explicit GPU override
+
+```text
+endpoint_id=2o5wg2qyatp6fe
+gpu override=NVIDIA GeForce RTX 4090
+worker_id=vr10stvsx8vdlg
+desiredStatus=EXITED
+imageName=runpod/ai-api-faster-whisper:0.4.1
+```
+
+#### Variant 2: template-default GPU path
+
+```text
+endpoint_id=fbvoxae2tdd79l
+gpuIds=AMPERE_16,AMPERE_24
+workersStandby=1
+pods=[]
+workers.total=0
+```
+
+We polled the template-default endpoint for 60 seconds:
+
+```text
+step=0..6
+workersStandby=1
+jobs.inQueue=0
+jobs.inProgress=0
+workers.total=0
+workers.running=0
+workers.exited=0
+```
+
+`workersStandby` never returned to `0` during that minute.
+
+### Why this matters
+
+These new runs appear to remove the remaining easy local explanations:
+
+1. official GraphQL path reproduced the blocker
+2. official REST path reproduced the blocker
+3. official `runpodctl` path reproduced the blocker
+4. official public template reproduced the blocker
+5. our custom private handler image also reproduced it
+
+That makes the remaining question much narrower:
+
+- Is `workersStandby=1` on newly created serverless endpoints expected account
+  behavior, even when `workersMin=0`?
+- If not, what hidden deployment/backend condition is causing it on this
+  account?
+- For the `EXITED` worker cases, what internal worker-init or image-pull logs
+  explain the immediate exit?
+
+## Additional 2026-04-24 Evidence: Real `/run` Submit Matrix on the Official Public Template
+
+We sent real `/run` jobs to the same official public Faster Whisper template
+through official `runpodctl`-created endpoints.
+
+Template under test:
+
+```text
+template_id=bem34sz6ol
+imageName=runpod/ai-api-faster-whisper:0.4.1
+```
+
+### GPU override: RTX 3090
+
+```text
+endpoint_id=i9aidzcxuhrosv
+job_id=224ef8ad-7181-4f60-add3-1ca82d4b45a8-e1
+submit.status=IN_QUEUE
+status remained IN_QUEUE for 60s
+endpoint get did not list a worker
+```
+
+### GPU override: L4
+
+```text
+endpoint_id=ugwas8mwrm951z
+job_id=1110b9a5-92e0-4d89-9d4c-5f69cbda21e7-e1
+submit.status=IN_QUEUE
+status remained IN_QUEUE for 60s
+worker_id=hhew8avzbi2zvr
+desiredStatus=EXITED
+imageName=runpod/ai-api-faster-whisper:0.4.1
+```
+
+### Template-default GPU path
+
+```text
+endpoint_id=xjaq6p3icq5pog
+job_id=93922e82-c4f0-4206-92fe-4da3b8d2e8e9-e1
+submit.status=IN_QUEUE
+status remained IN_QUEUE for 120s
+worker_id=nm78lu8c7vp7cp
+desiredStatus=EXITED
+imageName=runpod/ai-api-faster-whisper:0.4.1
+```
+
+These three real `/run` submits matter because they move the question beyond
+"does create leave `workersStandby=1`?" to "can the official public template
+actually dispatch a job on this account?". In the observed window, the answer
+was still no.
+
 ### `saveTemplate`
 
 ```graphql

@@ -8,7 +8,6 @@ import urllib.request
 from argparse import ArgumentParser
 
 from gpu_job.providers.runpod import RunPodProvider
-from gpu_job.providers.runpod import _graphql_string
 from gpu_job.providers.runpod import _runpod_api_key
 
 
@@ -50,10 +49,10 @@ def main() -> None:
         "model": model,
         "keep_endpoint_for_console": bool(args.keep_endpoint_for_console),
         "models_timeout_seconds": int(args.models_timeout),
-        "mutations": {},
         "responses": {},
     }
     endpoint = None
+    template = None
 
     try:
         env = [
@@ -63,52 +62,54 @@ def main() -> None:
             {"key": "MAX_CONCURRENCY", "value": "1"},
             {"key": "OPENAI_SERVED_MODEL_NAME_OVERRIDE", "value": model},
         ]
-        env_graphql = ", ".join(
-            "{ key: " + _graphql_string(item["key"]) + ", value: " + _graphql_string(item["value"]) + " }" for item in env
+        template_payload = {
+            "name": "gpu-job-vllm-support-diff-" + now,
+            "imageName": "runpod/worker-v1-vllm:v2.14.0",
+            "isServerless": True,
+            "containerDiskInGb": 30,
+            "volumeInGb": 0,
+            "dockerArgs": "",
+            "env": env,
+        }
+        template_req = urllib.request.Request(
+            "https://api.runpod.io/v1/templates",
+            data=json.dumps(template_payload).encode(),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "gpu-job-control",
+            },
+            method="POST",
         )
-        template_name = "gpu-job-vllm-support-diff-" + now
-        template_mutation = (
-            "mutation {"
-            " saveTemplate(input: {"
-            f" name: {_graphql_string(template_name)},"
-            f" imageName: {_graphql_string('runpod/worker-v1-vllm:v2.14.0')},"
-            " isServerless: true,"
-            " containerDiskInGb: 30,"
-            " volumeInGb: 0,"
-            f" dockerArgs: {_graphql_string('')},"
-            f" env: [{env_graphql}]"
-            " }) { id name imageName isServerless containerDiskInGb volumeInGb dockerArgs env { key value } }"
-            "}"
-        )
-        result["mutations"]["saveTemplate"] = template_mutation
-        template_response = provider._run_graphql(template_mutation)
-        result["responses"]["saveTemplate"] = template_response
-        created_template = template_response["data"]["saveTemplate"]
+        with urllib.request.urlopen(template_req, timeout=30) as resp:
+            template = json.loads(resp.read().decode())
+        result["responses"]["saveTemplate"] = template
 
-        endpoint_name = "gpu-job-vllm-support-diff-" + now
-        endpoint_mutation = f"""
-mutation {{
-  saveEndpoint(input: {{
-    flashBootType: FLASHBOOT,
-    gpuCount: 1,
-    gpuIds: {_graphql_string("ADA_24")},
-    idleTimeout: 180,
-    name: {_graphql_string(endpoint_name)},
-    scalerType: {_graphql_string("QUEUE_DELAY")},
-    scalerValue: 15,
-    templateId: {_graphql_string(str(created_template["id"]))},
-    workersMax: 1,
-    workersMin: 0
-  }}) {{
-    id name gpuIds gpuCount idleTimeout locations flashBootType
-    scalerType scalerValue templateId workersMax workersMin workersStandby networkVolumeId
-  }}
-}}
-"""
-        result["mutations"]["saveEndpoint"] = endpoint_mutation
-        endpoint_response = provider._run_graphql(endpoint_mutation)
-        result["responses"]["saveEndpoint"] = endpoint_response
-        endpoint = endpoint_response["data"]["saveEndpoint"]
+        endpoint_payload = {
+            "flashBootType": "FLASHBOOT",
+            "gpuCount": 1,
+            "gpuIds": "ADA_24",
+            "idleTimeout": 180,
+            "name": "gpu-job-vllm-support-diff-" + now,
+            "scalerType": "QUEUE_DELAY",
+            "scalerValue": 15,
+            "templateId": str(template["id"]),
+            "workersMax": 1,
+            "workersMin": 0,
+        }
+        endpoint_req = urllib.request.Request(
+            "https://api.runpod.io/v1/endpoints",
+            data=json.dumps(endpoint_payload).encode(),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "gpu-job-control",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(endpoint_req, timeout=30) as resp:
+            endpoint = json.loads(resp.read().decode())
+        result["responses"]["saveEndpoint"] = endpoint
         endpoint_id = endpoint["id"]
         result["openai_models"] = request_json(
             f"https://api.runpod.ai/v2/{endpoint_id}/openai/v1/models",
@@ -120,14 +121,67 @@ mutation {{
         result["ok"] = bool(result["openai_models"].get("ok"))
     finally:
         if endpoint:
-            result["disabled"] = provider._disable_endpoint(str(endpoint["id"]), template_id=str(endpoint["templateId"]))
+            # Disable endpoint via POST
+            disable_payload = {
+                "name": "gpu-job-disabled",
+                "templateId": str(endpoint["templateId"]),
+                "gpuIds": "ADA_24",
+                "workersMin": 0,
+                "workersMax": 0,
+            }
+            disable_req = urllib.request.Request(
+                f"https://api.runpod.io/v1/endpoints/{endpoint['id']}",
+                data=json.dumps(disable_payload).encode(),
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "gpu-job-control",
+                },
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(disable_req, timeout=30) as resp:
+                    result["disabled"] = json.loads(resp.read().decode())
+            except Exception as e:
+                result["disabled"] = {"ok": False, "error": str(e)}
+            
             time.sleep(3)
             if args.keep_endpoint_for_console:
                 result["deleted"] = None
                 result["console_endpoint_id"] = str(endpoint["id"])
                 result["console_note"] = "Endpoint intentionally retained for dashboard logs; workersMin/workersMax were set to 0."
             else:
-                result["deleted"] = provider._delete_endpoint(str(endpoint["id"]))
+                delete_req = urllib.request.Request(
+                    f"https://api.runpod.io/v1/endpoints/{endpoint['id']}",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                        "User-Agent": "gpu-job-control",
+                    },
+                    method="DELETE",
+                )
+                try:
+                    with urllib.request.urlopen(delete_req, timeout=30) as resp:
+                        result["deleted"] = {"ok": True, "status": resp.status}
+                except Exception as e:
+                    result["deleted"] = {"ok": False, "error": str(e)}
+        
+        if template and not args.keep_endpoint_for_console:
+            delete_template_req = urllib.request.Request(
+                f"https://api.runpod.io/v1/templates/{template['id']}",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "gpu-job-control",
+                },
+                method="DELETE",
+            )
+            try:
+                with urllib.request.urlopen(delete_template_req, timeout=30) as resp:
+                    result["template_deleted"] = {"ok": True, "status": resp.status}
+            except Exception as e:
+                result["template_deleted"] = {"ok": False, "error": str(e)}
+
         result["guard"] = provider.cost_guard()
         print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
 

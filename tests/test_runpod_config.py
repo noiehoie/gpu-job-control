@@ -295,13 +295,13 @@ class RunPodConfigTest(unittest.TestCase):
             plan["safety_invariants"]["production_dispatch"],
             "blocked_until_serverless_handler_and_workspace_contract_probe_pass",
         )
-        self.assertEqual(plan["serverless_handler_contract"]["status"], "unverified")
+        self.assertEqual(plan["serverless_handler_contract"]["status"], "verified")
         self.assertEqual(plan["endpoint"]["workersMin"], 0)
         self.assertEqual(plan["endpoint"]["workersMax"], 1)
         self.assertEqual(plan["endpoint"]["networkVolumeId"], "vol-runpod-asr")
         self.assertEqual(plan["endpoint"]["flashBootType"], "FLASHBOOT")
         self.assertEqual(plan["template"]["ports"], "8000/http")
-        self.assertEqual(plan["template"]["imageName"], "gpu-job/asr-diarization-runpod-serverless:large-v3-pyannote3.3.2-cuda12.4")
+        self.assertTrue(plan["template"]["imageName"].startswith("ghcr.io/noiehoie/gpu-job-control-runpod-asr@sha256:"))
         self.assertEqual(
             plan["serverless_handler_contract"]["contract_id"],
             "asr-diarization-runpod-serverless-large-v3-pyannote3.3.2-cuda12.4",
@@ -427,7 +427,7 @@ class RunPodConfigTest(unittest.TestCase):
         self.assertEqual(plan["error"], "invalid_runpod_gpu_ids")
         self.assertEqual(plan["gpu_selection"]["invalid_pool_ids"], ["NVIDIA L4"])
 
-    def test_runpod_asr_serverless_promotion_blocks_before_gpu_allocation_until_handler_verified(self) -> None:
+    def test_runpod_asr_serverless_promotion_remains_disabled_after_handler_verified(self) -> None:
         provider = RunPodProvider()
 
         with patch.object(provider, "_run_graphql", side_effect=AssertionError("must not allocate GPU")):
@@ -435,7 +435,8 @@ class RunPodConfigTest(unittest.TestCase):
 
         self.assertFalse(result["ok"])
         self.assertFalse(result["executed"])
-        self.assertEqual(result["error"], "runpod_asr_serverless_handler_contract_unverified")
+        self.assertEqual(result["serverless_handler_contract"]["status"], "verified")
+        self.assertEqual(result["error"], "runpod_asr_serverless_execute_not_enabled")
 
     def test_runpod_asr_serverless_promotion_passes_handler_gate_only_when_verified(self) -> None:
         provider = RunPodProvider()

@@ -2,9 +2,13 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-builder="${GPU_JOB_DOCKER_BUILDER:-gpu-builder}"
-workdir="${GPU_JOB_REMOTE_WORKDIR:-/opt/gpu-job-control}"
-rsync -az --delete --exclude .venv ./ "$builder:$workdir/"
+builder="${GPU_JOB_DOCKER_BUILDER:-netcup}"
+workdir="${GPU_JOB_REMOTE_WORKDIR:-/home/admin/gpu-job-control-codex-netcup}"
+rsync_args=(-az --exclude .venv --exclude __pycache__ --exclude .pytest_cache --exclude .ruff_cache)
+if [ "${GPU_JOB_REMOTE_RSYNC_DELETE:-0}" = "1" ]; then
+  rsync_args+=(--delete)
+fi
+rsync "${rsync_args[@]}" ./ "$builder:$workdir/"
 ssh "$builder" "
   set -euo pipefail
   cd '$workdir'

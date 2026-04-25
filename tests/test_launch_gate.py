@@ -49,6 +49,17 @@ def _probe_schema() -> dict:
     }
 
 
+def _module_probe(module_id: str, *, ok: bool = True) -> dict:
+    return {
+        "ok": True,
+        "provider_module_canary_evidence": {
+            "ok": ok,
+            "provider_module_id": module_id,
+            "module_specific_failures": [],
+        },
+    }
+
+
 def test_launch_phase_gate_blocks_when_runpod_billable_resources_exist() -> None:
     guard = {
         "ok": False,
@@ -87,8 +98,8 @@ def test_launch_phase_gate_accepts_phase_zero_to_two_when_guard_clean() -> None:
         "ok": True,
         "count": 3,
         "latest": {
-            "modal.llm_heavy.qwen2_5_32b": {"ok": True},
-            "modal.asr_diarization.pyannote": {"ok": True},
+            "modal.llm_heavy.qwen2_5_32b": _module_probe("modal_function"),
+            "modal.asr_diarization.pyannote": _module_probe("modal_function"),
             "runpod.asr_diarization.pyannote": {"ok": True},
             "vast.asr_diarization.pyannote": {"ok": True},
         },
@@ -106,3 +117,69 @@ def test_launch_phase_gate_accepts_phase_zero_to_two_when_guard_clean() -> None:
     assert result["ok"] is True
     assert [phase["ok"] for phase in result["phases"][:3]] == [True, True, True]
     assert result["stop_conditions"] == []
+
+
+def test_launch_phase_gate_modal_phase_requires_module_canary_evidence() -> None:
+    guard = {"ok": True, "estimated_hourly_usd": 0.0, "providers": {"runpod": {"ok": True, "billable_resources": []}}}
+    summary = {
+        "ok": True,
+        "count": 3,
+        "latest": {
+            "modal.llm_heavy.qwen2_5_32b": {"ok": True},
+            "modal.asr_diarization.pyannote": {"ok": True},
+            "runpod.asr_diarization.pyannote": {"ok": True},
+            "vast.asr_diarization.pyannote": {"ok": True},
+        },
+    }
+    with (
+        patch("gpu_job.launch_gate.load_execution_policy", return_value=_policy()),
+        patch("gpu_job.launch_gate.collect_cost_guard", return_value=guard),
+        patch("gpu_job.launch_gate._load_manifest", return_value=_manifest()),
+        patch("gpu_job.launch_gate.provider_contract_probe_schema", return_value=_probe_schema()),
+        patch("gpu_job.launch_gate.recent_contract_probe_summary", return_value=summary),
+        patch("gpu_job.launch_gate._git_diff_names", return_value=[]),
+    ):
+        result = launch_phase_gate()
+
+    phase3 = next(phase for phase in result["phases"] if phase["name"] == "phase_3_modal_canary")
+    assert phase3["ok"] is False
+    assert [check["name"] for check in phase3["checks"] if not check["ok"]] == [
+        "modal_llm_contract_probe_evidence_present",
+        "modal_asr_contract_probe_evidence_present",
+    ]
+
+
+def test_launch_phase_gate_accepts_official_runpod_serverless_probe() -> None:
+    guard = {
+        "ok": True,
+        "estimated_hourly_usd": 0.0,
+        "providers": {
+            "runpod": {"ok": True, "billable_resources": []},
+            "vast": {"ok": True, "billable_resources": []},
+        },
+    }
+    summary = {
+        "ok": True,
+        "count": 5,
+        "latest": {
+            "modal.llm_heavy.qwen2_5_32b": _module_probe("modal_function"),
+            "modal.asr_diarization.pyannote": _module_probe("modal_function"),
+            "runpod.asr_diarization.pyannote": {"ok": True},
+            "runpod.asr.official_whisper_smoke": _module_probe("runpod_serverless"),
+            "vast.asr.serverless_template": _module_probe("vast_pyworker_serverless"),
+            "vast.asr_diarization.pyannote": _module_probe("vast_instance"),
+        },
+    }
+    with (
+        patch("gpu_job.launch_gate.load_execution_policy", return_value=_policy()),
+        patch("gpu_job.launch_gate.collect_cost_guard", return_value=guard),
+        patch("gpu_job.launch_gate._load_manifest", return_value=_manifest()),
+        patch("gpu_job.launch_gate.provider_contract_probe_schema", return_value=_probe_schema()),
+        patch("gpu_job.launch_gate.recent_contract_probe_summary", return_value=summary),
+        patch("gpu_job.launch_gate._git_diff_names", return_value=[]),
+    ):
+        result = launch_phase_gate()
+
+    phase4 = next(phase for phase in result["phases"] if phase["name"] == "phase_4_runpod_bounded_canary")
+    runpod_serverless = next(check for check in phase4["checks"] if check["name"] == "runpod_serverless_endpoint_canary_evidence_present")
+    assert runpod_serverless["ok"] is True

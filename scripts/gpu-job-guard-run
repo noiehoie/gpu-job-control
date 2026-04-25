@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "${GPU_JOB_CONTROL_HOME:-/opt/gpu-job-control}"
+cd "${GPU_JOB_CONTROL_HOME:-/home/admin/gpu-job-control-codex-netcup}"
 
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gpu-job-control"
 LOG_DIR="$DATA_DIR/guard-logs"

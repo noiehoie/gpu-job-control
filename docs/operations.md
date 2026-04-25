@@ -200,7 +200,7 @@ Plan a mirror operation without touching local Docker:
 uv run gpu-job image mirror \
   --source ghcr.io/example/gpu-job-control-runpod-llm@sha256:<digest> \
   --target registry.example.com/gpu-job-control/runpod-llm@sha256:<digest> \
-  --builder gpu-builder
+  --builder netcup
 ```
 
 Add `--execute` only on a builder host that has registry credentials and Docker Buildx configured.
