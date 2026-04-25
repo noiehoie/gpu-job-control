@@ -221,6 +221,12 @@ class RunPodServerlessProbeScriptTests(unittest.TestCase):
     def test_official_template_smoke_ok_requires_completed_status(self) -> None:
         self.assertTrue(self.module._official_template_smoke_ok({"ok": True, "status": "COMPLETED"}))
         self.assertFalse(self.module._official_template_smoke_ok({"ok": True, "status": "IN_QUEUE"}))
+        self.assertFalse(self.module._official_template_smoke_ok({}))
+
+    def test_guard_clean_accepts_zero_billable_count_or_empty_resources(self) -> None:
+        self.assertTrue(self.module._guard_clean({"ok": True, "billable_resources": [], "billable_count": 1}))
+        self.assertTrue(self.module._guard_clean({"ok": True, "billable_resources": ["x"], "billable_count": 0}))
+        self.assertFalse(self.module._guard_clean({"ok": True, "billable_resources": ["x"], "billable_count": 1}))
 
     def test_probe_name_for_contract_distinguishes_official_smoke(self) -> None:
         self.assertEqual(

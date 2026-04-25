@@ -11,9 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from gpu_job.models import app_data_dir, now_unix
-from gpu_job.providers.runpod import RunPodProvider
-from gpu_job.providers.runpod import _runpod_api_key
-from gpu_job.providers.runpod import _runpod_image_digest_parts
+from gpu_job.providers.runpod import RunPodProvider, _runpod_api_key, _runpod_image_digest_parts
 
 
 CUSTOM_HANDLER_PROBE_NAME = "runpod.asr_diarization.serverless_handler"
@@ -589,11 +587,11 @@ def _submit_payload_preview(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _official_template_smoke_ok(run_result: dict[str, Any]) -> bool:
-    if not isinstance(run_result, dict):
-        return False
-    if not run_result.get("ok"):
-        return False
-    return str(run_result.get("status") or "").upper() == "COMPLETED"
+    return (
+        isinstance(run_result, dict)
+        and bool(run_result.get("ok"))
+        and str(run_result.get("status") or "").upper() == "COMPLETED"
+    )
 
 
 def _probe_name_for_contract(success_contract: str) -> str:
@@ -603,13 +601,19 @@ def _probe_name_for_contract(success_contract: str) -> str:
 def _delete_template(api_key: str, *, template_id: str) -> dict[str, Any]:
     if not template_id:
         return {"ok": False, "error": "template_id_required"}
-    result = _runpod_rest_request(api_key=api_key, path=f"/templates/{template_id}", method="DELETE", payload=None)
-    return {"ok": True, "template_id": template_id, "result": result}
+    return {
+        "ok": True,
+        "template_id": template_id,
+        "result": _runpod_rest_request(api_key=api_key, path=f"/templates/{template_id}", method="DELETE", payload=None),
+    }
 
 
 def _delete_endpoint_rest(api_key: str, endpoint_id: str) -> dict[str, Any]:
-    result = _runpod_rest_request(api_key=api_key, path=f"/endpoints/{endpoint_id}", method="DELETE", payload=None)
-    return {"ok": True, "endpoint_id": endpoint_id, "result": result}
+    return {
+        "ok": True,
+        "endpoint_id": endpoint_id,
+        "result": _runpod_rest_request(api_key=api_key, path=f"/endpoints/{endpoint_id}", method="DELETE", payload=None),
+    }
 
 
 def _disable_endpoint_rest(api_key: str, endpoint_id: str) -> dict[str, Any]:
@@ -851,9 +855,10 @@ def _normalized_output(raw_output: dict[str, Any]) -> dict[str, Any]:
 
 
 def _guard_clean(guard: dict[str, Any]) -> bool:
-    billable = guard.get("billable_resources")
-    billable_count = guard.get("billable_count")
-    return bool(guard.get("ok")) and ((isinstance(billable, list) and not billable) or billable_count == 0)
+    return bool(guard.get("ok")) and (
+        (isinstance(guard.get("billable_resources"), list) and not guard.get("billable_resources"))
+        or guard.get("billable_count") == 0
+    )
 
 
 def _delete_ok(cleanup: dict[str, Any]) -> bool:
