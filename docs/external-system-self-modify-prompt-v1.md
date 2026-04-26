@@ -4,7 +4,7 @@ Prompt for asking another software system, coding agent, or AI CLI to modify
 itself so it calls `gpu-job-control` through the public caller contract.
 
 - Prompt version: `external-system-self-modify-prompt-v1`
-- Product commit used for this prompt: `dd8624a`
+- Product commit used for this prompt: `a8eaa77`
 - Caller contract: `gpu-job-caller-request-v1`
 - Product invariant: `routing_by_module_enabled=false`
 
@@ -36,6 +36,12 @@ Single Source of Truth:
   - `GET /verify/{job_id}`
 - public auth:
   - `Authorization: Bearer <token>` または `X-GPU-Job-Token: <token>`
+
+実 product API 事前確認:
+1. 実行前に、あなたが接続している `GPU_JOB_API_BASE` が最新版 product API を指していることを確認せよ。
+2. `GET /schemas/caller-request` と `GET /catalog/operations` を実 API から取得し、`gpu-job-caller-request-v1` と `smoke.gpu` が存在することを確認せよ。
+3. canonical request を `POST /validate` に送り、旧 execution-job fields の missing error (`job_type`, `input_uri`, `output_uri`, `worker_image`, `gpu_profile`) が返った場合は、caller 実装の欠陥と即断してはならない。接続先 product API が古い checkout / 古い process / 誤った service を指している可能性を報告し、API base、response、時刻を提示せよ。
+4. static local schema だけを正本にしてはならない。実 API の schema/catalog と同期してから判断せよ。
 
 実装すべき構造:
 1. 既存システム内の GPU を必要とする処理を棚卸しする。
@@ -175,6 +181,9 @@ response handling:
 6. artifact verification failure は job 成功として扱わない。
 7. 429 は backpressure として扱い、`Retry-After` があれば尊重する。
 8. timeout / provider error / artifact failure / validation failure を区別して既存システムの error model に戻す。
+9. `planned`、`accepted`、`queued`、`running` は成功ではない。caller migration の contract path 確認としては使えるが、製品利用可能性の最終 E2E success として報告してはならない。
+10. 最終 E2E success は terminal success (`succeeded` または product が返す同等 terminal success) かつ `/verify/{job_id}` が `ok:true` の場合だけである。
+11. `/verify` が `ok:false` で missing artifacts を返した場合、job が未実行なら fail-closed として正しいが、最終 E2E success ではない。
 
 実装成果物:
 以下を作成または更新せよ。
@@ -217,6 +226,12 @@ response handling:
 4. generated request sample validation against the caller schema
 5. one dry-run or mocked end-to-end flow:
    native task -> canonical request -> submit/status/verify -> native result
+6. one real product API contract check:
+   `GET /schemas/caller-request` -> `GET /catalog/operations` -> `POST /validate`
+7. one real executed E2E smoke when credentials and policy allow it:
+   `POST /submit` with execution enabled -> `GET /jobs/{job_id}` until terminal success -> `GET /verify/{job_id}` returns `ok:true`
+8. artifact existence check for successful executed E2E:
+   `result.json`, `metrics.json`, `verify.json`, `stdout.log`, `stderr.log`, plus product manifest/record files when available
 
 完了報告様式:
 作業後、次の形式で報告せよ。実コマンド出力を必ず含めること。
@@ -252,6 +267,16 @@ Verification output:
 <paste actual command outputs here>
 ```
 
+Product API evidence:
+- API base URL:
+- schema endpoint status/output:
+- operation catalog status/output:
+- validate output:
+- submit output:
+- jobs output:
+- verify output:
+- artifact file listing:
+
 GO criteria:
 - all tests pass
 - generated request validates against `gpu-job-caller-request-v1`
@@ -259,6 +284,8 @@ GO criteria:
 - no provider direct call remains in caller GPU execution path
 - no hidden local fallback remains
 - artifact verification is required before success
+- real product API `/validate` accepts a canonical request
+- final executed E2E, if claimed, reaches terminal success and `/verify` returns `ok:true`
 
 NO-GO if any of these remain:
 - provider direct call in caller GPU path
@@ -273,4 +300,7 @@ NO-GO if any of these remain:
 - unknown backend selector value does not fail closed
 - `caller.version` or `trace_context` is dropped
 - caller code maps operation to `gpu_profile`, `worker_image`, `provider`, or `job_type`
+- report claims final E2E success while the job is only `planned`, `accepted`, `queued`, or `running`
+- report claims final E2E success while `/verify` is `ok:false`
+- report claims product compiler is missing based only on old execution-job missing-field errors, without confirming the live product API version/schema/catalog
 ```
