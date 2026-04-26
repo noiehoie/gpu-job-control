@@ -54,4 +54,4 @@ def resolve_lane_id(provider: str, metadata: dict[str, Any] | None = None) -> st
     explicit = str(metadata.get("provider_module_id") or "")
     if explicit in LANES:
         return explicit
-    return DEFAULT_LANE_BY_PROVIDER[str(provider)]
+    return DEFAULT_LANE_BY_PROVIDER.get(str(provider), "")

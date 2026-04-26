@@ -68,7 +68,7 @@ Single Source of Truth:
     "required_files": ["result.json", "metrics.json", "verify.json", "stdout.log", "stderr.log"]
   },
   "limits": {
-    "max_runtime_minutes": <positive finite number>,
+    "max_runtime_minutes": <positive integer>,
     "max_cost_usd": <positive finite number>,
     "max_output_gb": <positive finite number>
   },
@@ -138,7 +138,7 @@ lane 指定規則:
 `gpu.container.run` の必須規則:
 1. `input.parameters.workload` を必ず持つ。
 2. workload は bounded でなければならない。
-3. `limits` は有限・正でなければならない。
+3. `limits.max_runtime_minutes` は正の整数、`max_cost_usd` と `max_output_gb` は有限の正の数でなければならない。
 4. `output_expectation.required_files` は非空でなければならない。
 5. 5 lane examples と同型の request を生成できなければならない。
 
@@ -158,7 +158,7 @@ product へ送る前に必ず local validation を実行せよ。最低限、次
 4. `operation` が operation catalog の closed id である。
 5. `input.uri` と `output_expectation.target_uri` が空でない。
 6. `output_expectation.required_files` が非空である。
-7. `limits` が finite positive values である。
+7. `limits.max_runtime_minutes` が正の整数（positive integer）であり、`max_cost_usd` と `max_output_gb` が有限の正の数（finite positive numbers）である。
 8. `idempotency.key` が空でない。
 9. `caller.system`, `caller.operation`, `caller.request_id`, `caller.version` が空でない。
 10. 禁止 top-level fields が存在しない。
@@ -181,7 +181,7 @@ response handling:
 6. artifact verification failure は job 成功として扱わない。
 7. 429 は backpressure として扱い、`Retry-After` があれば尊重する。
 8. timeout / provider error / artifact failure / validation failure を区別して既存システムの error model に戻す。
-9. `planned`、`accepted`、`queued`、`running` は成功ではない。caller migration の contract path 確認としては使えるが、製品利用可能性の最終 E2E success として報告してはならない。
+9. `planned`、`accepted`、`queued`、`running` は成功ではない。また、`/submit` において `execute=true`（または製品同等物）が不在または false の場合、`planned` 状態で停止する可能性があり、これは最終的な E2E success ではない。caller migration の contract path 確認としては使えるが、製品利用可能性の最終 E2E success として報告してはならない。
 10. 最終 E2E success は terminal success (`succeeded` または product が返す同等 terminal success) かつ `/verify/{job_id}` が `ok:true` の場合だけである。
 11. `/verify` が `ok:false` で missing artifacts を返した場合、job が未実行なら fail-closed として正しいが、最終 E2E success ではない。
 
@@ -229,7 +229,7 @@ response handling:
 6. one real product API contract check:
    `GET /schemas/caller-request` -> `GET /catalog/operations` -> `POST /validate`
 7. one real executed E2E smoke when credentials and policy allow it:
-   `POST /submit` with execution enabled -> `GET /jobs/{job_id}` until terminal success -> `GET /verify/{job_id}` returns `ok:true`
+   `POST /submit` with `execute=true` (or product equivalent) -> `GET /jobs/{job_id}` until terminal success -> `GET /verify/{job_id}` returns `ok:true`
 8. artifact existence check for successful executed E2E:
    `result.json`, `metrics.json`, `verify.json`, `stdout.log`, `stderr.log`, plus product manifest/record files when available
 
@@ -293,7 +293,7 @@ NO-GO if any of these remain:
 - LLM runtime routing
 - request can be sent without validation
 - missing idempotency key
-- missing finite limits
+- missing valid limits (runtime as integer, cost/output as finite positive numbers)
 - artifact verification is optional or absent
 - production-quality `llm.generate` can use under-70B model without degraded/smoke/development label
 - backend selector has a default local/Ollama/OpenAI/API/provider-direct fallback

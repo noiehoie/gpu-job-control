@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 from urllib import error, request
+from urllib.parse import urlencode
 import json
 import time
 
@@ -20,17 +21,17 @@ class PublicClient:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
 
-    def validate(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._post("/validate", payload)
+    def validate(self, payload: dict[str, Any], *, provider: str = "") -> dict[str, Any]:
+        return self._post(_query_path("/validate", provider=provider), payload)
 
     def route(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._post("/route", payload)
 
-    def plan(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._post("/plan", payload)
+    def plan(self, payload: dict[str, Any], *, provider: str = "") -> dict[str, Any]:
+        return self._post(_query_path("/plan", provider=provider), payload)
 
-    def submit(self, payload: dict[str, Any], *, execute: bool = False) -> dict[str, Any]:
-        return self._post(f"/submit?execute={1 if execute else 0}", payload)
+    def submit(self, payload: dict[str, Any], *, execute: bool = False, provider: str = "") -> dict[str, Any]:
+        return self._post(_query_path("/submit", execute=1 if execute else 0, provider=provider), payload)
 
     def status(self, job_id: str) -> dict[str, Any]:
         return self._get(f"/jobs/{job_id}")
@@ -91,6 +92,13 @@ def _decode_error_payload(exc: error.HTTPError) -> dict[str, Any]:
         payload = {"ok": False, "error": str(payload)}
     payload.setdefault("status_code", exc.code)
     return payload
+
+
+def _query_path(path: str, **params: Any) -> str:
+    clean = {key: value for key, value in params.items() if value not in ("", None)}
+    if not clean:
+        return path
+    return f"{path}?{urlencode(clean)}"
 
 
 def _retry_delay_seconds(exc: error.HTTPError, attempt: int) -> float:

@@ -47,6 +47,12 @@ The machine-readable reference is
 
 New external integrations must use the canonical caller request.
 
+Provider selection, when an operator-approved integration must pin a fixed
+local or cloud provider, is a transport-level option, not a caller request
+field. Use `?provider=<provider>` on `/validate`, `/plan`, or `/submit`, or an
+equivalent wrapper that keeps the canonical request under `job`. Do not place
+`provider` inside the caller request JSON itself.
+
 ## Public Response Rules
 
 - All public JSON responses include either an `ok` field or a resource payload

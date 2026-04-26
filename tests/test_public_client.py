@@ -4,7 +4,7 @@ from urllib.error import HTTPError
 from email.message import Message
 from io import BytesIO
 
-from gpu_job.public_client import PublicApiError, PublicClient, _decode_error_payload, _retry_delay_seconds
+from gpu_job.public_client import PublicApiError, PublicClient, _decode_error_payload, _query_path, _retry_delay_seconds
 
 
 def test_public_client_binds_expected_paths() -> None:
@@ -13,6 +13,27 @@ def test_public_client_binds_expected_paths() -> None:
     assert client.timeout_seconds == 5
     assert client.max_retries == 1
     assert client._headers()["Authorization"] == "Bearer secret"
+
+
+def test_public_client_binds_provider_as_transport_query() -> None:
+    calls = []
+
+    class CapturingClient(PublicClient):
+        def _post(self, path, payload):  # type: ignore[no-untyped-def]
+            calls.append((path, payload))
+            return {"ok": True, "path": path}
+
+    client = CapturingClient("http://127.0.0.1:8765")
+    payload = {"contract_version": "gpu-job-caller-request-v1"}
+
+    assert client.validate(payload, provider="ollama")["path"] == "/validate?provider=ollama"
+    assert client.plan(payload, provider="ollama")["path"] == "/plan?provider=ollama"
+    assert client.submit(payload, execute=True, provider="ollama")["path"] == "/submit?execute=1&provider=ollama"
+    assert all(sent is payload for _, sent in calls)
+
+
+def test_query_path_omits_empty_provider() -> None:
+    assert _query_path("/submit", execute=0, provider="") == "/submit?execute=0"
 
 
 def test_public_client_decodes_http_error_payload() -> None:

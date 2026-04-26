@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gpu_job.public_ops as public_ops
 from gpu_job.lanes import LANES, resolve_lane_id
-from gpu_job.public_ops import plan_public_job, route_public_job, schema_snapshot, validate_public_job
+from gpu_job.public_ops import plan_public_job, route_public_job, schema_snapshot, submit_public_job, validate_public_job
 
 
 def _job_dict() -> dict:
@@ -69,6 +69,11 @@ def test_resolve_lane_id_prefers_explicit_provider_module_id() -> None:
     assert resolve_lane_id("vast", {"provider_module_id": "vast_pyworker_serverless"}) == "vast_pyworker_serverless"
 
 
+def test_resolve_lane_id_returns_empty_for_fixed_capacity_providers() -> None:
+    assert resolve_lane_id("local") == ""
+    assert resolve_lane_id("ollama") == ""
+
+
 def test_route_public_job_is_deterministic_and_records_lane(monkeypatch) -> None:
     monkeypatch.setattr(public_ops, "route_job", _stub_route_job)
     first = route_public_job(_job_dict())
@@ -114,6 +119,28 @@ def test_plan_public_job_accepts_caller_request_shape(monkeypatch) -> None:
     assert result["selected_lane_id"] == "modal_function"
     assert result["plan"]["execution_plan"]["job_type"] == "llm_heavy"
     assert result["route_result"]["job_id"].startswith("llm_heavy-")
+
+
+def test_plan_public_job_accepts_ollama_transport_provider(monkeypatch) -> None:
+    monkeypatch.setattr(public_ops, "route_job", _stub_route_job)
+    result = plan_public_job(_caller_request(), provider="ollama")
+
+    assert result["ok"] is True
+    assert result["selected_provider"] == "ollama"
+    assert result["selected_lane_id"] == ""
+    assert result["plan"]["provider"] == "ollama"
+
+
+def test_submit_public_job_accepts_ollama_transport_provider_without_execute(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    monkeypatch.setattr(public_ops, "route_job", _stub_route_job)
+    result = submit_public_job(_caller_request(), provider="ollama", execute=False)
+
+    assert result["ok"] is True
+    assert result["selected_provider"] == "ollama"
+    assert result["selected_lane_id"] == ""
+    assert result["job"]["status"] == "planned"
 
 
 def test_validate_public_job_fail_closes_invalid_caller_request() -> None:

@@ -18,6 +18,7 @@ from .provider_catalog import load_provider_catalog
 from .provider_contract_probe import list_contract_probes, provider_contract_probe_schema
 from .provider_module_contracts import provider_module_validation, provider_module_contract_schema
 from .provider_probe import recent_probe_summary
+from .providers import get_provider
 from .requirements import load_requirement_registry
 from .router import route_job
 from .runner import submit_job
@@ -78,7 +79,7 @@ def validate_public_job(job_data: dict[str, Any], provider: str = "") -> dict[st
     validations = {}
     lane_ids = {item["lane_id"] for item in list_lanes()}
     for provider_name in providers:
-        lane_id = resolve_lane_id(provider_name, job.metadata) if provider_name in {"modal", "runpod", "vast"} else ""
+        lane_id = resolve_lane_id(provider_name, job.metadata)
         if lane_id and lane_id not in lane_ids:
             lane_id = ""
         metadata = dict(job.metadata)
@@ -96,8 +97,11 @@ def plan_public_job(job_data: dict[str, Any], provider: str = "auto") -> dict[st
     routed = route_job(job)
     selected_provider = routed["selected_provider"] if provider == "auto" else provider
     lane_id = resolve_lane_id(selected_provider, job.metadata)
-    lane = get_lane(lane_id)
-    plan = lane.plan(job)
+    if lane_id:
+        lane = get_lane(lane_id)
+        plan = lane.plan(job)
+    else:
+        plan = get_provider(selected_provider).plan(job)
     return {
         "ok": bool(plan.get("ok", True)),
         "selected_provider": selected_provider,
@@ -113,4 +117,9 @@ def submit_public_job(job_data: dict[str, Any], provider: str = "auto", *, execu
     selected_provider = routed["selected_provider"] if provider == "auto" else provider
     lane_id = resolve_lane_id(selected_provider, job.metadata)
     result = submit_job(job, provider_name=selected_provider, execute=execute)
-    return {**result, "selected_lane_id": lane_id, "route_result": routed}
+    return {
+        **result,
+        "selected_provider": selected_provider,
+        "selected_lane_id": lane_id,
+        "route_result": routed,
+    }
